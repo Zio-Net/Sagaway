@@ -1,0 +1,180 @@
+﻿Preparing test test_five_deactivated_each
+OperationNumber: Op1
+Dependencies: 0
+MaxRetries: 2
+NumberOfFailures: 0
+CallDelay: 1 - 10
+RetryDelay: 1
+RevertMaxRetries: 0
+RevertNumberOfFailures: 0
+RevertCallDelay: empty
+RevertRetryDelay: 0
+ValidateFunctionResult: 1 - True
+RevertValidateFunctionResults: empty
+CallCounter: 0
+RevertCallCounter: 0
+ValidateCallCounter: 0
+RevertValidateCallCounter: 0
+Deactivate: 1
+ThrowException: empty
+ValidateThrowException: empty
+RevertThrowException: empty
+RevertValidateThrowException: empty
+HasReportFail: False
+HasRevert: False
+HasValidate: True
+HasRevertValidate: False
+
+OperationNumber: Op2
+Dependencies: 0
+MaxRetries: 2
+NumberOfFailures: 0
+CallDelay: 1 - 10
+RetryDelay: 3
+RevertMaxRetries: 0
+RevertNumberOfFailures: 0
+RevertCallDelay: empty
+RevertRetryDelay: 0
+ValidateFunctionResult: 1 - True
+RevertValidateFunctionResults: empty
+CallCounter: 0
+RevertCallCounter: 0
+ValidateCallCounter: 0
+RevertValidateCallCounter: 0
+Deactivate: 1
+ThrowException: empty
+ValidateThrowException: empty
+RevertThrowException: empty
+RevertValidateThrowException: empty
+HasReportFail: False
+HasRevert: False
+HasValidate: True
+HasRevertValidate: False
+
+OperationNumber: Op3
+Dependencies: 0
+MaxRetries: 2
+NumberOfFailures: 0
+CallDelay: 1 - 10
+RetryDelay: 5
+RevertMaxRetries: 0
+RevertNumberOfFailures: 0
+RevertCallDelay: empty
+RevertRetryDelay: 0
+ValidateFunctionResult: 1 - True
+RevertValidateFunctionResults: empty
+CallCounter: 0
+RevertCallCounter: 0
+ValidateCallCounter: 0
+RevertValidateCallCounter: 0
+Deactivate: 1
+ThrowException: empty
+ValidateThrowException: empty
+RevertThrowException: empty
+RevertValidateThrowException: empty
+HasReportFail: False
+HasRevert: False
+HasValidate: True
+HasRevertValidate: False
+
+OperationNumber: Op4
+Dependencies: 0
+MaxRetries: 2
+NumberOfFailures: 0
+CallDelay: 1 - 10
+RetryDelay: 7
+RevertMaxRetries: 0
+RevertNumberOfFailures: 0
+RevertCallDelay: empty
+RevertRetryDelay: 0
+ValidateFunctionResult: 1 - True
+RevertValidateFunctionResults: empty
+CallCounter: 0
+RevertCallCounter: 0
+ValidateCallCounter: 0
+RevertValidateCallCounter: 0
+Deactivate: 1
+ThrowException: empty
+ValidateThrowException: empty
+RevertThrowException: empty
+RevertValidateThrowException: empty
+HasReportFail: False
+HasRevert: False
+HasValidate: True
+HasRevertValidate: False
+
+OperationNumber: Op5
+Dependencies: 0
+MaxRetries: 2
+NumberOfFailures: 0
+CallDelay: 1 - 10
+RetryDelay: 9
+RevertMaxRetries: 0
+RevertNumberOfFailures: 0
+RevertCallDelay: empty
+RevertRetryDelay: 0
+ValidateFunctionResult: 1 - True
+RevertValidateFunctionResults: empty
+CallCounter: 0
+RevertCallCounter: 0
+ValidateCallCounter: 0
+RevertValidateCallCounter: 0
+Deactivate: 1
+ThrowException: empty
+ValidateThrowException: empty
+RevertThrowException: empty
+RevertValidateThrowException: empty
+HasReportFail: False
+HasRevert: False
+HasValidate: True
+HasRevertValidate: False
+
+Op1 Validate returns True
+Calling Op1: Success True
+Op2 Validate returns True
+Calling Op2: Success True
+Op3 Validate returns True
+Calling Op3: Success True
+Op4 Validate returns True
+Calling Op4: Success True
+Op5 Validate returns True
+OnSuccessCompletionCallback: Success.
+Run Log:
+[*time*][Op1]: Start Executing 
+[*time*][Op1]: Registering reminder Op1:Retry for Op1 with interval 00:00:01
+Saga_test is deactivated.
+Saga_test is activated.
+[*time*][Op1]: Wake by a reminder
+[*time*][Op1]: Success
+[*time*][Op1]: Success
+[*time*][Op2]: Start Executing 
+[*time*][Op2]: Registering reminder Op2:Retry for Op2 with interval 00:00:03
+Saga_test is deactivated.
+Saga_test is activated.
+[*time*][Op2]: Wake by a reminder
+[*time*][Op2]: Success
+[*time*][Op2]: Success
+[*time*][Op3]: Start Executing 
+[*time*][Op3]: Registering reminder Op3:Retry for Op3 with interval 00:00:05
+Saga_test is deactivated.
+Saga_test is activated.
+[*time*][Op3]: Wake by a reminder
+[*time*][Op3]: Success
+[*time*][Op3]: Success
+[*time*][Op4]: Start Executing 
+[*time*][Op4]: Registering reminder Op4:Retry for Op4 with interval 00:00:07
+Saga_test is deactivated.
+Saga_test is activated.
+[*time*][Op4]: Wake by a reminder
+[*time*][Op4]: Success
+[*time*][Op4]: Success
+[*time*][Op5]: Start Executing 
+[*time*][Op5]: Registering reminder Op5:Retry for Op5 with interval 00:00:09
+Saga_test is deactivated.
+Saga_test is activated.
+[*time*][Op5]: Wake by a reminder
+[*time*][Op5]: Success
+
+
+OnSagaCompleted: Id: test Status: Succeeded
+Calling Op5: Success True

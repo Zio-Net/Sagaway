@@ -1,0 +1,2 @@
+﻿TestValidationNoOnRevertedCallback
+No on reverted or on failed callback is defined

@@ -1,0 +1,37 @@
+﻿Preparing test test_single_fail_no_retry_report_failure
+OperationNumber: Op1
+Dependencies: 0
+MaxRetries: 0
+NumberOfFailures: 1
+CallDelays: empty
+RetryDelay: 0
+RevertMaxRetries: 0
+RevertNumberOfFailures: 0
+RevertCallDelay: empty
+RevertRetryDelay: 0
+ValidateFunctionResults: empty
+RevertValidateFunctionResults: empty
+CallCounter: 0
+RevertCallCounter: 0
+ValidateCallCounter: 0
+RevertValidateCallCounter: 0
+Deactivate: empty
+ThrowException: empty
+ValidateThrowException: empty
+RevertThrowException: empty
+RevertValidateThrowException: empty
+HasReportFail: True
+HasRevert: False
+HasValidate: False
+HasRevertValidate: False
+
+Calling Op1: Success False
+OnFailCallback: Fail.
+Run Log:
+[*time*][Op1]: Start Executing 
+[*time*][Op1]: Failed. Retries exhausted.
+[*time*][Op1]: Start Executing Revert 
+[*time*][Op1]: No undo operation for Op1. Marking as reverted
+
+
+OnSagaCompleted: Id: test Status: Reverted

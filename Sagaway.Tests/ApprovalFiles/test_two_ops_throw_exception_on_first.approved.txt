@@ -1,0 +1,65 @@
+﻿Preparing test test_two_ops_throw_exception_on_first
+OperationNumber: Op1
+Dependencies: 0
+MaxRetries: 0
+NumberOfFailures: 0
+CallDelays: empty
+RetryDelay: 0
+RevertMaxRetries: 0
+RevertNumberOfFailures: 0
+RevertCallDelay: empty
+RevertRetryDelay: 0
+ValidateFunctionResults: empty
+RevertValidateFunctionResults: empty
+CallCounter: 0
+RevertCallCounter: 0
+ValidateCallCounter: 0
+RevertValidateCallCounter: 0
+Deactivate: empty
+ThrowException: 1
+ValidateThrowException: empty
+RevertThrowException: empty
+RevertValidateThrowException: empty
+HasReportFail: False
+HasRevert: False
+HasValidate: False
+HasRevertValidate: False
+
+OperationNumber: Op2
+Dependencies: 0
+MaxRetries: 0
+NumberOfFailures: 0
+CallDelays: empty
+RetryDelay: 0
+RevertMaxRetries: 0
+RevertNumberOfFailures: 0
+RevertCallDelay: empty
+RevertRetryDelay: 0
+ValidateFunctionResults: empty
+RevertValidateFunctionResults: empty
+CallCounter: 0
+RevertCallCounter: 0
+ValidateCallCounter: 0
+RevertValidateCallCounter: 0
+Deactivate: empty
+ThrowException: empty
+ValidateThrowException: empty
+RevertThrowException: empty
+RevertValidateThrowException: empty
+HasReportFail: False
+HasRevert: False
+HasValidate: False
+HasRevertValidate: False
+
+OnRevertedCallback: Reverted.
+Run Log:
+[*time*][Op1]: Start Executing 
+[*time*][Op1]: Error when calling . Error: Throwing exception on call 1. Retry in 00:00:00 seconds
+[*time*][Op1]: No reminder set for Op1. Taking failure action
+[*time*][Op1]: Failed. Retries exhausted.
+[*time*][Op1]: Start Executing Revert 
+[*time*][Op1]: No undo operation for Op1. Marking as reverted
+[*time*][Op2]: Saga test is not reverting not started operation Op2.
+
+
+OnSagaCompleted: Id: test Status: Reverted

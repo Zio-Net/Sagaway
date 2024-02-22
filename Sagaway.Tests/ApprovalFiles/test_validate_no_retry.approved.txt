@@ -1,0 +1,2 @@
+﻿test_validate_no_retry
+Retry count must be greater than 0 for all operations that provide a validate function

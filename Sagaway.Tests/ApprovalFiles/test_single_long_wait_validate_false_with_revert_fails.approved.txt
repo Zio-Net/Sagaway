@@ -1,0 +1,51 @@
+﻿Preparing test test_single_long_wait_validate_false_with_revert_fails
+OperationNumber: Op1
+Dependencies: 0
+MaxRetries: 1
+NumberOfFailures: 2
+CallDelay: 1 - 5
+RetryDelay: 2
+RevertMaxRetries: 1
+RevertNumberOfFailures: 2
+RevertCallDelay: empty
+RevertRetryDelay: 2
+ValidateFunctionResult: 1 - False
+RevertValidateFunctionResults: empty
+CallCounter: 0
+RevertCallCounter: 0
+ValidateCallCounter: 0
+RevertValidateCallCounter: 0
+Deactivate: empty
+ThrowException: empty
+ValidateThrowException: empty
+RevertThrowException: empty
+RevertValidateThrowException: empty
+HasReportFail: False
+HasRevert: True
+HasValidate: True
+HasRevertValidate: False
+
+Op1 Validate returns False
+Op1 Validate returns False
+Calling revert for Op1: Success False
+Calling revert for Op1: Success False
+OnFailedRevertedCallback: FailedReverted.
+Run Log:
+[*time*][Op1]: Start Executing 
+[*time*][Op1]: Registering reminder Op1:Retry for Op1 with interval 00:00:02
+[*time*][Op1]: Wake by a reminder
+[*time*][Op1]: The state is unknown in the reminder, retry action
+[*time*][Op1]: Retry operation. Retry count: 1
+[*time*][Op1]: Start Executing 
+[*time*][Op1]: Registering reminder Op1:Retry for Op1 with interval 00:00:02
+[*time*][Op1]: Wake by a reminder
+[*time*][Op1]: The state is unknown in the reminder, retry action
+[*time*][Op1]: Failed. Retries exhausted.
+[*time*][Op1]: Start Executing Revert 
+[*time*][Op1]: Retry Revert operation. Retry count: 1
+[*time*][Op1]: Start Executing Revert 
+[*time*][Op1]: Revert Failed. Retries exhausted.
+
+
+OnSagaCompleted: Id: test Status: RevertFailed
+Calling Op1: Success False

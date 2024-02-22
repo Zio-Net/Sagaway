@@ -1,0 +1,91 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.8.34330.188
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sagaway", "Sagaway\Sagaway.csproj", "{C252010E-DADC-486D-A523-6A7A124E1DC6}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sagaway.Hosts.DaprActorHost", "Sagaway.Hosts.DaprActorHost\Sagaway.Hosts.DaprActorHost.csproj", "{30867041-5FFE-4D9D-801D-3EDB0F144A95}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sagaway.Tests", "Sagaway.Tests\Sagaway.Tests.csproj", "{7B8E3D0B-81E0-47CA-88D8-AC1C5734ABBB}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SagaReservationDemo", "SagaReservationDemo", "{FFF6DF40-5A9F-46B9-BE17-1AD17D40AC17}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "dapr", "dapr", "{2FEC9466-6230-458F-AF40-987FD9D08B6B}"
+	ProjectSection(SolutionItems) = preProject
+		SagaReservationDemo\dapr\config.yaml = SagaReservationDemo\dapr\config.yaml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "components", "components", "{B947F801-3598-47AD-8B63-CD185FF9F96C}"
+	ProjectSection(SolutionItems) = preProject
+		SagaReservationDemo\dapr\components\billing-queue.yaml = SagaReservationDemo\dapr\components\billing-queue.yaml
+		SagaReservationDemo\dapr\components\booking-queue.yaml = SagaReservationDemo\dapr\components\booking-queue.yaml
+		SagaReservationDemo\dapr\components\inventory-queue.yaml = SagaReservationDemo\dapr\components\inventory-queue.yaml
+		SagaReservationDemo\dapr\components\reservation-response-queue.yaml = SagaReservationDemo\dapr\components\reservation-response-queue.yaml
+		SagaReservationDemo\dapr\components\statestore.yaml = SagaReservationDemo\dapr\components\statestore.yaml
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SagaReservationDemo.ReservationManager", "SagaReservationDemo\SagaReservationDemo.ReservationManager\SagaReservationDemo.ReservationManager.csproj", "{368E0809-9900-4BA5-BB2F-968135C83706}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SagaReservationDemo.BookingManagement", "SagaReservationDemo\SagaReservationDemo.ReserveCar\SagaReservationDemo.BookingManagement.csproj", "{801E0226-1E51-4DB6-A811-117FF697EDB4}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SagaReservationDemo.BillingManagement", "SagaReservationDemo\SagaReservationDemo.BillingManagment\SagaReservationDemo.BillingManagement.csproj", "{407124C7-702D-4E0B-B4B6-A648148DEC0C}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SagaReservationDemo.InventoryManagement", "SagaReservationDemo\SagaReservationDemo.InventoryManagement\SagaReservationDemo.InventoryManagement.csproj", "{5C71F72E-69C3-4E46-B623-820E8BDF7655}"
+EndProject
+Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-compose.dcproj", "{B57015E3-BD2C-4B95-B024-5EFCAA5668F1}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C252010E-DADC-486D-A523-6A7A124E1DC6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C252010E-DADC-486D-A523-6A7A124E1DC6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C252010E-DADC-486D-A523-6A7A124E1DC6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C252010E-DADC-486D-A523-6A7A124E1DC6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{30867041-5FFE-4D9D-801D-3EDB0F144A95}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{30867041-5FFE-4D9D-801D-3EDB0F144A95}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{30867041-5FFE-4D9D-801D-3EDB0F144A95}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{30867041-5FFE-4D9D-801D-3EDB0F144A95}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7B8E3D0B-81E0-47CA-88D8-AC1C5734ABBB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7B8E3D0B-81E0-47CA-88D8-AC1C5734ABBB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7B8E3D0B-81E0-47CA-88D8-AC1C5734ABBB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7B8E3D0B-81E0-47CA-88D8-AC1C5734ABBB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{368E0809-9900-4BA5-BB2F-968135C83706}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{368E0809-9900-4BA5-BB2F-968135C83706}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{368E0809-9900-4BA5-BB2F-968135C83706}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{368E0809-9900-4BA5-BB2F-968135C83706}.Release|Any CPU.Build.0 = Release|Any CPU
+		{801E0226-1E51-4DB6-A811-117FF697EDB4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{801E0226-1E51-4DB6-A811-117FF697EDB4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{801E0226-1E51-4DB6-A811-117FF697EDB4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{801E0226-1E51-4DB6-A811-117FF697EDB4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{407124C7-702D-4E0B-B4B6-A648148DEC0C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{407124C7-702D-4E0B-B4B6-A648148DEC0C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{407124C7-702D-4E0B-B4B6-A648148DEC0C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{407124C7-702D-4E0B-B4B6-A648148DEC0C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5C71F72E-69C3-4E46-B623-820E8BDF7655}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5C71F72E-69C3-4E46-B623-820E8BDF7655}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5C71F72E-69C3-4E46-B623-820E8BDF7655}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5C71F72E-69C3-4E46-B623-820E8BDF7655}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B57015E3-BD2C-4B95-B024-5EFCAA5668F1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B57015E3-BD2C-4B95-B024-5EFCAA5668F1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B57015E3-BD2C-4B95-B024-5EFCAA5668F1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B57015E3-BD2C-4B95-B024-5EFCAA5668F1}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{2FEC9466-6230-458F-AF40-987FD9D08B6B} = {FFF6DF40-5A9F-46B9-BE17-1AD17D40AC17}
+		{B947F801-3598-47AD-8B63-CD185FF9F96C} = {2FEC9466-6230-458F-AF40-987FD9D08B6B}
+		{368E0809-9900-4BA5-BB2F-968135C83706} = {FFF6DF40-5A9F-46B9-BE17-1AD17D40AC17}
+		{801E0226-1E51-4DB6-A811-117FF697EDB4} = {FFF6DF40-5A9F-46B9-BE17-1AD17D40AC17}
+		{407124C7-702D-4E0B-B4B6-A648148DEC0C} = {FFF6DF40-5A9F-46B9-BE17-1AD17D40AC17}
+		{5C71F72E-69C3-4E46-B623-820E8BDF7655} = {FFF6DF40-5A9F-46B9-BE17-1AD17D40AC17}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {27AF5C62-89C5-4AE2-B5DD-7DC1D1DDA605}
+	EndGlobalSection
+EndGlobal

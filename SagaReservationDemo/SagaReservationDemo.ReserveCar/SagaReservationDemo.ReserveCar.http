@@ -1,0 +1,6 @@
+@SagaReservationDemo.BookingManagement_HostAddress = http://localhost:5185
+
+GET {{SagaReservationDemo.BookingManagement_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

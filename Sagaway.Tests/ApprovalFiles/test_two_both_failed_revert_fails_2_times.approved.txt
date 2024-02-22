@@ -1,0 +1,71 @@
+﻿Preparing test test_two_both_failed_revert_fails_2_times
+OperationNumber: Op1
+Dependencies: 0
+MaxRetries: 0
+NumberOfFailures: 1
+CallDelays: empty
+RetryDelay: 0
+RevertMaxRetries: 3
+RevertNumberOfFailures: 2
+RevertCallDelay: empty
+RevertRetryDelay: 1
+ValidateFunctionResults: empty
+RevertValidateFunctionResults: empty
+CallCounter: 0
+RevertCallCounter: 0
+ValidateCallCounter: 0
+RevertValidateCallCounter: 0
+Deactivate: empty
+ThrowException: empty
+ValidateThrowException: empty
+RevertThrowException: empty
+RevertValidateThrowException: empty
+HasReportFail: False
+HasRevert: True
+HasValidate: False
+HasRevertValidate: False
+
+OperationNumber: Op2
+Dependencies: 0
+MaxRetries: 0
+NumberOfFailures: 1
+CallDelays: empty
+RetryDelay: 0
+RevertMaxRetries: 3
+RevertNumberOfFailures: 2
+RevertCallDelay: empty
+RevertRetryDelay: 1
+ValidateFunctionResults: empty
+RevertValidateFunctionResults: empty
+CallCounter: 0
+RevertCallCounter: 0
+ValidateCallCounter: 0
+RevertValidateCallCounter: 0
+Deactivate: empty
+ThrowException: empty
+ValidateThrowException: empty
+RevertThrowException: empty
+RevertValidateThrowException: empty
+HasReportFail: False
+HasRevert: True
+HasValidate: False
+HasRevertValidate: False
+
+Calling Op1: Success False
+Calling revert for Op1: Success False
+Calling revert for Op1: Success False
+Calling revert for Op1: Success True
+OnRevertedCallback: Reverted.
+Run Log:
+[*time*][Op1]: Start Executing 
+[*time*][Op1]: Failed. Retries exhausted.
+[*time*][Op1]: Start Executing Revert 
+[*time*][Op1]: Retry Revert operation. Retry count: 1
+[*time*][Op1]: Start Executing Revert 
+[*time*][Op1]: Retry Revert operation. Retry count: 2
+[*time*][Op1]: Start Executing Revert 
+[*time*][Op1]: Revert Success
+[*time*][Op2]: Saga test is not reverting not started operation Op2.
+
+
+OnSagaCompleted: Id: test Status: Reverted

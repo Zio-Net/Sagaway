@@ -1,0 +1,45 @@
+﻿Preparing test test_single_long_wait_validate_exception
+OperationNumber: Op1
+Dependencies: 0
+MaxRetries: 1
+NumberOfFailures: 0
+CallDelay: 1 - 5
+RetryDelay: 2
+RevertMaxRetries: 0
+RevertNumberOfFailures: 0
+RevertCallDelay: empty
+RevertRetryDelay: 0
+ValidateFunctionResult: 1 - True
+ValidateFunctionResult: 2 - True
+RevertValidateFunctionResults: empty
+CallCounter: 0
+RevertCallCounter: 0
+ValidateCallCounter: 0
+RevertValidateCallCounter: 0
+Deactivate: empty
+ThrowException: empty
+ValidateThrowException: 1
+RevertThrowException: empty
+RevertValidateThrowException: empty
+HasReportFail: False
+HasRevert: False
+HasValidate: True
+HasRevertValidate: False
+
+Op1 Validate returns True
+OnSuccessCompletionCallback: Success.
+Run Log:
+[*time*][Op1]: Start Executing 
+[*time*][Op1]: Registering reminder Op1:Retry for Op1 with interval 00:00:02
+[*time*][Op1]: Wake by a reminder
+[*time*][Op1]: Error when calling Op1 validate. Error: Throwing exception on validate 1.
+[*time*][Op1]: The state is unknown in the reminder, retry action
+[*time*][Op1]: Retry operation. Retry count: 1
+[*time*][Op1]: Start Executing 
+[*time*][Op1]: Registering reminder Op1:Retry for Op1 with interval 00:00:02
+[*time*][Op1]: Wake by a reminder
+[*time*][Op1]: Success
+
+
+OnSagaCompleted: Id: test Status: Succeeded
+Calling Op1: Success True

@@ -1,0 +1,98 @@
+﻿Preparing test test_two_success_after_5_retries
+OperationNumber: Op1
+Dependencies: 0
+MaxRetries: 5
+NumberOfFailures: 4
+CallDelays: empty
+RetryDelay: 1
+RevertMaxRetries: 0
+RevertNumberOfFailures: 0
+RevertCallDelay: empty
+RevertRetryDelay: 0
+ValidateFunctionResults: empty
+RevertValidateFunctionResults: empty
+CallCounter: 0
+RevertCallCounter: 0
+ValidateCallCounter: 0
+RevertValidateCallCounter: 0
+Deactivate: empty
+ThrowException: empty
+ValidateThrowException: empty
+RevertThrowException: empty
+RevertValidateThrowException: empty
+HasReportFail: False
+HasRevert: False
+HasValidate: False
+HasRevertValidate: False
+
+OperationNumber: Op2
+Dependencies: 0
+MaxRetries: 5
+NumberOfFailures: 4
+CallDelays: empty
+RetryDelay: 1
+RevertMaxRetries: 0
+RevertNumberOfFailures: 0
+RevertCallDelay: empty
+RevertRetryDelay: 0
+ValidateFunctionResults: empty
+RevertValidateFunctionResults: empty
+CallCounter: 0
+RevertCallCounter: 0
+ValidateCallCounter: 0
+RevertValidateCallCounter: 0
+Deactivate: empty
+ThrowException: empty
+ValidateThrowException: empty
+RevertThrowException: empty
+RevertValidateThrowException: empty
+HasReportFail: False
+HasRevert: False
+HasValidate: False
+HasRevertValidate: False
+
+Calling Op1: Success False
+Calling Op1: Success False
+Calling Op1: Success False
+Calling Op1: Success False
+Calling Op1: Success True
+Calling Op2: Success False
+Calling Op2: Success False
+Calling Op2: Success False
+Calling Op2: Success False
+Calling Op2: Success True
+OnSuccessCompletionCallback: Success.
+Run Log:
+[*time*][Op1]: Start Executing 
+[*time*][Op1]: Registering reminder Op1:Retry for Op1 with interval 00:00:01
+[*time*][Op1]: Retry operation. Retry count: 1
+[*time*][Op1]: Start Executing 
+[*time*][Op1]: Registering reminder Op1:Retry for Op1 with interval 00:00:01
+[*time*][Op1]: Retry operation. Retry count: 2
+[*time*][Op1]: Start Executing 
+[*time*][Op1]: Registering reminder Op1:Retry for Op1 with interval 00:00:01
+[*time*][Op1]: Retry operation. Retry count: 3
+[*time*][Op1]: Start Executing 
+[*time*][Op1]: Registering reminder Op1:Retry for Op1 with interval 00:00:01
+[*time*][Op1]: Retry operation. Retry count: 4
+[*time*][Op1]: Start Executing 
+[*time*][Op1]: Registering reminder Op1:Retry for Op1 with interval 00:00:01
+[*time*][Op1]: Success
+[*time*][Op2]: Start Executing 
+[*time*][Op2]: Registering reminder Op2:Retry for Op2 with interval 00:00:01
+[*time*][Op2]: Retry operation. Retry count: 1
+[*time*][Op2]: Start Executing 
+[*time*][Op2]: Registering reminder Op2:Retry for Op2 with interval 00:00:01
+[*time*][Op2]: Retry operation. Retry count: 2
+[*time*][Op2]: Start Executing 
+[*time*][Op2]: Registering reminder Op2:Retry for Op2 with interval 00:00:01
+[*time*][Op2]: Retry operation. Retry count: 3
+[*time*][Op2]: Start Executing 
+[*time*][Op2]: Registering reminder Op2:Retry for Op2 with interval 00:00:01
+[*time*][Op2]: Retry operation. Retry count: 4
+[*time*][Op2]: Start Executing 
+[*time*][Op2]: Registering reminder Op2:Retry for Op2 with interval 00:00:01
+[*time*][Op2]: Success
+
+
+OnSagaCompleted: Id: test Status: Succeeded

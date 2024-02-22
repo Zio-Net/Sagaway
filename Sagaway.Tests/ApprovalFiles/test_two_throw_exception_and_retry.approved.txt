@@ -1,0 +1,78 @@
+﻿Preparing test test_two_throw_exception_and_retry
+OperationNumber: Op1
+Dependencies: 0
+MaxRetries: 1
+NumberOfFailures: 0
+CallDelays: empty
+RetryDelay: 2
+RevertMaxRetries: 0
+RevertNumberOfFailures: 0
+RevertCallDelay: empty
+RevertRetryDelay: 0
+ValidateFunctionResults: empty
+RevertValidateFunctionResults: empty
+CallCounter: 0
+RevertCallCounter: 0
+ValidateCallCounter: 0
+RevertValidateCallCounter: 0
+Deactivate: empty
+ThrowException: 1
+ValidateThrowException: empty
+RevertThrowException: empty
+RevertValidateThrowException: empty
+HasReportFail: False
+HasRevert: False
+HasValidate: False
+HasRevertValidate: False
+
+OperationNumber: Op2
+Dependencies: 0
+MaxRetries: 1
+NumberOfFailures: 0
+CallDelays: empty
+RetryDelay: 4
+RevertMaxRetries: 0
+RevertNumberOfFailures: 0
+RevertCallDelay: empty
+RevertRetryDelay: 0
+ValidateFunctionResults: empty
+RevertValidateFunctionResults: empty
+CallCounter: 0
+RevertCallCounter: 0
+ValidateCallCounter: 0
+RevertValidateCallCounter: 0
+Deactivate: empty
+ThrowException: 1
+ValidateThrowException: empty
+RevertThrowException: empty
+RevertValidateThrowException: empty
+HasReportFail: False
+HasRevert: False
+HasValidate: False
+HasRevertValidate: False
+
+Calling Op1: Success True
+Calling Op2: Success True
+OnSuccessCompletionCallback: Success.
+Run Log:
+[*time*][Op1]: Start Executing 
+[*time*][Op1]: Registering reminder Op1:Retry for Op1 with interval 00:00:02
+[*time*][Op1]: Error when calling . Error: Throwing exception on call 1. Retry in 00:00:02 seconds
+[*time*][Op2]: Start Executing 
+[*time*][Op2]: Registering reminder Op2:Retry for Op2 with interval 00:00:04
+[*time*][Op2]: Error when calling . Error: Throwing exception on call 1. Retry in 00:00:04 seconds
+[*time*][Op1]: Wake by a reminder
+[*time*][Op1]: The state is unknown in the reminder, retry action
+[*time*][Op1]: Retry operation. Retry count: 1
+[*time*][Op1]: Start Executing 
+[*time*][Op1]: Registering reminder Op1:Retry for Op1 with interval 00:00:02
+[*time*][Op1]: Success
+[*time*][Op2]: Wake by a reminder
+[*time*][Op2]: The state is unknown in the reminder, retry action
+[*time*][Op2]: Retry operation. Retry count: 1
+[*time*][Op2]: Start Executing 
+[*time*][Op2]: Registering reminder Op2:Retry for Op2 with interval 00:00:04
+[*time*][Op2]: Success
+
+
+OnSagaCompleted: Id: test Status: Succeeded

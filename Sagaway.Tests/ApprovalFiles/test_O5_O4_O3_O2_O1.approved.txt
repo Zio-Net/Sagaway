@@ -1,0 +1,151 @@
+﻿Preparing test test_O5_O4_O3_O2_O1
+OperationNumber: Op1
+Dependencies: Op2
+MaxRetries: 0
+NumberOfFailures: 0
+CallDelays: empty
+RetryDelay: 0
+RevertMaxRetries: 0
+RevertNumberOfFailures: 0
+RevertCallDelay: empty
+RevertRetryDelay: 0
+ValidateFunctionResults: empty
+RevertValidateFunctionResults: empty
+CallCounter: 0
+RevertCallCounter: 0
+ValidateCallCounter: 0
+RevertValidateCallCounter: 0
+Deactivate: empty
+ThrowException: empty
+ValidateThrowException: empty
+RevertThrowException: empty
+RevertValidateThrowException: empty
+HasReportFail: False
+HasRevert: False
+HasValidate: False
+HasRevertValidate: False
+
+OperationNumber: Op2
+Dependencies: Op3
+MaxRetries: 0
+NumberOfFailures: 0
+CallDelays: empty
+RetryDelay: 0
+RevertMaxRetries: 0
+RevertNumberOfFailures: 0
+RevertCallDelay: empty
+RevertRetryDelay: 0
+ValidateFunctionResults: empty
+RevertValidateFunctionResults: empty
+CallCounter: 0
+RevertCallCounter: 0
+ValidateCallCounter: 0
+RevertValidateCallCounter: 0
+Deactivate: empty
+ThrowException: empty
+ValidateThrowException: empty
+RevertThrowException: empty
+RevertValidateThrowException: empty
+HasReportFail: False
+HasRevert: False
+HasValidate: False
+HasRevertValidate: False
+
+OperationNumber: Op3
+Dependencies: Op4
+MaxRetries: 0
+NumberOfFailures: 0
+CallDelays: empty
+RetryDelay: 0
+RevertMaxRetries: 0
+RevertNumberOfFailures: 0
+RevertCallDelay: empty
+RevertRetryDelay: 0
+ValidateFunctionResults: empty
+RevertValidateFunctionResults: empty
+CallCounter: 0
+RevertCallCounter: 0
+ValidateCallCounter: 0
+RevertValidateCallCounter: 0
+Deactivate: empty
+ThrowException: empty
+ValidateThrowException: empty
+RevertThrowException: empty
+RevertValidateThrowException: empty
+HasReportFail: False
+HasRevert: False
+HasValidate: False
+HasRevertValidate: False
+
+OperationNumber: Op4
+Dependencies: Op5
+MaxRetries: 0
+NumberOfFailures: 0
+CallDelays: empty
+RetryDelay: 0
+RevertMaxRetries: 0
+RevertNumberOfFailures: 0
+RevertCallDelay: empty
+RevertRetryDelay: 0
+ValidateFunctionResults: empty
+RevertValidateFunctionResults: empty
+CallCounter: 0
+RevertCallCounter: 0
+ValidateCallCounter: 0
+RevertValidateCallCounter: 0
+Deactivate: empty
+ThrowException: empty
+ValidateThrowException: empty
+RevertThrowException: empty
+RevertValidateThrowException: empty
+HasReportFail: False
+HasRevert: False
+HasValidate: False
+HasRevertValidate: False
+
+OperationNumber: Op5
+Dependencies: 0
+MaxRetries: 0
+NumberOfFailures: 0
+CallDelays: empty
+RetryDelay: 0
+RevertMaxRetries: 0
+RevertNumberOfFailures: 0
+RevertCallDelay: empty
+RevertRetryDelay: 0
+ValidateFunctionResults: empty
+RevertValidateFunctionResults: empty
+CallCounter: 0
+RevertCallCounter: 0
+ValidateCallCounter: 0
+RevertValidateCallCounter: 0
+Deactivate: empty
+ThrowException: empty
+ValidateThrowException: empty
+RevertThrowException: empty
+RevertValidateThrowException: empty
+HasReportFail: False
+HasRevert: False
+HasValidate: False
+HasRevertValidate: False
+
+Calling Op5: Success True
+Calling Op4: Success True
+Calling Op3: Success True
+Calling Op2: Success True
+Calling Op1: Success True
+OnSuccessCompletionCallback: Success.
+Run Log:
+[*time*][Op5]: Start Executing 
+[*time*][Op5]: Success
+[*time*][Op4]: Start Executing 
+[*time*][Op4]: Success
+[*time*][Op3]: Start Executing 
+[*time*][Op3]: Success
+[*time*][Op2]: Start Executing 
+[*time*][Op2]: Success
+[*time*][Op1]: Start Executing 
+[*time*][Op1]: Success
+
+
+OnSagaCompleted: Id: test Status: Succeeded

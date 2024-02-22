@@ -1,0 +1,40 @@
+﻿Preparing test test_single_fail_and_retry
+OperationNumber: Op1
+Dependencies: 0
+MaxRetries: 2
+NumberOfFailures: 1
+CallDelays: empty
+RetryDelay: 10
+RevertMaxRetries: 0
+RevertNumberOfFailures: 0
+RevertCallDelay: empty
+RevertRetryDelay: 0
+ValidateFunctionResults: empty
+RevertValidateFunctionResults: empty
+CallCounter: 0
+RevertCallCounter: 0
+ValidateCallCounter: 0
+RevertValidateCallCounter: 0
+Deactivate: empty
+ThrowException: empty
+ValidateThrowException: empty
+RevertThrowException: empty
+RevertValidateThrowException: empty
+HasReportFail: False
+HasRevert: False
+HasValidate: False
+HasRevertValidate: False
+
+Calling Op1: Success False
+Calling Op1: Success True
+OnSuccessCompletionCallback: Success.
+Run Log:
+[*time*][Op1]: Start Executing 
+[*time*][Op1]: Registering reminder Op1:Retry for Op1 with interval 00:00:10
+[*time*][Op1]: Retry operation. Retry count: 1
+[*time*][Op1]: Start Executing 
+[*time*][Op1]: Registering reminder Op1:Retry for Op1 with interval 00:00:10
+[*time*][Op1]: Success
+
+
+OnSagaCompleted: Id: test Status: Succeeded

@@ -1,0 +1,2 @@
+﻿TestValidationOperationNoDoOperation
+All operation must set the Do function
