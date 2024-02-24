@@ -3,6 +3,7 @@ using System.Text.Json;
 using Dapr.Client;
 using Microsoft.AspNetCore.Mvc;
 using SagaReservationDemo.InventoryManagement;
+using Sagaway.Callback.Propagator;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,16 +13,17 @@ builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
 // Register DaprClient
-builder.Services.AddControllers().AddDapr().AddJsonOptions(options =>
+builder.Services.AddControllers().AddDapr(b => b.AddSagawayContextPropagator()).AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: false));
     options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
 });
 
-
+builder.Services.AddSagawayContextPropagator();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
 
 var app = builder.Build();
 
@@ -36,6 +38,7 @@ if (app.Environment.IsDevelopment())
 app.MapPost("/inventory-queue", async (
         [FromBody] CarInventoryRequest request,
         [FromServices] ILogger<Program> logger,
+        [FromServices] ICallbackQueueNameProvider callbackQueueNameProvider,
         [FromServices] DaprClient daprClient) =>
 {
     logger.LogInformation("Received car inventory request for {CarClass} order id: {orderId}",
@@ -75,7 +78,7 @@ app.MapPost("/inventory-queue", async (
 
             reservationOperationResult.IsSuccess = true;
             // Send the response to the response queue
-            await daprClient.InvokeBindingAsync(request.ResponseQueueName, "create", reservationOperationResult);
+            await daprClient.InvokeBindingAsync(callbackQueueNameProvider.CallbackQueueName, "create", reservationOperationResult);
             return;
         }
 
@@ -90,7 +93,7 @@ app.MapPost("/inventory-queue", async (
             reservationOperationResult.IsSuccess = false;
 
             // Send the response to the response queue
-            await daprClient.InvokeBindingAsync(request.ResponseQueueName, "create", reservationOperationResult);
+            await daprClient.InvokeBindingAsync(callbackQueueNameProvider.CallbackQueueName, "create", reservationOperationResult);
             return;
         }
 
@@ -135,14 +138,14 @@ app.MapPost("/inventory-queue", async (
                                request.CarClass, request.OrderId, carClassState + 1);
 
             reservationOperationResult.IsSuccess = true;
-            await daprClient.InvokeBindingAsync(request.ResponseQueueName, "create", reservationOperationResult);
+            await daprClient.InvokeBindingAsync(callbackQueueNameProvider.CallbackQueueName, "create", reservationOperationResult);
 
         }
         catch (Exception e)
         {
             logger.LogError(e, "Failed to reserve car class {CarClass} for order id {orderId}", request.CarClass, request.OrderId);
             reservationOperationResult.IsSuccess = false;
-            await daprClient.InvokeBindingAsync(request.ResponseQueueName, "create", reservationOperationResult);
+            await daprClient.InvokeBindingAsync(callbackQueueNameProvider.CallbackQueueName, "create", reservationOperationResult);
         }
     }
 
@@ -160,7 +163,7 @@ app.MapPost("/inventory-queue", async (
 
             reservationOperationResult.IsSuccess = true;
 
-            await daprClient.InvokeBindingAsync(request.ResponseQueueName, "create", reservationOperationResult);
+            await daprClient.InvokeBindingAsync(callbackQueueNameProvider.CallbackQueueName, "create", reservationOperationResult);
             return;
         }
         //else
@@ -196,14 +199,14 @@ app.MapPost("/inventory-queue", async (
 
             reservationOperationResult.IsSuccess = true;
 
-            await daprClient.InvokeBindingAsync(request.ResponseQueueName, "create", reservationOperationResult);
+            await daprClient.InvokeBindingAsync(callbackQueueNameProvider.CallbackQueueName, "create", reservationOperationResult);
 
         }
         catch (Exception e)
         {
             logger.LogError(e, "Failed to cancel car class {CarClass} for order id {orderId}", request.CarClass, request.OrderId);
             reservationOperationResult.IsSuccess = false;
-            await daprClient.InvokeBindingAsync(request.ResponseQueueName, "create", reservationOperationResult);
+            await daprClient.InvokeBindingAsync(callbackQueueNameProvider.CallbackQueueName, "create", reservationOperationResult);
         }
     }
 })
@@ -240,6 +243,7 @@ app.MapGet("/reservation-state/{orderId}", async (
 .WithName("GetReservationState")
 .WithOpenApi();
 
+app.UseSagawayContextPropagator();
 app.MapControllers();
 app.MapSubscribeHandler();
 app.UseRouting();

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 using SagaReservationDemo.BookingManagement;
 using System.Text.Json.Serialization;
+using Sagaway.Callback.Propagator;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,15 +11,15 @@ builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
-// Register DaprClient
-builder.Services.AddControllers().AddDapr().AddJsonOptions(options =>
+// Register DaprClient that support Sagaway context propagator
+builder.Services.AddControllers().AddDaprWithSagawayContextPropagator().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: false));
     options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
 });
 
-
+builder.Services.AddSagawayContextPropagator();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -34,6 +35,7 @@ if (app.Environment.IsDevelopment())
 app.MapPost("/booking-queue", async (
         [FromBody] CarReservationRequest request,
         [FromServices] ILogger<Program> logger,
+        [FromServices] ICallbackQueueNameProvider callbackQueueNameProvider,
         [FromServices] DaprClient daprClient) =>
     {
         logger.LogInformation("Received car reservation request for {CarClass} from {CustomerName}",
@@ -80,7 +82,7 @@ app.MapPost("/booking-queue", async (
                 reservationOperationResult.IsSuccess = true;
 
                 // Send the response to the response queue
-                await daprClient.InvokeBindingAsync(request.ResponseQueueName, "create", reservationOperationResult);
+                await daprClient.InvokeBindingAsync(callbackQueueNameProvider.CallbackQueueName, "create", reservationOperationResult);
                 return;
             }
 
@@ -113,7 +115,7 @@ app.MapPost("/booking-queue", async (
             }
 
             // Send the response to the response queue
-            await daprClient.InvokeBindingAsync(request.ResponseQueueName, "create", reservationOperationResult);
+            await daprClient.InvokeBindingAsync(callbackQueueNameProvider.CallbackQueueName, "create", reservationOperationResult);
         }
 
 
@@ -142,7 +144,7 @@ app.MapPost("/booking-queue", async (
             }
 
             // Send the response to the response queue
-            await daprClient.InvokeBindingAsync(request.ResponseQueueName, "create", reservationOperationResult);
+            await daprClient.InvokeBindingAsync(callbackQueueNameProvider.CallbackQueueName, "create", reservationOperationResult);
         }
     })
     .WithName("CarReservationQueue")
@@ -174,6 +176,7 @@ app.MapGet("/reservations/{reservationId}", async ([FromRoute] Guid reservationI
     .WithName("GetReservationStatus")
     .WithOpenApi(); // This adds the endpoint to OpenAPI/Swagger documentation if enabled
 
+app.UseSagawayContextPropagator();
 app.MapControllers();
 app.MapSubscribeHandler();
 app.UseRouting();

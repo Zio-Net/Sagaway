@@ -1,5 +1,4 @@
 ﻿using Dapr.Actors.Runtime;
-using Dapr.Client;
 using SagaReservationDemo.ReservationManager.Actors.BillingDto;
 using SagaReservationDemo.ReservationManager.Actors.BookingDto;
 using SagaReservationDemo.ReservationManager.Actors.InventoryDto;
@@ -13,18 +12,16 @@ namespace SagaReservationDemo.ReservationManager.Actors;
 // ReSharper disable once ClassNeverInstantiated.Global
 public class CarReservationActor : DaprActorHost<CarReservationActorOperations>, ICarReservationActor
 {
-    private readonly DaprClient _daprClient;
     private readonly ILogger<CarReservationActor> _logger;
     private readonly ActorHost _actorHost;
     private ReservationInfo? _reservationInfo;
 
     // ReSharper disable once ConvertToPrimaryConstructor
-    public CarReservationActor(ActorHost host, DaprClient daprClient,
+    public CarReservationActor(ActorHost host, 
         ILogger<CarReservationActor> logger)
         : base(host, logger)
     {
         _actorHost = host;
-        _daprClient = daprClient;
         _logger = logger;
     }
 
@@ -78,6 +75,11 @@ public class CarReservationActor : DaprActorHost<CarReservationActorOperations>,
 
     #region Saga Activation methods
 
+    protected override string GetCallbackQueueName()
+    {
+        return "reservation-response-queue";
+    }
+
     protected override async Task OnActivateSagaAsync()
     {
         if (_reservationInfo == null)
@@ -108,55 +110,6 @@ public class CarReservationActor : DaprActorHost<CarReservationActorOperations>,
         }
     }
 
-    public async Task<bool> HandleReservationActionResultAsync(ReservationOperationResult reservationOperationResult)
-    {
-        if (reservationOperationResult.ReservationId != _reservationInfo!.ReservationId)
-        {
-            _logger.LogError("The reservation id is not matching the current reservation id.");
-            return false;
-        }
-
-        bool isSuccess = reservationOperationResult.IsSuccess;
-
-        switch (reservationOperationResult.Activity)
-        {
-            case CarReservationActivity.CarBooking:
-                await ReportCompleteOperationOutcomeAsync(CarReservationActorOperations.CarBooking, isSuccess);
-                break;
-
-            case CarReservationActivity.CancellingCarBooking:
-                await ReportUndoOperationOutcomeAsync(CarReservationActorOperations.CarBooking, isSuccess);
-                break;
-
-            case CarReservationActivity.InventoryReserving:
-                await ReportCompleteOperationOutcomeAsync(CarReservationActorOperations.InventoryReserving, isSuccess);
-                break;
-
-            case CarReservationActivity.InventoryCancelling:
-                await ReportUndoOperationOutcomeAsync(CarReservationActorOperations.InventoryReserving, isSuccess);
-                break;
-
-            //billing doesn't have a callback capabilities. It is a fire and forget operation. Result is polled.
-            //so this will never be called.
-            case CarReservationActivity.Billing:
-                await ReportCompleteOperationOutcomeAsync(CarReservationActorOperations.Billing, isSuccess);
-                break;
-
-            //billing doesn't have a callback capabilities. It is a fire and forget operation. Result is polled.
-            //so this will never be called.
-            case CarReservationActivity.Refund:
-                await ReportUndoOperationOutcomeAsync(CarReservationActorOperations.Billing, isSuccess);
-                break;
-
-
-            default:
-                _logger.LogError("The activity is not supported.");
-                return false;
-        }
-        return true;
-    }
-
-
     #endregion
 
 
@@ -172,9 +125,21 @@ public class CarReservationActor : DaprActorHost<CarReservationActorOperations>,
             CarClass = _reservationInfo!.CarClass,
             CustomerName = _reservationInfo.CustomerName,
             ReservationId = _reservationInfo.ReservationId,
-            ResponseQueueName = "reservation-response-queue"
         };
-        await _daprClient.InvokeBindingAsync("booking-queue", "create", carReservationRequest);
+        
+        await DaprClient.InvokeBindingAsync("booking-queue", "create", carReservationRequest, 
+            GetCallbackMetadata(nameof(OnCarBookingResultAsync)));
+    }
+
+    private async Task OnCarBookingResultAsync(ReservationOperationResult reservationOperationResult)
+    {
+        if (reservationOperationResult.ReservationId != _reservationInfo?.ReservationId)
+        {
+            _logger.LogError("The reservation id in the response does not match the current reservation id.");
+            return;
+        }
+
+        await ReportCompleteOperationOutcomeAsync(CarReservationActorOperations.CarBooking, reservationOperationResult.IsSuccess);
     }
 
     private async Task<bool> ValidateBookCarReservationAsync()
@@ -184,7 +149,7 @@ public class CarReservationActor : DaprActorHost<CarReservationActorOperations>,
         try
         {
             var reservationState =
-                await _daprClient.InvokeMethodAsync<BookingDto.ReservationState>(HttpMethod.Get, "booking-management",
+                await DaprClient.InvokeMethodAsync<BookingDto.ReservationState>(HttpMethod.Get, "booking-management",
                     $"/reservations/{reservationId}");
 
             return reservationState.IsReserved;
@@ -205,9 +170,20 @@ public class CarReservationActor : DaprActorHost<CarReservationActorOperations>,
             CarClass = _reservationInfo!.CarClass,
             CustomerName = _reservationInfo.CustomerName,
             ReservationId = _reservationInfo.ReservationId,
-            ResponseQueueName = "reservation-response-queue"
         };
-        await _daprClient.InvokeBindingAsync("booking-queue", "create", carReservationCancellationRequest);
+        await DaprClient.InvokeBindingAsync("booking-queue", "create", carReservationCancellationRequest,
+            GetCallbackMetadata(nameof(OnRevertBookCarReservationAsync)));
+    }
+
+    private async Task OnRevertBookCarReservationAsync(ReservationOperationResult reservationOperationResult)
+    {
+        if (reservationOperationResult.ReservationId != _reservationInfo?.ReservationId)
+        {
+            _logger.LogError("The reservation id in the response does not match the current reservation id.");
+            return;
+        }
+
+        await ReportUndoOperationOutcomeAsync(CarReservationActorOperations.CarBooking, reservationOperationResult.IsSuccess);
     }
 
     private async Task<bool> ValidateRevertBookCarReservationAsync()
@@ -229,10 +205,21 @@ public class CarReservationActor : DaprActorHost<CarReservationActorOperations>,
             ActionType = CarInventoryRequestActionType.Reserve,
             CarClass = _reservationInfo!.CarClass,
             OrderId = _reservationInfo.ReservationId,
-            ResponseQueueName = "reservation-response-queue"
         };
 
-        await _daprClient.InvokeBindingAsync("inventory-queue", "create", carInventoryRequest);
+        await DaprClient.InvokeBindingAsync("inventory-queue", "create", carInventoryRequest,
+            GetCallbackMetadata(nameof(OnReserveInventoryResultAsync)));
+    }
+
+    private async Task OnReserveInventoryResultAsync(ReservationOperationResult reservationOperationResult)
+    {
+        if (reservationOperationResult.ReservationId != _reservationInfo?.ReservationId)
+        {
+            _logger.LogError("The reservation id in the response does not match the current reservation id.");
+            return;
+        }
+
+        await ReportCompleteOperationOutcomeAsync(CarReservationActorOperations.InventoryReserving, reservationOperationResult.IsSuccess);
     }
     
     private async Task<bool> ValidateReserveInventoryAsync()
@@ -245,7 +232,7 @@ public class CarReservationActor : DaprActorHost<CarReservationActorOperations>,
         try
         {
             var reservationState =
-                await _daprClient.InvokeMethodAsync<InventoryDto.ReservationState>(HttpMethod.Get,
+                await DaprClient.InvokeMethodAsync<InventoryDto.ReservationState>(HttpMethod.Get,
                     "inventory-management", $"/reservation-state/{orderId}");
             
             return reservationState.IsReserved;
@@ -266,10 +253,22 @@ public class CarReservationActor : DaprActorHost<CarReservationActorOperations>,
             ActionType = CarInventoryRequestActionType.Cancel,
             CarClass = _reservationInfo!.CarClass,
             OrderId = _reservationInfo.ReservationId,
-            ResponseQueueName = "reservation-response-queue"
         };
+        
 
-        await _daprClient.InvokeBindingAsync("inventory-queue", "create", carInventoryRequest);
+        await DaprClient.InvokeBindingAsync("inventory-queue", "create", carInventoryRequest,
+            GetCallbackMetadata(nameof(OnRevertReserveInventoryAsync)));
+    }
+
+    private async Task OnRevertReserveInventoryAsync(ReservationOperationResult reservationOperationResult)
+    {
+        if (reservationOperationResult.ReservationId != _reservationInfo?.ReservationId)
+        {
+            _logger.LogError("The reservation id in the response does not match the current reservation id.");
+            return;
+        }
+
+        await ReportUndoOperationOutcomeAsync(CarReservationActorOperations.InventoryReserving, reservationOperationResult.IsSuccess);
     }
 
     private async Task<bool> ValidateRevertReserveInventoryAsync()
@@ -295,7 +294,7 @@ public class CarReservationActor : DaprActorHost<CarReservationActorOperations>,
             CarClass = _reservationInfo.CarClass
         };
 
-        await _daprClient.InvokeBindingAsync("billing-queue", "create", billingRequest);
+        await DaprClient.InvokeBindingAsync("billing-queue", "create", billingRequest);
     }
 
     private async Task<bool> ValidateBillReservationAsync()
@@ -306,7 +305,7 @@ public class CarReservationActor : DaprActorHost<CarReservationActorOperations>,
         try
         {
             var billingState =
-                await _daprClient.InvokeMethodAsync<BillingState>(HttpMethod.Get, "billing-management",
+                await DaprClient.InvokeMethodAsync<BillingState>(HttpMethod.Get, "billing-management",
                     $"/billing-status/{reservationId}");
 
             return billingState.Status == "Charged";
@@ -330,7 +329,7 @@ public class CarReservationActor : DaprActorHost<CarReservationActorOperations>,
             CarClass = _reservationInfo.CarClass
         };
 
-        await _daprClient.InvokeBindingAsync("billing-queue", "create", refundRequest);
+        await DaprClient.InvokeBindingAsync("billing-queue", "create", refundRequest);
     }
 
     private async Task<bool> ValidateRevertBillReservationAsync()
