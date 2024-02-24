@@ -6,5 +6,4 @@ namespace SagaReservationDemo.ReservationManager.Actors;
 public interface ICarReservationActor : IActor
 {
     Task ReserveCarAsync(ReservationInfo reservationInfo);
-    Task<bool> HandleReservationActionResultAsync(ReservationOperationResult reservationOperationResult);
 }

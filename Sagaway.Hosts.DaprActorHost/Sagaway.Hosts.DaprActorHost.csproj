@@ -13,6 +13,7 @@
 
 
   <ItemGroup>
+    <ProjectReference Include="..\Sagaway.Callback.Router\Sagaway.Callback.Router.csproj" />
     <ProjectReference Include="..\Sagaway\Sagaway.csproj" />
   </ItemGroup>
 

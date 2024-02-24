@@ -1,202 +1,335 @@
 ﻿using Dapr.Actors.Runtime;
+using Dapr.Client;
 using Microsoft.Extensions.Logging;
+using System.Reflection;
 using System.Text.Json.Nodes;
+using Grpc.Net.Client;
+using Sagaway.Callback.Router;
+using System.Text.Json;
 
+// ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable once CheckNamespace
-namespace Sagaway.Hosts
+namespace Sagaway.Hosts;
+
+/// <summary>
+/// A Sagaway Saga Dapr Actor host
+/// </summary>
+/// <typeparam name="TEOperations">The enum of the saga operations</typeparam>
+public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSupport, ISagawayActor
+    where TEOperations : Enum
 {
+    private readonly ILogger _logger;
+    private DaprClient? _daprClient;
+
     /// <summary>
-    /// A Sagaway Saga Dapr Actor host
+    /// Create a Dapr Actor host for the saga
     /// </summary>
-    /// <typeparam name="TEOperations">The enum of the saga operations</typeparam>
-    public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSupport
-        where TEOperations : Enum
+    /// <param name="host">The Dapr actor host</param>
+    /// <param name="logger">The injected logger</param>
+    protected DaprActorHost(ActorHost host, ILogger logger)
+        : base(host)
     {
-        private readonly ILogger _logger;
+        ActorHost = host;
+        _logger = logger;
+    }
 
-        /// <summary>
-        /// Create a Dapr Actor host for the saga
-        /// </summary>
-        /// <param name="host">The Dapr actor host</param>
-        /// <param name="logger">The injected logger</param>
-        protected DaprActorHost(ActorHost host, ILogger logger)
-            : base(host)
+    /// <summary>
+    /// The Dapr Actor host
+    /// </summary>
+    protected ActorHost ActorHost { get; }
+
+    /// <summary>
+    /// The hosted saga
+    /// </summary>
+    /// <remarks>The saga has a value only after starting the execution process</remarks>
+    protected ISaga<TEOperations>? Saga { get; private set; }
+
+    /// <summary>
+    /// Implementer should create the saga using the <see cref="Saga&lt;TEOperations&gt;.SagaBuilder"/> fluent-interface
+    /// </summary>
+    /// <returns>The Saga instance</returns>
+    protected abstract ISaga<TEOperations> ReBuildSaga();
+
+    /// <summary>
+    /// This method is called whenever an actor is activated.
+    /// An actor is activated the first time any of its methods are invoked.
+    /// The call recreate the Saga operations and delicate the call to the saga
+    /// to load the last stored saga state.
+    /// </summary>
+    protected sealed override async Task OnActivateAsync()
+    {
+        if (Saga != null)
         {
-            ActorHost = host;
-            _logger = logger;
+            _logger.LogWarning("OnActivateAsync called when saga is already active, doing nothing.");
+            return;
         }
 
-        /// <summary>
-        /// The Dapr Actor host
-        /// </summary>
-        protected ActorHost ActorHost { get; }
+        //else    
+        _logger.LogInformation($"Activating actor id: {Id}");
 
-        /// <summary>
-        /// The hosted saga
-        /// </summary>
-        /// <remarks>The saga has a value only after starting the execution process</remarks>
-        protected ISaga<TEOperations>? Saga { get; private set; }
+        CreateDaprClient();
 
-        /// <summary>
-        /// Implementer should create the saga using the <see cref="Saga&lt;TEOperations&gt;.SagaBuilder"/> fluent-interface
-        /// </summary>
-        /// <returns>The Saga instance</returns>
-        protected abstract ISaga<TEOperations> ReBuildSaga();
+        Saga = ReBuildSaga();
+        Saga.OnSagaCompleted += async (_, _) => await OnSagaCompletedAsync();
+        await Saga.InformActivatedAsync();
+        await OnActivateSagaAsync();
+    }
 
-        /// <summary>
-        /// This method is called whenever an actor is activated.
-        /// An actor is activated the first time any of its methods are invoked.
-        /// The call recreate the Saga operations and delicate the call to the saga
-        /// to load the last stored saga state.
-        /// </summary>
-        protected sealed override async Task OnActivateAsync()
-        {
-            if (Saga != null)
-            {
-                _logger.LogWarning("OnActivateAsync called when saga is already active, doing nothing.");
-                return;
-            }
-            //else    
-            _logger.LogInformation($"Activating actor id: {Id}");
-            Saga = ReBuildSaga();
-            Saga.OnSagaCompleted += async (_, _) => await OnSagaCompletedAsync();
-            await Saga.InformActivatedAsync();
-            await OnActivateSagaAsync();
-        }
+    /// <summary>
+    /// Create the HttpClient to use for the actor
+    /// </summary>
+    /// <returns>A http client</returns>
+    protected virtual HttpClient CreateHttpClient()
+    {
+        // Default implementation uses DaprClient's default HttpClient configuration
+        //return new HttpClient(new CustomInterceptorHandler());
+        return new HttpClient();
+    }
 
-        //Clean Actor state on saga completion - this is just a cache cleanup.
-        //The database state will be cleaned by the Actor runtime garbage collector
-        private async Task OnSagaCompletedAsync()
-        {
-            await StateManager.ClearCacheAsync();
-        }
-
-        /// <summary>
-        /// Called when the saga is activated, after the saga state is rebuilt
-        /// </summary>
-        /// <returns>Async operation</returns>
-        protected virtual async Task OnActivateSagaAsync()
-        {
-            await Task.CompletedTask;
-        }
-
-
-        /// <summary>
-        /// This method is called whenever an actor is deactivated after a period of inactivity.
-        /// </summary>
-        protected override async Task OnDeactivateAsync()
-        {
-            _logger.LogInformation($"Deactivating actor id: {Id}");
-            await OnDeactivateSagaAsync();
-            await Saga!.InformDeactivatedAsync();
-        }
-
-
-        /// <summary>
-        /// Called when the saga is deactivated, before the saga state is stored
-        /// </summary>
-        /// <returns>Async operation</returns>
-        protected virtual async Task OnDeactivateSagaAsync()
-        {
-            await Task.CompletedTask;
-        }
+    private void CreateDaprClient()
+    {
+        var httpClient = CreateHttpClient(); // Get the custom or default HttpClient
+        httpClient.DefaultRequestHeaders.Add("x-sagaway-dapr-actor-id", ActorHost.Id.GetId());
+        httpClient.DefaultRequestHeaders.Add("x-sagaway-callback-queue-name", GetCallbackQueueName());
         
-        /// <summary>
-        /// First call to run the Saga process
-        /// </summary>
-        /// <remarks>This call should be tun once on the first time we need to activate the saga</remarks>
-        /// <returns></returns>
-        protected async Task SagaRunAsync()
+        var daprClientBuilder = new DaprClientBuilder();
+
+        daprClientBuilder.UseGrpcChannelOptions(new GrpcChannelOptions()
         {
-            Saga ??= ReBuildSaga();
-            await Saga.RunAsync();
+            HttpClient = httpClient
+        });
+
+        _daprClient = daprClientBuilder.Build();
+    }
+
+    protected DaprClient DaprClient => _daprClient!;
+
+    /// <summary>
+    /// Get the callback queue name that the actor uses to receive messages
+    /// from target services
+    /// </summary>
+    protected abstract string GetCallbackQueueName();
+
+    //Clean Actor state on saga completion - this is just a cache cleanup.
+    //The database state will be cleaned by the Actor runtime garbage collector
+    private async Task OnSagaCompletedAsync()
+    {
+        await StateManager.ClearCacheAsync();
+    }
+
+    /// <summary>
+    /// Called when the saga is activated, after the saga state is rebuilt
+    /// </summary>
+    /// <returns>Async operation</returns>
+    protected virtual async Task OnActivateSagaAsync()
+    {
+        await Task.CompletedTask;
+    }
+
+
+    /// <summary>
+    /// This method is called whenever an actor is deactivated after a period of inactivity.
+    /// </summary>
+    protected override async Task OnDeactivateAsync()
+    {
+        _logger.LogInformation($"Deactivating actor id: {Id}");
+        await OnDeactivateSagaAsync();
+        await Saga!.InformDeactivatedAsync();
+    }
+
+
+    /// <summary>
+    /// Called when the saga is deactivated, before the saga state is stored
+    /// </summary>
+    /// <returns>Async operation</returns>
+    protected virtual async Task OnDeactivateSagaAsync()
+    {
+        await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// First call to run the Saga process
+    /// </summary>
+    /// <remarks>This call should be tun once on the first time we need to activate the saga</remarks>
+    /// <returns></returns>
+    protected async Task SagaRunAsync()
+    {
+        Saga ??= ReBuildSaga();
+        await Saga.RunAsync();
+    }
+
+    /// <summary>
+    /// A function to set reminder. The reminder should bring the saga back to life and call the OnReminder function
+    /// With the reminder name.
+    /// </summary>
+    /// <param name="reminderName">A unique name for the reminder</param>
+    /// <param name="dueTime">The time to re-activate the saga</param>
+    /// <returns>Async operation</returns>
+    async Task ISagaSupport.SetReminderAsync(string reminderName, TimeSpan dueTime)
+    {
+        await RegisterReminderAsync(reminderName, null, dueTime, dueTime);
+    }
+
+    /// <summary>
+    /// A function to cancel a reminder
+    /// </summary>
+    /// <param name="reminderName">The reminder to cancel</param>
+    /// <returns>Async operation</returns>
+    async Task ISagaSupport.CancelReminderAsync(string reminderName)
+    {
+        await UnregisterReminderAsync(reminderName);
+    }
+
+    /// <summary>
+    /// Call by the Dapr Actor Host to remind about registered reminder
+    /// </summary>
+    /// <param name="reminderName">The name of the reminder</param>
+    /// <param name="state">The saved state</param>
+    /// <param name="dueTime">When</param>
+    /// <param name="period">When again</param>
+    /// <returns>Async operation</returns>
+    /// <remarks>Call the base.ReceiveReminderAsync for all reminder that you didn't set</remarks>
+    public virtual async Task ReceiveReminderAsync(string reminderName, byte[] state, TimeSpan dueTime, TimeSpan period)
+    {
+        await Saga!.ReportReminderAsync(reminderName);
+    }
+
+    /// <summary>
+    /// Use Dapr persistence to persist the saga state
+    /// </summary>
+    /// <param name="sagaId">The saga unique id</param>
+    /// <param name="state">The saga serialized state</param>
+    /// <returns>Async operation</returns>
+    async Task ISagaSupport.SaveSagaStateAsync(string sagaId, JsonObject state)
+    {
+        await StateManager.SetStateAsync(sagaId, state.ToString());
+    }
+
+    /// <summary>
+    /// Load the saga state from Dapr persistence store
+    /// </summary>
+    /// <param name="sagaId">The saga unique id</param>
+    /// <returns>The serialized saga state</returns>
+    async Task<JsonObject?> ISagaSupport.LoadSagaAsync(string sagaId)
+    {
+        var stateJsonText = await StateManager.TryGetStateAsync<string>(sagaId);
+        if (!stateJsonText.HasValue)
+        {
+            _logger.LogInformation($"Saga state not found for saga id: {sagaId}, assuming a new saga");
+            return null;
         }
 
-        /// <summary>
-        /// A function to set reminder. The reminder should bring the saga back to life and call the OnReminder function
-        /// With the reminder name.
-        /// </summary>
-        /// <param name="reminderName">A unique name for the reminder</param>
-        /// <param name="dueTime">The time to re-activate the saga</param>
-        /// <returns>Async operation</returns>
-        async Task ISagaSupport.SetReminderAsync(string reminderName, TimeSpan dueTime)
-        {
-            await RegisterReminderAsync(reminderName, null, dueTime, dueTime);
-        }
+        var jsonObject = JsonNode.Parse(stateJsonText.Value) as JsonObject;
+        return jsonObject!;
+    }
 
-        /// <summary>
-        /// A function to cancel a reminder
-        /// </summary>
-        /// <param name="reminderName">The reminder to cancel</param>
-        /// <returns>Async operation</returns>
-        async Task ISagaSupport.CancelReminderAsync(string reminderName)
-        {
-            await UnregisterReminderAsync(reminderName);
-        }
+    /// <summary>
+    /// Inform the outcome of an operation
+    /// </summary>
+    /// <param name="operation">The operation</param>
+    /// <param name="isSuccessful">Success or failure</param>
+    /// <param name="failFast">If true, fail the Saga, stop retries and start revert</param>
+    /// <returns>Async operation</returns>
+    protected async Task ReportCompleteOperationOutcomeAsync(TEOperations operation, bool isSuccessful,
+        bool failFast = false)
+    {
+        await Saga!.ReportOperationOutcomeAsync(operation, isSuccessful, failFast);
+    }
 
-        /// <summary>
-        /// Call by the Dapr Actor Host to remind about registered reminder
-        /// </summary>
-        /// <param name="reminderName">The name of the reminder</param>
-        /// <param name="state">The saved state</param>
-        /// <param name="dueTime">When</param>
-        /// <param name="period">When again</param>
-        /// <returns>Async operation</returns>
-        /// <remarks>Call the base.ReceiveReminderAsync for all reminder that you didn't set</remarks>
-        public virtual async Task ReceiveReminderAsync(string reminderName, byte[] state, TimeSpan dueTime, TimeSpan period)
-        {
-            await Saga!.ReportReminderAsync(reminderName);
-        }
+    /// <summary>
+    /// Inform the outcome of an undo operation
+    /// </summary>
+    /// <param name="operation">The operation</param>
+    /// <param name="isSuccessful">The outcome</param>
+    /// <returns>Async operation</returns>
+    protected async Task ReportUndoOperationOutcomeAsync(TEOperations operation, bool isSuccessful)
+    {
+        await Saga!.ReportUndoOperationOutcomeAsync(operation, isSuccessful);
+    }
 
-        /// <summary>
-        /// Use Dapr persistence to persist the saga state
-        /// </summary>
-        /// <param name="sagaId">The saga unique id</param>
-        /// <param name="state">The saga serialized state</param>
-        /// <returns>Async operation</returns>
-        async Task ISagaSupport.SaveSagaStateAsync(string sagaId, JsonObject state)
+    /// <summary>
+    /// Enable the actor to provide the deserialization json options for the callback payload
+    /// </summary>
+    /// <returns></returns>
+    protected virtual JsonSerializerOptions GetJsonSerializerOptions()
+    {
+        // Provide default options that can be used across most derived classes
+        return new JsonSerializerOptions
         {
-            await StateManager.SetStateAsync(sagaId, state.ToString());
-        }
+            PropertyNameCaseInsensitive = true,
+        };
+    }
 
-        /// <summary>
-        /// Load the saga state from Dapr persistence store
-        /// </summary>
-        /// <param name="sagaId">The saga unique id</param>
-        /// <returns>The serialized saga state</returns>
-        async Task<JsonObject?> ISagaSupport.LoadSagaAsync(string sagaId)
+    /// <summary>
+    /// Used by the framework to dispatch callbacks to the actor
+    /// </summary>
+    public async Task DispatchCallbackAsync(string payloadJson, string methodName)
+    {
+        try
         {
-            var stateJsonText = await StateManager.TryGetStateAsync<string>(sagaId);
-            if (!stateJsonText.HasValue)
+            MethodInfo? methodInfo = GetType().GetMethod(methodName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            if (methodInfo == null)
             {
-                _logger.LogInformation($"Saga state not found for saga id: {sagaId}, assuming a new saga");
-                return null;
+                _logger.LogError($"Method {methodName} not found in actor {this.GetType().Name}.");
+                throw new InvalidOperationException($"Method {methodName} not found.");
             }
-            var jsonObject = JsonNode.Parse(stateJsonText.Value) as JsonObject;
-            return jsonObject!;
-        }
 
-        /// <summary>
-        /// Inform the outcome of an operation
-        /// </summary>
-        /// <param name="operation">The operation</param>
-        /// <param name="isSuccessful">Success or failure</param>
-        /// <param name="failFast">If true, fail the Saga, stop retries and start revert</param>
-        /// <returns>Async operation</returns>
-        protected async Task ReportCompleteOperationOutcomeAsync(TEOperations operation, bool isSuccessful, bool failFast = false)
-        {
-            await Saga!.ReportOperationOutcomeAsync(operation, isSuccessful, failFast);
-        }
+            // Validate method accepts exactly one parameter
+            var parameters = methodInfo.GetParameters();
+            if (parameters.Length != 1)
+            {
+                _logger.LogError($"Method {methodName} does not accept exactly one parameter.");
+                throw new InvalidOperationException($"Method {methodName} signature mismatch: expected exactly one parameter.");
+            }
 
-        /// <summary>
-        /// Inform the outcome of an undo operation
-        /// </summary>
-        /// <param name="operation">The operation</param>
-        /// <param name="isSuccessful">The outcome</param>
-        /// <returns>Async operation</returns>
-        protected async Task ReportUndoOperationOutcomeAsync(TEOperations operation, bool isSuccessful)
+            var parameterType = parameters.First().ParameterType;
+
+            // Deserialize the payload to the expected parameter type
+            var parameter = JsonSerializer.Deserialize(payloadJson, parameterType, GetJsonSerializerOptions());
+            if (parameter == null)
+            {
+                _logger.LogError($"Unable to deserialize payload to type {parameterType.Name} for method {methodName}.");
+                throw new InvalidOperationException($"Payload deserialization failed for method {methodName}.");
+            }
+
+            // Dynamically invoke the method with the deserialized parameter
+            var result = methodInfo.Invoke(this, [parameter]);
+
+            // If the method is asynchronous, await the returned Task
+            if (result is Task task)
+            {
+                await task;
+            }
+        }
+        catch (TargetInvocationException tie)
         {
-            await Saga!.ReportUndoOperationOutcomeAsync(operation, isSuccessful);
+            _logger.LogError(tie, $"Error invoking method {methodName}.");
+            throw tie.InnerException ?? tie;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error dispatching callback to method {methodName}.");
+            throw;
         }
     }
+
+    /// <summary>
+    /// Easy way to get the callback metadata
+    /// </summary>
+    /// <param name="callbackMethodName"></param>
+    /// <returns>the target callback function metadata</returns>
+    /// <exception cref="ArgumentException"></exception>
+    protected Dictionary<string, string> GetCallbackMetadata(string callbackMethodName)
+    {
+        if (string.IsNullOrEmpty(callbackMethodName))
+        {
+            throw new ArgumentException("Callback method name cannot be null or empty.", nameof(callbackMethodName));
+        }
+
+        return new Dictionary<string, string>
+        {
+            { "x-sagaway-callback-method", callbackMethodName }
+        };
+    }
 }
+

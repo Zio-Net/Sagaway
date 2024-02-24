@@ -4,6 +4,7 @@ using Dapr.Actors;
 using Microsoft.AspNetCore.Mvc;
 using SagaReservationDemo.ReservationManager.Actors;
 using Dapr.Actors.Client;
+using Sagaway.Callback.Router;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -50,6 +51,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+//enable callback router
+app.UseSagawayCallbackRouter("reservation-response-queue", "CarReservationActor");
 
 app.MapPost("/reserve", async (
         [FromQuery] Guid? reservationId, 
@@ -98,29 +101,6 @@ app.MapPost("/cancel", async (
 })
     .WithName("Cancel")
     .WithOpenApi();
-
-app.MapPost("/reservation-response-queue", async (
-    [FromBody] ReservationOperationResult reservationOperationResult,
-    [FromServices] IActorProxyFactory actorProxyFactory,
-    [FromServices] ILogger<Program> logger) =>
-{
-    if (reservationOperationResult.ReservationId == Guid.Empty)
-    {
-        logger.LogError("Reservation response queue message does not contain a valid reservation id");
-        return;
-    }
-
-    logger.LogInformation("Received reservation response for {ReservationId}", reservationOperationResult.ReservationId);
-
-        var proxy = actorProxyFactory.CreateActorProxy<ICarReservationActor>(
-        new ActorId(reservationOperationResult.ReservationId.ToString("D")), "CarReservationActor");
-
-    var result = await proxy.HandleReservationActionResultAsync(reservationOperationResult);
-
-    logger.LogInformation("Reservation response for {ReservationId} handled: {Result}",
-        reservationOperationResult.ReservationId, result);
-})
-    .ExcludeFromDescription();
 
 app.MapControllers();
 app.MapSubscribeHandler();
