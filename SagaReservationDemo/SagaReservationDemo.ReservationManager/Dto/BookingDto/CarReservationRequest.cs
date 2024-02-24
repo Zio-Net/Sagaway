@@ -1,4 +1,4 @@
-﻿namespace SagaReservationDemo.ReservationManager.Actors.BookingDto;
+﻿namespace SagaReservationDemo.ReservationManager.Dto.BookingDto;
 
 public record CarReservationRequest
 {

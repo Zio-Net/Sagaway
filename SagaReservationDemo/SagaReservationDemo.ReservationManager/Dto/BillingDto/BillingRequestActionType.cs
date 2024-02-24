@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace SagaReservationDemo.ReservationManager.Actors.BillingDto;
+namespace SagaReservationDemo.ReservationManager.Dto.BillingDto;
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum BillingRequestActionType

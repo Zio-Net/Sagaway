@@ -1,4 +1,4 @@
-﻿namespace SagaReservationDemo.ReservationManager.Actors.BillingDto;
+﻿namespace SagaReservationDemo.ReservationManager.Dto.BillingDto;
 
 public record BillingRequest
 {

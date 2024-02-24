@@ -1,4 +1,4 @@
-﻿namespace SagaReservationDemo.ReservationManager.Actors;
+﻿namespace SagaReservationDemo.ReservationManager.Dto.ReservationDto;
 
 // ReSharper disable once ClassNeverInstantiated.Global
 public record ReservationInfo

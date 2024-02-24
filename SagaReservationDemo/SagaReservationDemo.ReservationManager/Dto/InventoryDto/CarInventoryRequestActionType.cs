@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace SagaReservationDemo.ReservationManager.Actors.InventoryDto;
+namespace SagaReservationDemo.ReservationManager.Dto.InventoryDto;
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum CarInventoryRequestActionType

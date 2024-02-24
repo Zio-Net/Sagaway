@@ -1,6 +1,7 @@
 ﻿using System.Text.Json.Nodes;
 using Dapr.Actors;
 using Microsoft.Extensions.Configuration;
+using SagaReservationDemo.ReservationManager.Dto.ReservationDto;
 
 namespace SagaReservationDemo.ReservationManager.Actors;
 public interface ICarReservationActor : IActor

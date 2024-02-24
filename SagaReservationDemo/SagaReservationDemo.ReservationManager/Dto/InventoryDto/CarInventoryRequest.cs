@@ -1,4 +1,4 @@
-﻿namespace SagaReservationDemo.ReservationManager.Actors.InventoryDto;
+﻿namespace SagaReservationDemo.ReservationManager.Dto.InventoryDto;
 
 public class CarInventoryRequest
 {

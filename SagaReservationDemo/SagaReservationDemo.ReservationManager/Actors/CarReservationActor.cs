@@ -1,8 +1,9 @@
 ﻿using Dapr.Actors.Runtime;
 using Dapr.Client;
-using SagaReservationDemo.ReservationManager.Actors.BillingDto;
-using SagaReservationDemo.ReservationManager.Actors.BookingDto;
-using SagaReservationDemo.ReservationManager.Actors.InventoryDto;
+using SagaReservationDemo.ReservationManager.Dto.BillingDto;
+using SagaReservationDemo.ReservationManager.Dto.BookingDto;
+using SagaReservationDemo.ReservationManager.Dto.InventoryDto;
+using SagaReservationDemo.ReservationManager.Dto.ReservationDto;
 using Sagaway;
 using Sagaway.Hosts;
 
@@ -184,7 +185,7 @@ public class CarReservationActor : DaprActorHost<CarReservationActorOperations>,
         try
         {
             var reservationState =
-                await _daprClient.InvokeMethodAsync<BookingDto.ReservationState>(HttpMethod.Get, "booking-management",
+                await _daprClient.InvokeMethodAsync<Dto.BookingDto.ReservationState>(HttpMethod.Get, "booking-management",
                     $"/reservations/{reservationId}");
 
             return reservationState.IsReserved;
@@ -245,7 +246,7 @@ public class CarReservationActor : DaprActorHost<CarReservationActorOperations>,
         try
         {
             var reservationState =
-                await _daprClient.InvokeMethodAsync<InventoryDto.ReservationState>(HttpMethod.Get,
+                await _daprClient.InvokeMethodAsync<Dto.InventoryDto.ReservationState>(HttpMethod.Get,
                     "inventory-management", $"/reservation-state/{orderId}");
             
             return reservationState.IsReserved;
