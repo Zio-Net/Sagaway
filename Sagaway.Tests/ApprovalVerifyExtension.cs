@@ -1,7 +1,7 @@
 using ApprovalTests;
 using Xunit.Abstractions;
 
-namespace SagawayTests;
+namespace Sagaway.Tests;
 
 public static class ApprovalVerifyWithDump
 {

@@ -1,14 +1,12 @@
-
-using ApprovalTests;
-using ApprovalTests.Reporters;
-using Microsoft.Extensions.Logging;
-using Sagaway;
 using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
+using ApprovalTests;
+using ApprovalTests.Reporters;
+using Microsoft.Extensions.Logging;
 using Xunit.Abstractions;
 
-namespace SagawayTests;
+namespace Sagaway.Tests;
 
 /****************************************************************************************************************************
 Testing the Sagaway Saga Framework is a complex process. Each time the Saga calls a method, the method can throw an 

@@ -1,0 +1,231 @@
+version: '3.7'
+
+services:
+##################################################
+# Reservation Manager Microservice + Dapr sidecars
+##################################################
+  reservation-manager:
+    image: ${DOCKER_REGISTRY-}sagawayreservationdemoreservationmanager
+    build:
+      context: .
+      dockerfile: Sagaway.ReservationDemo.ReservationManager/Dockerfile
+    ports:
+      - "4545:80"
+    networks:
+      - reservation-dapr
+    environment:
+      - ACTOR_TYPE=CarReservationActor
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://reservation-manager:80
+    depends_on:
+      - rabbitmq
+      - redis
+      - zipkin
+      - placement
+
+  reservation-manager-dapr:
+    image: "daprio/daprd:edge"
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 10
+        window: 120s
+    command: ["./daprd",
+     "-app-id", "reservation-manager",
+     "-app-port", "80",
+     "-placement-host-address", "placement:50006",
+     "-dapr-http-port", "3500",
+     "-components-path", "/dapr/components",
+     "-config", "/dapr/config.yaml"]
+    volumes:
+        - "./dapr/:/dapr"
+    depends_on:
+      - reservation-manager
+    network_mode: "service:reservation-manager"
+    
+
+##################################################
+# Billing Manager Microservice + Dapr sidecars
+##################################################
+  billing-management:
+    image: ${DOCKER_REGISTRY-}sagawayreservationdemobillingmanagement
+    build:
+      context: .
+      dockerfile: Sagaway.ReservationDemo.BillingManagment/Dockerfile
+    depends_on:
+      - rabbitmq
+      - redis
+      - zipkin
+    networks:
+      - reservation-dapr
+    environment:
+    # - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://billing-management:80
+
+  billing-management-dapr:
+    image: "daprio/daprd:edge"
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 10
+        window: 120s
+    command: ["./daprd",
+     "-app-id", "billing-management",
+     "-app-port", "80",
+     "-placement-host-address", "placement:50006",
+     "-dapr-http-port", "3500",
+     "-components-path", "/dapr/components",
+     "-config", "/dapr/config.yaml"]
+    volumes:
+        - "./dapr/:/dapr"
+    depends_on:
+      - billing-management
+    network_mode: "service:billing-management"
+
+##################################################
+# Inventory Manager Microservice + Dapr sidecars
+##################################################
+  inventory-management:
+    image: ${DOCKER_REGISTRY-}sagawayreservationdemoinventorymanagement
+    build:
+      context: .
+      dockerfile: Sagaway.ReservationDemo.InventoryManagement/Dockerfile
+    depends_on:
+      - rabbitmq
+      - redis
+      - zipkin
+    networks:
+      - reservation-dapr
+    environment:
+    # - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://inventory-management:80
+
+  inventory-management-dapr:
+    image: "daprio/daprd:edge"
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 10
+        window: 120s
+    command: ["./daprd",
+     "-app-id", "inventory-management",
+     "-app-port", "80",
+     "-placement-host-address", "placement:50006",
+     "-dapr-http-port", "3500",
+     "-components-path", "/dapr/components",
+     "-config", "/dapr/config.yaml"]
+    volumes:
+        - "./dapr/:/dapr"
+    depends_on:
+      - inventory-management
+    network_mode: "service:inventory-management"
+
+##################################################
+# Booking Manager Microservice + Dapr sidecars
+##################################################
+  booking-management:
+    image: ${DOCKER_REGISTRY-}sagawayreservationdemobookingmanagement
+    build:
+      context: .
+      dockerfile: Sagaway.ReservationDemo.BookingManagement/Dockerfile
+    depends_on:
+      - rabbitmq
+      - redis
+      - zipkin
+    networks:
+      - reservation-dapr
+    environment:
+    # - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://booking-management:80
+
+  booking-management-dapr:
+    image: "daprio/daprd:edge"
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 10
+        window: 120s
+    command: ["./daprd",
+     "-app-id", "booking-management",
+     "-app-port", "80",
+     "-placement-host-address", "placement:50006",
+     "-dapr-http-port", "3500",
+     "-components-path", "/dapr/components",
+     "-config", "/dapr/config.yaml"]
+    volumes:
+        - "./dapr/:/dapr"
+    depends_on:
+      - booking-management
+    network_mode: "service:booking-management"
+
+############################
+# RabitMQ
+############################
+  rabbitmq:
+    image: "rabbitmq:3-management-alpine"
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - reservation-dapr
+
+############################
+# Redis state store
+############################
+  redis:
+    image: "redis:alpine"
+    hostname: redisserver
+    ports:
+      - "6379:6379"
+    networks:
+      - reservation-dapr
+    command: redis-server 
+    environment:
+     - REDIS_REPLICATION_MODE=master
+ 
+#############################
+## Dapr placement service
+#############################
+  placement:
+    image: "daprio/dapr"
+    command: ["./placement", "-port", "50006"]
+    ports:
+      - "50006:50006"
+    networks:
+      - reservation-dapr
+ 
+############################
+# Dapr zipkin service
+############################
+  zipkin:
+    image: "openzipkin/zipkin"
+    ports:
+      - "9411:9411"
+    networks:
+      - reservation-dapr
+ 
+#############################
+## Dapr Dashboard
+#############################
+  dapr-dashboard:
+    image: daprio/dashboard:latest
+    container_name: dashboard
+    ports:
+      - "8080:8080"
+    volumes:
+      - "./dapr/:/home/nonroot/.dapr"
+    networks:
+      - reservation-dapr
+ 
+############################
+# Global settings
+############################
+networks:
+  reservation-dapr:
+           
+  
+

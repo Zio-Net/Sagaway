@@ -1,7 +1,6 @@
-﻿using Sagaway;
-using System.Text.Json.Nodes;
+﻿using System.Text.Json.Nodes;
 
-namespace SagawayTests;
+namespace Sagaway.Tests;
 
 class SagaSupportOperations : ISagaSupport
 {
