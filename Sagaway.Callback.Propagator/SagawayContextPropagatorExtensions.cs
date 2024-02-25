@@ -14,7 +14,7 @@ public static class SagawayContextPropagatorExtensions
 
     public static IServiceCollection AddSagawayContextPropagator(this IServiceCollection services)
     {
-        return services.AddSingleton<ICallbackQueueNameProvider, CallbackQueueNameProvider>();
+        return services.AddSingleton<ICallbackBindingNameProvider, CallbackBindingNameProvider>();
     }
 
     public static IMvcBuilder AddDaprWithSagawayContextPropagator(this IMvcBuilder builder)

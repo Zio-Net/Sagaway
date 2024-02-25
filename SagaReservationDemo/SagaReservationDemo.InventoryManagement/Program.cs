@@ -38,7 +38,7 @@ if (app.Environment.IsDevelopment())
 app.MapPost("/inventory-queue", async (
         [FromBody] CarInventoryRequest request,
         [FromServices] ILogger<Program> logger,
-        [FromServices] ICallbackQueueNameProvider callbackQueueNameProvider,
+        [FromServices] ICallbackBindingNameProvider callbackBindingNameProvider,
         [FromServices] DaprClient daprClient) =>
 {
     logger.LogInformation("Received car inventory request for {CarClass} order id: {orderId}",
@@ -77,8 +77,8 @@ app.MapPost("/inventory-queue", async (
             logger.LogInformation("Car class {CarClass} is already reserved", request.CarClass);
 
             reservationOperationResult.IsSuccess = true;
-            // Send the response to the response queue
-            await daprClient.InvokeBindingAsync(callbackQueueNameProvider.CallbackQueueName, "create", reservationOperationResult);
+            // Send the response to the response binding
+            await daprClient.InvokeBindingAsync(callbackBindingNameProvider.CallbackBindingName, "create", reservationOperationResult);
             return;
         }
 
@@ -92,8 +92,8 @@ app.MapPost("/inventory-queue", async (
 
             reservationOperationResult.IsSuccess = false;
 
-            // Send the response to the response queue
-            await daprClient.InvokeBindingAsync(callbackQueueNameProvider.CallbackQueueName, "create", reservationOperationResult);
+            // Send the response to the response binding
+            await daprClient.InvokeBindingAsync(callbackBindingNameProvider.CallbackBindingName, "create", reservationOperationResult);
             return;
         }
 
@@ -138,14 +138,14 @@ app.MapPost("/inventory-queue", async (
                                request.CarClass, request.OrderId, carClassState + 1);
 
             reservationOperationResult.IsSuccess = true;
-            await daprClient.InvokeBindingAsync(callbackQueueNameProvider.CallbackQueueName, "create", reservationOperationResult);
+            await daprClient.InvokeBindingAsync(callbackBindingNameProvider.CallbackBindingName, "create", reservationOperationResult);
 
         }
         catch (Exception e)
         {
             logger.LogError(e, "Failed to reserve car class {CarClass} for order id {orderId}", request.CarClass, request.OrderId);
             reservationOperationResult.IsSuccess = false;
-            await daprClient.InvokeBindingAsync(callbackQueueNameProvider.CallbackQueueName, "create", reservationOperationResult);
+            await daprClient.InvokeBindingAsync(callbackBindingNameProvider.CallbackBindingName, "create", reservationOperationResult);
         }
     }
 
@@ -163,7 +163,7 @@ app.MapPost("/inventory-queue", async (
 
             reservationOperationResult.IsSuccess = true;
 
-            await daprClient.InvokeBindingAsync(callbackQueueNameProvider.CallbackQueueName, "create", reservationOperationResult);
+            await daprClient.InvokeBindingAsync(callbackBindingNameProvider.CallbackBindingName, "create", reservationOperationResult);
             return;
         }
         //else
@@ -199,18 +199,18 @@ app.MapPost("/inventory-queue", async (
 
             reservationOperationResult.IsSuccess = true;
 
-            await daprClient.InvokeBindingAsync(callbackQueueNameProvider.CallbackQueueName, "create", reservationOperationResult);
+            await daprClient.InvokeBindingAsync(callbackBindingNameProvider.CallbackBindingName, "create", reservationOperationResult);
 
         }
         catch (Exception e)
         {
             logger.LogError(e, "Failed to cancel car class {CarClass} for order id {orderId}", request.CarClass, request.OrderId);
             reservationOperationResult.IsSuccess = false;
-            await daprClient.InvokeBindingAsync(callbackQueueNameProvider.CallbackQueueName, "create", reservationOperationResult);
+            await daprClient.InvokeBindingAsync(callbackBindingNameProvider.CallbackBindingName, "create", reservationOperationResult);
         }
     }
 })
-    .WithName("CarReservationQueue")
+    .WithName("CarReservation")
     .WithOpenApi();
 
 app.MapGet("/reservation-state/{orderId}", async (

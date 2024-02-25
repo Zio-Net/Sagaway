@@ -75,7 +75,7 @@ public class CarReservationActor : DaprActorHost<CarReservationActorOperations>,
 
     #region Saga Activation methods
 
-    protected override string GetCallbackQueueName()
+    protected override string GetCallbackBindingName()
     {
         return "reservation-response-queue";
     }
