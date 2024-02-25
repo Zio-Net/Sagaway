@@ -90,7 +90,7 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     {
         var httpClient = CreateHttpClient(); // Get the custom or default HttpClient
         httpClient.DefaultRequestHeaders.Add("x-sagaway-dapr-actor-id", ActorHost.Id.GetId());
-        httpClient.DefaultRequestHeaders.Add("x-sagaway-callback-queue-name", GetCallbackQueueName());
+        httpClient.DefaultRequestHeaders.Add("x-sagaway-callback-binding-name", GetCallbackBindingName());
         
         var daprClientBuilder = new DaprClientBuilder();
 
@@ -105,10 +105,10 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     protected DaprClient DaprClient => _daprClient!;
 
     /// <summary>
-    /// Get the callback queue name that the actor uses to receive messages
+    /// Get the callback binding name that the actor uses to receive messages
     /// from target services
     /// </summary>
-    protected abstract string GetCallbackQueueName();
+    protected abstract string GetCallbackBindingName();
 
     //Clean Actor state on saga completion - this is just a cache cleanup.
     //The database state will be cleaned by the Actor runtime garbage collector
@@ -323,6 +323,7 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     {
         if (string.IsNullOrEmpty(callbackMethodName))
         {
+            _logger.LogInformation("Callback method name is null or empty.");
             throw new ArgumentException("Callback method name cannot be null or empty.", nameof(callbackMethodName));
         }
 

@@ -35,7 +35,7 @@ if (app.Environment.IsDevelopment())
 app.MapPost("/booking-queue", async (
         [FromBody] CarReservationRequest request,
         [FromServices] ILogger<Program> logger,
-        [FromServices] ICallbackQueueNameProvider callbackQueueNameProvider,
+        [FromServices] ICallbackBindingNameProvider callbackBindingNameProvider,
         [FromServices] DaprClient daprClient) =>
     {
         logger.LogInformation("Received car reservation request for {CarClass} from {CustomerName}",
@@ -81,8 +81,8 @@ app.MapPost("/booking-queue", async (
 
                 reservationOperationResult.IsSuccess = true;
 
-                // Send the response to the response queue
-                await daprClient.InvokeBindingAsync(callbackQueueNameProvider.CallbackQueueName, "create", reservationOperationResult);
+                // Send the response to the response binding
+                await daprClient.InvokeBindingAsync(callbackBindingNameProvider.CallbackBindingName, "create", reservationOperationResult);
                 return;
             }
 
@@ -114,8 +114,8 @@ app.MapPost("/booking-queue", async (
                 reservationOperationResult.IsSuccess = false;
             }
 
-            // Send the response to the response queue
-            await daprClient.InvokeBindingAsync(callbackQueueNameProvider.CallbackQueueName, "create", reservationOperationResult);
+            // Send the response to the response binding
+            await daprClient.InvokeBindingAsync(callbackBindingNameProvider.CallbackBindingName, "create", reservationOperationResult);
         }
 
 
@@ -143,11 +143,11 @@ app.MapPost("/booking-queue", async (
                 }
             }
 
-            // Send the response to the response queue
-            await daprClient.InvokeBindingAsync(callbackQueueNameProvider.CallbackQueueName, "create", reservationOperationResult);
+            // Send the response to the response binding
+            await daprClient.InvokeBindingAsync(callbackBindingNameProvider.CallbackBindingName, "create", reservationOperationResult);
         }
     })
-    .WithName("CarReservationQueue")
+    .WithName("CarBooking")
     .WithOpenApi();
 
 

@@ -59,7 +59,7 @@ app.MapPost("/billing-queue",  (
     }
 
 })
-    .WithName("CarReservationQueue")
+    .WithName("CarBilling")
     .WithOpenApi();
 
 
