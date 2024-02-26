@@ -1,0 +1,12 @@
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: test-callback
+spec:
+  type: bindings.azure.signalr
+  version: v1
+  metadata:
+  - name: connectionString
+    value: Endpoint=http://host.docker.internal:8888;Port=8888;AccessKey=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGH;Version=1.0;
+  - name: hub 
+    value: accountmanagercallback

@@ -1,13 +1,13 @@
 apiVersion: dapr.io/v1alpha1
 kind: Component
 metadata:
-  name: billing-queue
+  name: test-response-queue
 spec:
   type: bindings.rabbitmq
   version: v1
   metadata:
   - name: queueName
-    value: billing-queue
+    value: test-response-queue
   - name: host
     value: "amqp://rabbitmq:5672"
   - name: durable

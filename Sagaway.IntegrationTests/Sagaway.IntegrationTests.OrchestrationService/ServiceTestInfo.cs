@@ -1,4 +1,4 @@
-namespace Sagaway.IntegrationTests.TestServiceA;
+namespace Sagaway.IntegrationTests.OrchestrationService;
 
 // ReSharper disable once ClassNeverInstantiated.Global
 public record ServiceTestInfo

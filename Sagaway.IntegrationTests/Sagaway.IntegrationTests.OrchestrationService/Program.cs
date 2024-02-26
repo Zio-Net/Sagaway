@@ -2,9 +2,10 @@ using System.Text.Json.Serialization;
 using System.Text.Json;
 using Dapr.Actors;
 using Microsoft.AspNetCore.Mvc;
-using SagaReservationDemo.ReservationManager.Actors;
 using Dapr.Actors.Client;
 using Sagaway.Callback.Router;
+using Sagaway.IntegrationTests.OrchestrationService;
+using Sagaway.IntegrationTests.OrchestrationService.Actors;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,7 +25,7 @@ builder.Services.AddControllers().AddDapr().AddJsonOptions(options =>
 builder.Services.AddActors(options =>
 {
     // Register actor types and configure actor settings
-    options.Actors.RegisterActor<CarReservationActor>();
+    options.Actors.RegisterActor<TestActor>();
     // Configure default settings
     options.ActorIdleTimeout = TimeSpan.FromMinutes(10);
     options.ActorScanInterval = TimeSpan.FromSeconds(35);
@@ -52,55 +53,31 @@ if (app.Environment.IsDevelopment())
 }
 
 //enable callback router
-app.UseSagawayCallbackRouter("reservation-response-queue", "CarReservationActor");
+app.UseSagawayCallbackRouter("response-queue", "TestActor");
 
-app.MapPost("/reserve", async (
-        [FromQuery] Guid? reservationId, 
-        [FromQuery] string customerName, 
-        [FromQuery] string carClass, 
+app.MapPost("/run-test", async (
         [FromServices] IActorProxyFactory actorProxyFactory,
-        [FromServices] ILogger < Program > logger) =>
+        [FromServices] ILogger < Program > logger,
+        [FromBody] TestInfo? testInfo) =>
 {
 
-    if (reservationId == null || reservationId == Guid.Empty)
+    if (string.IsNullOrEmpty(testInfo?.TestName))
     {
-        reservationId = Guid.NewGuid();
+        logger.LogError("Test name is required");
+        return Results.BadRequest("Test name is required");
     }
 
-    logger.LogInformation("Received car reservation request for {CarClass} from {CustomerName}",
-               carClass, customerName);
+    logger.LogInformation("Starting test {TestName}", testInfo.TestName);
 
-    var proxy = actorProxyFactory.CreateActorProxy<ICarReservationActor>(
-        new ActorId(reservationId.Value.ToString("D")), "CarReservationActor");
+    var proxy = actorProxyFactory.CreateActorProxy<ITestActor>(
+        new ActorId(testInfo.Id.ToString("D")), "TestActor");
     
-    var reservationInfo = new ReservationInfo
-    {
-        ReservationId = reservationId.Value,
-        CustomerName = customerName,
-        CarClass = carClass
-    };
+    await proxy.RunTestAsync(testInfo);
 
-    await proxy.ReserveCarAsync(reservationInfo);
-
-    return reservationInfo;
+    return Results.Ok();
 })
-.WithName("Reserve")
+.WithName("run-test")
 .WithOpenApi();
-
-app.MapPost("/cancel", async (
-    [FromQuery] Guid reservationId,
-    [FromServices] IActorProxyFactory actorProxyFactory,
-    [FromServices] ILogger<Program> logger) =>
-{
-    logger.LogInformation("Received car reservation cancellation request for {ReservationId}",
-               reservationId);
-
-    await Task.CompletedTask;
-
-    //todo: implement cancel with Dapr Workflow for comparison
-})
-    .WithName("Cancel")
-    .WithOpenApi();
 
 app.MapControllers();
 app.MapSubscribeHandler();
@@ -108,5 +85,3 @@ app.UseRouting();
 app.MapActorsHandlers();
 
 app.Run();
-
-

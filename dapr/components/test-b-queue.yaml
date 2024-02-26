@@ -1,13 +1,13 @@
 apiVersion: dapr.io/v1alpha1
 kind: Component
 metadata:
-  name: reservation-response-queue
+  name: test-b-queue
 spec:
   type: bindings.rabbitmq
   version: v1
   metadata:
   - name: queueName
-    value: reservation-response-queue
+    value: test-b-queue
   - name: host
     value: "amqp://rabbitmq:5672"
   - name: durable

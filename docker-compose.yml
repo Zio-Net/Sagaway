@@ -8,11 +8,11 @@ services:
     image: ${DOCKER_REGISTRY-}sagawayreservationdemoreservationmanager
     build:
       context: .
-      dockerfile: Sagaway.ReservationDemo.ReservationManager/Dockerfile
+      dockerfile: Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationManager/Dockerfile
     ports:
       - "4545:80"
     networks:
-      - reservation-dapr
+      - sagaway-network
     environment:
       - ACTOR_TYPE=CarReservationActor
       - ASPNETCORE_ENVIRONMENT=Development
@@ -52,13 +52,13 @@ services:
     image: ${DOCKER_REGISTRY-}sagawayreservationdemobillingmanagement
     build:
       context: .
-      dockerfile: Sagaway.ReservationDemo.BillingManagment/Dockerfile
+      dockerfile: Sagaway.ReservationDemo/Sagaway.ReservationDemo.BillingManagment/Dockerfile
     depends_on:
       - rabbitmq
       - redis
       - zipkin
     networks:
-      - reservation-dapr
+      - sagaway-network
     environment:
     # - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://billing-management:80
@@ -91,13 +91,13 @@ services:
     image: ${DOCKER_REGISTRY-}sagawayreservationdemoinventorymanagement
     build:
       context: .
-      dockerfile: Sagaway.ReservationDemo.InventoryManagement/Dockerfile
+      dockerfile: Sagaway.ReservationDemo/Sagaway.ReservationDemo.InventoryManagement/Dockerfile
     depends_on:
       - rabbitmq
       - redis
       - zipkin
     networks:
-      - reservation-dapr
+      - sagaway-network
     environment:
     # - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://inventory-management:80
@@ -130,13 +130,13 @@ services:
     image: ${DOCKER_REGISTRY-}sagawayreservationdemobookingmanagement
     build:
       context: .
-      dockerfile: Sagaway.ReservationDemo.BookingManagement/Dockerfile
+      dockerfile: Sagaway.ReservationDemo/Sagaway.ReservationDemo.BookingManagement/Dockerfile
     depends_on:
       - rabbitmq
       - redis
       - zipkin
     networks:
-      - reservation-dapr
+      - sagaway-network
     environment:
     # - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://booking-management:80
@@ -163,6 +163,126 @@ services:
     network_mode: "service:booking-management"
 
 ############################
+# Test Services
+############################
+
+### Orchestration Service ###
+  orchestrationservice:
+    image: ${DOCKER_REGISTRY-}sagawayintegrationtestsorchestrationservice
+    build:
+      context: .
+      dockerfile: Sagaway.IntegrationTests/Sagaway.IntegrationTests.OrchestrationService/Dockerfile
+    networks:
+      - sagaway-network
+    environment:
+      - ACTOR_TYPE=TestActor
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://orchestrationservice:80
+    depends_on:
+      - rabbitmq
+      - redis
+      - zipkin
+      - placement
+
+  orchestrationservice-dapr:
+    image: "daprio/daprd:edge"
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 10
+        window: 120s
+    command: ["./daprd",
+     "-app-id", "orchestrationservice",
+     "-app-port", "80",
+     "-placement-host-address", "placement:50006",
+     "-dapr-http-port", "3500",
+     "-components-path", "/dapr/components",
+     "-config", "/dapr/config.yaml"]
+    volumes:
+        - "./dapr/:/dapr"
+    depends_on:
+      - orchestrationservice
+    network_mode: "service:orchestrationservice"
+
+## Test Service A ##
+  testservicea:
+    image: ${DOCKER_REGISTRY-}sagawayintegrationteststestservicea
+    build:
+      context: .
+      dockerfile: Sagaway.IntegrationTests/Sagaway.IntegrationTests.TestServiceA/Dockerfile
+    networks:
+      - sagaway-network
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://testservicea:80
+    depends_on:
+      - rabbitmq
+      - redis
+      - zipkin
+      - placement
+
+  testservicea-dapr:
+    image: "daprio/daprd:edge"
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 10
+        window: 120s
+    command: ["./daprd",
+     "-app-id", "testservicea",
+     "-app-port", "80",
+     "-placement-host-address", "placement:50006",
+     "-dapr-http-port", "3500",
+     "-components-path", "/dapr/components",
+     "-config", "/dapr/config.yaml"]
+    volumes:
+        - "./dapr/:/dapr"
+    depends_on:
+      - testservicea
+    network_mode: "service:testservicea"
+
+## Test Service B ##
+  testserviceb:
+    image: ${DOCKER_REGISTRY-}sagawayintegrationteststestserviceb
+    build:
+      context: .
+      dockerfile: Sagaway.IntegrationTests/Sagaway.IntegrationTests.TestServiceB/Dockerfile
+    networks:
+      - sagaway-network
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://testserviceb:80
+    depends_on:
+      - rabbitmq
+      - redis
+      - zipkin
+      - placement
+
+  testserviceb-dapr:
+    image: "daprio/daprd:edge"
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 10
+        window: 120s
+    command: ["./daprd",
+     "-app-id", "testserviceb",
+     "-app-port", "80",
+     "-placement-host-address", "placement:50006",
+     "-dapr-http-port", "3500",
+     "-components-path", "/dapr/components",
+     "-config", "/dapr/config.yaml"]
+    volumes:
+        - "./dapr/:/dapr"
+    depends_on:
+      - testservicea
+    network_mode: "service:testserviceb"
+
+
+############################
 # RabitMQ
 ############################
   rabbitmq:
@@ -171,7 +291,7 @@ services:
       - "5672:5672"
       - "15672:15672"
     networks:
-      - reservation-dapr
+      - sagaway-network
 
 ############################
 # Redis state store
@@ -182,7 +302,7 @@ services:
     ports:
       - "6379:6379"
     networks:
-      - reservation-dapr
+      - sagaway-network
     command: redis-server 
     environment:
      - REDIS_REPLICATION_MODE=master
@@ -196,7 +316,7 @@ services:
     ports:
       - "50006:50006"
     networks:
-      - reservation-dapr
+      - sagaway-network
  
 ############################
 # Dapr zipkin service
@@ -206,7 +326,7 @@ services:
     ports:
       - "9411:9411"
     networks:
-      - reservation-dapr
+      - sagaway-network
  
 #############################
 ## Dapr Dashboard
@@ -219,13 +339,36 @@ services:
     volumes:
       - "./dapr/:/home/nonroot/.dapr"
     networks:
-      - reservation-dapr
+      - sagaway-network
  
+############################
+# SignalR emulator service
+############################
+  signalr:
+    image: ${DOCKER_REGISTRY-}signalremulator
+    build:
+      context: .
+      dockerfile: ./SignalREmulator/Dockerfile
+    ports:
+      - 8888:8888
+      - 7071:7071
+    volumes:
+     - ./workspace:/workspace
+    environment:
+      - ASRS_EMULATOR_PORT=8888
+#      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8888;http://+:7071
+
 ############################
 # Global settings
 ############################
+ 
 networks:
-  reservation-dapr:
+  sagaway-network:
            
-  
+volumes: 
+  workspace:  
+
+
+
 
