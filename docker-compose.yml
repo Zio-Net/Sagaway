@@ -174,6 +174,8 @@ services:
       dockerfile: Sagaway.IntegrationTests/Sagaway.IntegrationTests.OrchestrationService/Dockerfile
     networks:
       - sagaway-network
+    ports:
+      - "6969:80"
     environment:
       - ACTOR_TYPE=TestActor
       - ASPNETCORE_ENVIRONMENT=Development
@@ -205,24 +207,24 @@ services:
       - orchestrationservice
     network_mode: "service:orchestrationservice"
 
-## Test Service A ##
-  testservicea:
-    image: ${DOCKER_REGISTRY-}sagawayintegrationteststestservicea
+## Test Service ##
+  testservice:
+    image: ${DOCKER_REGISTRY-}sagawayintegrationteststestservice
     build:
       context: .
-      dockerfile: Sagaway.IntegrationTests/Sagaway.IntegrationTests.TestServiceA/Dockerfile
+      dockerfile: Sagaway.IntegrationTests/Sagaway.IntegrationTests.TestService/Dockerfile
     networks:
       - sagaway-network
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://testservicea:80
+      - ASPNETCORE_URLS=http://testservice:80
     depends_on:
       - rabbitmq
       - redis
       - zipkin
       - placement
 
-  testservicea-dapr:
+  testservice-dapr:
     image: "daprio/daprd:edge"
     deploy:
       restart_policy:
@@ -231,7 +233,7 @@ services:
         max_attempts: 10
         window: 120s
     command: ["./daprd",
-     "-app-id", "testservicea",
+     "-app-id", "testservice",
      "-app-port", "80",
      "-placement-host-address", "placement:50006",
      "-dapr-http-port", "3500",
@@ -240,46 +242,8 @@ services:
     volumes:
         - "./dapr/:/dapr"
     depends_on:
-      - testservicea
-    network_mode: "service:testservicea"
-
-## Test Service B ##
-  testserviceb:
-    image: ${DOCKER_REGISTRY-}sagawayintegrationteststestserviceb
-    build:
-      context: .
-      dockerfile: Sagaway.IntegrationTests/Sagaway.IntegrationTests.TestServiceB/Dockerfile
-    networks:
-      - sagaway-network
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://testserviceb:80
-    depends_on:
-      - rabbitmq
-      - redis
-      - zipkin
-      - placement
-
-  testserviceb-dapr:
-    image: "daprio/daprd:edge"
-    deploy:
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 10
-        window: 120s
-    command: ["./daprd",
-     "-app-id", "testserviceb",
-     "-app-port", "80",
-     "-placement-host-address", "placement:50006",
-     "-dapr-http-port", "3500",
-     "-components-path", "/dapr/components",
-     "-config", "/dapr/config.yaml"]
-    volumes:
-        - "./dapr/:/dapr"
-    depends_on:
-      - testservicea
-    network_mode: "service:testserviceb"
+      - testservice
+    network_mode: "service:testservice"
 
 
 ############################

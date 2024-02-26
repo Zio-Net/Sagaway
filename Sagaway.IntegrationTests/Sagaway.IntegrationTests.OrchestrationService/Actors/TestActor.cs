@@ -1,5 +1,7 @@
 ﻿using Dapr.Actors.Runtime;
+using Microsoft.AspNetCore.Mvc;
 using Sagaway.Hosts;
+using System.Text.Json;
 
 namespace Sagaway.IntegrationTests.OrchestrationService.Actors;
 
@@ -30,25 +32,24 @@ public class TestActor : DaprActorHost<TestActorOperations>, ITestActor
             .WithOnFailedCallback(OnFailedCallbackAsync)
 
             .WithOperation(TestActorOperations.CallA)
-            .WithDoOperation(CallAAsync)
+            .WithDoOperation(async ()=> await CallTestServiceAsync(TestActorOperations.CallA))
             .WithMaxRetries(5)
             .WithRetryIntervalTime(TimeSpan.FromSeconds(10))
-            .WithValidateFunction(ValidateCallAAsync)
-            .WithUndoOperation(RevertCallAAsync)
+            .WithValidateFunction(async ()=> await ValidateCallTestServiceAsync(TestActorOperations.CallA))
+            .WithUndoOperation(async () => await RevertCallTestServiceAsync(TestActorOperations.CallA))
             .WithMaxRetries(5)
             .WithUndoRetryInterval(TimeSpan.FromSeconds(10))
-            .WithValidateFunction(ValidateRevertCallAAsync)
+            .WithValidateFunction(async () => await ValidateRevertCallTestServiceAsync(TestActorOperations.CallA))
 
             .WithOperation(TestActorOperations.CallB)
-            .WithDoOperation(CallBAsync)
+            .WithDoOperation(async () => await CallTestServiceAsync(TestActorOperations.CallB))
             .WithMaxRetries(5)
             .WithRetryIntervalTime(TimeSpan.FromSeconds(10))
-            .WithValidateFunction(ValidateCallBAsync)
-            .WithUndoOperation(RevertCallBAsync)
+            .WithValidateFunction(async () => await ValidateCallTestServiceAsync(TestActorOperations.CallB))
+            .WithUndoOperation(async () => await RevertCallTestServiceAsync(TestActorOperations.CallB))
             .WithMaxRetries(5)
             .WithUndoRetryInterval(TimeSpan.FromSeconds(10))
-            .WithValidateFunction(ValidateRevertCallBAsync)
-
+            .WithValidateFunction(async () => await ValidateRevertCallTestServiceAsync(TestActorOperations.CallB))
 
             .Build();
 
@@ -99,18 +100,46 @@ public class TestActor : DaprActorHost<TestActorOperations>, ITestActor
         }
     }
 
-    #endregion
-
-
-    #region Call Service A metods
-
-    private async Task CallAAsync()
+    private async Task CallTestServiceAsync(TestActorOperations testActorOperations)
     {
-        _logger.LogInformation("Calling service A for test name: {testName} with info:{serviceA}", 
-            _testInfo!.TestName, _testInfo.ServiceA);
+        //get from the state the iteration number
+        var iterationId = $"iteration_{_testInfo!.Id}_{testActorOperations}";
+        
 
-        await DaprClient.InvokeBindingAsync("test-a-queue", "create", _testInfo.ServiceA, 
-            GetCallbackMetadata(nameof(OnServiceAResultAsync)));
+        var storedIteration = await StateManager.TryGetStateAsync<int>(iterationId);
+
+        int iteration = storedIteration.HasValue ? storedIteration.Value + 1 : 1;
+        
+        var info = testActorOperations switch
+        {
+            TestActorOperations.CallA => _testInfo!.ServiceACall,
+            TestActorOperations.CallB => _testInfo!.ServiceBCall,
+            _ => throw new ArgumentException("Invalid testActorOperations")
+        };
+
+        var testInfo = new ServiceTestInfo()
+        {
+            CallId = info!.CallId,
+            IsReverting = false,
+            DelayOnCallInSeconds = info.DelayOnCallInSeconds?[iteration - 1] ?? 0,
+            ShouldSucceed = info.SuccessOnCall == iteration - 1,
+            ShouldReturnCallbackResult = info.ShouldReturnCallbackResultOnCall?[iteration - 1] ?? true
+        };
+
+        var callbackFunctionName = testActorOperations switch
+        {
+            TestActorOperations.CallA => nameof(OnServiceAResultAsync),
+            TestActorOperations.CallB => nameof(OnServiceBResultAsync),
+            _ => throw new ArgumentException("Invalid testActorOperations")
+        };
+
+        _logger.LogInformation("{callOperation} for {testInfo}",
+            testActorOperations, _testInfo);
+
+        await DaprClient.InvokeBindingAsync("test-queue", "create", testInfo,
+            GetCallbackMetadata(callbackFunctionName));
+
+        await StateManager.SetStateAsync(iterationId, iteration);
     }
 
     private async Task OnServiceAResultAsync(bool result)
@@ -118,14 +147,26 @@ public class TestActor : DaprActorHost<TestActorOperations>, ITestActor
         await ReportCompleteOperationOutcomeAsync(TestActorOperations.CallA, result);
     }
 
-    private async Task<bool> ValidateCallAAsync()
+    private async Task OnServiceBResultAsync(bool result)
     {
-        var callId = _testInfo!.ServiceA!.CallId;
+        await ReportCompleteOperationOutcomeAsync(TestActorOperations.CallB, result);
+    }
+
+    private async Task<bool> ValidateCallTestServiceAsync(TestActorOperations testActorOperations)
+    {
+        var info = testActorOperations switch
+        {
+            TestActorOperations.CallA => _testInfo!.ServiceACall,
+            TestActorOperations.CallB => _testInfo!.ServiceBCall,
+            _ => throw new ArgumentException("Invalid testActorOperations")
+        };
+
+        var callId = info!.CallId;
 
         try
         {
             var successState =
-                await DaprClient.InvokeMethodAsync<bool>(HttpMethod.Get, "testservicea",
+                await DaprClient.InvokeMethodAsync<bool>(HttpMethod.Get, "testservice",
                     $"/test/{callId}");
 
             return successState;
@@ -137,14 +178,43 @@ public class TestActor : DaprActorHost<TestActorOperations>, ITestActor
         }
     }
 
-    private async Task RevertCallAAsync()
+    private async Task RevertCallTestServiceAsync(TestActorOperations testActorOperations)
     {
-        _logger.LogInformation("Reverting call A for test name: {testName} with info:{serviceA}",
-            _testInfo!.TestName, _testInfo.ServiceA);
+        //get from the state the iteration number
+        var iterationId = $"iteration_{_testInfo!.Id}_{testActorOperations}";
 
-        _testInfo.ServiceA!.IsReverting = true;
-        await DaprClient.InvokeBindingAsync("testservicea", "create", _testInfo.ServiceA,
-            GetCallbackMetadata(nameof(OnRevertServiceAAsync)));
+        var storedIteration = await StateManager.TryGetStateAsync<int>(iterationId);
+
+        var iteration = storedIteration.HasValue ? storedIteration.Value : 1;
+
+        var info = testActorOperations switch
+        {
+            TestActorOperations.CallA => _testInfo!.ServiceARevert,
+            TestActorOperations.CallB => _testInfo!.ServiceBRevert,
+            _ => throw new ArgumentException("Invalid testActorOperations")
+        };
+
+        var testInfo = new ServiceTestInfo()
+        {
+            CallId = info!.CallId,
+            IsReverting = true,
+            DelayOnCallInSeconds = info.DelayOnCallInSeconds?[iteration - 1] ?? 0,
+            ShouldSucceed = info.SuccessOnCall == iteration - 1,
+            ShouldReturnCallbackResult = info.ShouldReturnCallbackResultOnCall?[iteration - 1] ?? true
+        };
+
+        var callbackFunctionName = testActorOperations switch
+        {
+            TestActorOperations.CallA => nameof(OnRevertServiceAAsync),
+            TestActorOperations.CallB => nameof(OnRevertServiceBAsync),
+            _ => throw new ArgumentException("Invalid testActorOperations")
+        };
+
+        _logger.LogInformation("{callOperation} for {testInfo}",
+            testActorOperations, _testInfo);
+
+        await DaprClient.InvokeBindingAsync("test-queue", "create", testInfo,
+            GetCallbackMetadata(callbackFunctionName));
     }
 
     private async Task OnRevertServiceAAsync(bool result)
@@ -152,70 +222,14 @@ public class TestActor : DaprActorHost<TestActorOperations>, ITestActor
         await ReportUndoOperationOutcomeAsync(TestActorOperations.CallA, result);
     }
 
-    private async Task<bool> ValidateRevertCallAAsync()
-    {
-        _logger.LogInformation("Validating revert call A for test name: {testName} with info:{serviceA}",
-            _testInfo!.TestName, _testInfo.ServiceA);
-        return !await ValidateCallAAsync();
-    }
-
-    #endregion
-
-    #region Call Service A metods
-
-    private async Task CallBAsync()
-    {
-        _logger.LogInformation("Calling service B for test name: {testName} with info:{serviceB}",
-            _testInfo!.TestName, _testInfo.ServiceB);
-
-        await DaprClient.InvokeBindingAsync("test-b-queue", "create", _testInfo.ServiceB,
-            GetCallbackMetadata(nameof(OnServiceBResultAsync)));
-    }
-
-    private async Task OnServiceBResultAsync(bool result)
-    {
-        await ReportCompleteOperationOutcomeAsync(TestActorOperations.CallB, result);
-    }
-
-    private async Task<bool> ValidateCallBAsync()
-    {
-        var callId = _testInfo!.ServiceB!.CallId;
-
-        try
-        {
-            var successState =
-                await DaprClient.InvokeMethodAsync<bool>(HttpMethod.Get, "testserviceb",
-                    $"/test/{callId}");
-
-            return successState;
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "Error in ValidateCallBAsync for call id: {callId}", callId);
-            return false;
-        }
-    }
-
-    private async Task RevertCallBAsync()
-    {
-        _logger.LogInformation("Reverting call B for test name: {testName} with info:{serviceB}",
-            _testInfo!.TestName, _testInfo.ServiceB);
-
-        _testInfo.ServiceB!.IsReverting = true;
-        await DaprClient.InvokeBindingAsync("testserviceb", "create", _testInfo.ServiceB,
-            GetCallbackMetadata(nameof(OnRevertServiceBAsync)));
-    }
-
     private async Task OnRevertServiceBAsync(bool result)
     {
         await ReportUndoOperationOutcomeAsync(TestActorOperations.CallB, result);
     }
 
-    private async Task<bool> ValidateRevertCallBAsync()
+    private async Task<bool> ValidateRevertCallTestServiceAsync(TestActorOperations testActorOperations)
     {
-        _logger.LogInformation("Validating revert call B for test name: {testName} with info:{serviceB}",
-            _testInfo!.TestName, _testInfo.ServiceB);
-        return !await ValidateCallBAsync();
+        return !await ValidateCallTestServiceAsync(testActorOperations);
     }
 
     #endregion
@@ -234,7 +248,7 @@ public class TestActor : DaprActorHost<TestActorOperations>, ITestActor
             SagaLog = sagaLog
         };
 
-        await DaprClient.InvokeBindingAsync("test-callback", "create", testResult);
+        await PublishMessageToSignalRAsync(testResult);
     }
 
     private async void OnRevertedCallbackAsync(string sagaLog)
@@ -249,7 +263,7 @@ public class TestActor : DaprActorHost<TestActorOperations>, ITestActor
             SagaLog = sagaLog
         };
 
-        await DaprClient.InvokeBindingAsync("test-callback", "create", testResult);
+        await PublishMessageToSignalRAsync(testResult);
     }
 
     private async void OnFailedCallbackAsync(string sagaLog)
@@ -271,7 +285,7 @@ public class TestActor : DaprActorHost<TestActorOperations>, ITestActor
             SagaLog = sagaLog
         };
 
-        await DaprClient.InvokeBindingAsync("test-callback", "create", testResult);
+        await PublishMessageToSignalRAsync(testResult);
     }
 
     private async Task OnSagaCompletedAsync(object? _, SagaCompletionEventArgs e)
@@ -281,4 +295,23 @@ public class TestActor : DaprActorHost<TestActorOperations>, ITestActor
     }
 
     #endregion
+
+    private async Task PublishMessageToSignalRAsync(TestResult testResult)
+    {
+        var callbackRequest = JsonSerializer.Serialize(testResult);
+        var argument = new Argument
+        {
+            Text = callbackRequest
+        };
+
+        SignalRMessage message = new()
+        {
+            Target = _testInfo!.Id.ToString(),
+            Arguments = [argument]
+        };
+
+        _logger.LogInformation("publishing message to SignalR: {argumentText}", argument.Text);
+
+        await DaprClient.InvokeBindingAsync("test-callback", "create", message); //sending through dapr to the signalR Hub
+    }
 }

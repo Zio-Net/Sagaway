@@ -22,10 +22,9 @@
         "zipkin": "StartWithoutDebugging",
         "orchestrationservice": "StartDebugging",
         "orchestrationservice-dapr": "StartWithoutDebugging",
-        "testservicea": "StartDebugging",
-        "testservicea-dapr": "StartWithoutDebugging",
-        "testserviceb": "StartDebugging",
-        "testserviceb-dapr": "StartWithoutDebugging"
+        "testservice": "StartDebugging",
+        "testservice-dapr": "StartWithoutDebugging",
+        "signalr": "StartWithoutDebugging"
       }
     }
   }

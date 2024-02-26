@@ -1,4 +1,4 @@
-namespace Sagaway.IntegrationTests.OrchestrationService;
+namespace Sagaway.IntegrationTests.TestProject;
 
 public record TestInfo
 {

@@ -42,6 +42,7 @@ builder.Services.AddActors(options =>
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddSingleton<IHubContextStore, SignalRService>();
 
 var app = builder.Build();
 
@@ -78,6 +79,28 @@ app.MapPost("/run-test", async (
 })
 .WithName("run-test")
 .WithOpenApi();
+
+
+app.MapPost("/negotiate", async (
+    [FromServices] IHubContextStore store, 
+    [FromServices] ILogger<Program> logger) =>
+{
+    var accountManagerCallbackHubContext = store.AccountManagerCallbackHubContext;
+
+    logger.LogInformation($"MessageHubNegotiate: SignalR negotiate for user: Test");
+    
+    var negotiateResponse = await accountManagerCallbackHubContext!.NegotiateAsync(new()
+    {
+        UserId = "Test", //user,
+        EnableDetailedErrors = true
+    });
+
+    return Results.Json(new Dictionary<string, string>()
+    {
+        { "url", negotiateResponse.Url! },
+        { "accessToken", negotiateResponse.AccessToken! }
+    });
+});
 
 app.MapControllers();
 app.MapSubscribeHandler();

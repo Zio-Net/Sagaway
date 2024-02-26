@@ -39,17 +39,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "components", "components", 
 		dapr\components\inventory-queue.yaml = dapr\components\inventory-queue.yaml
 		dapr\components\reservation-response-queue.yaml = dapr\components\reservation-response-queue.yaml
 		dapr\components\statestore.yaml = dapr\components\statestore.yaml
-		dapr\components\test-a-queue.yaml = dapr\components\test-a-queue.yaml
-		dapr\components\test-b-queue.yaml = dapr\components\test-b-queue.yaml
 		dapr\components\test-callback.yaml = dapr\components\test-callback.yaml
 		dapr\components\test-response-queue.yaml = dapr\components\test-response-queue.yaml
+		dapr\components\test-queue.yaml = dapr\components\test-queue.yaml
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sagaway.IntegrationTests.OrchestrationService", "Sagaway.IntegrationTests\Sagaway.IntegrationTests.OrchestrationService\Sagaway.IntegrationTests.OrchestrationService.csproj", "{EDCC72CE-2288-45E6-B035-1EE8F7342CDD}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sagaway.IntegrationTests.TestServiceA", "Sagaway.IntegrationTests\Sagaway.IntegrationTests.TestServiceA\Sagaway.IntegrationTests.TestServiceA.csproj", "{DF1F0AA6-97AA-482C-8DEA-543EA48F3A6F}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sagaway.IntegrationTests.TestServiceB", "Sagaway.IntegrationTests\Sagaway.IntegrationTests.TestServiceB\Sagaway.IntegrationTests.TestServiceB.csproj", "{63BDEA09-22DE-42BC-85FE-4D4C1F5D323B}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SignalREmulator", "SignalREmulator", "{F0F3C263-A7BC-48CE-A9A6-84CD48DB4850}"
 	ProjectSection(SolutionItems) = preProject
@@ -58,6 +53,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SignalREmulator", "SignalRE
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sagaway.IntegrationTests.TestProject", "Sagaway.IntegrationTests\Sagaway.IntegrationTests.TestProject\Sagaway.IntegrationTests.TestProject.csproj", "{FADEA56C-46EC-414F-A594-503C421BF47C}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sagaway.IntegrationTests.TestService", "Sagaway.IntegrationTests\Sagaway.IntegrationTests.TestService\Sagaway.IntegrationTests.TestService.csproj", "{568B0B6C-EBF1-4222-A51E-90CF5DA349AF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -109,18 +106,14 @@ Global
 		{EDCC72CE-2288-45E6-B035-1EE8F7342CDD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EDCC72CE-2288-45E6-B035-1EE8F7342CDD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EDCC72CE-2288-45E6-B035-1EE8F7342CDD}.Release|Any CPU.Build.0 = Release|Any CPU
-		{DF1F0AA6-97AA-482C-8DEA-543EA48F3A6F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{DF1F0AA6-97AA-482C-8DEA-543EA48F3A6F}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{DF1F0AA6-97AA-482C-8DEA-543EA48F3A6F}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{DF1F0AA6-97AA-482C-8DEA-543EA48F3A6F}.Release|Any CPU.Build.0 = Release|Any CPU
-		{63BDEA09-22DE-42BC-85FE-4D4C1F5D323B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{63BDEA09-22DE-42BC-85FE-4D4C1F5D323B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{63BDEA09-22DE-42BC-85FE-4D4C1F5D323B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{63BDEA09-22DE-42BC-85FE-4D4C1F5D323B}.Release|Any CPU.Build.0 = Release|Any CPU
 		{FADEA56C-46EC-414F-A594-503C421BF47C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{FADEA56C-46EC-414F-A594-503C421BF47C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FADEA56C-46EC-414F-A594-503C421BF47C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FADEA56C-46EC-414F-A594-503C421BF47C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{568B0B6C-EBF1-4222-A51E-90CF5DA349AF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{568B0B6C-EBF1-4222-A51E-90CF5DA349AF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{568B0B6C-EBF1-4222-A51E-90CF5DA349AF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{568B0B6C-EBF1-4222-A51E-90CF5DA349AF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -132,9 +125,8 @@ Global
 		{C6FF42BA-F626-446A-8100-CC4854C75EAB} = {FFF6DF40-5A9F-46B9-BE17-1AD17D40AC17}
 		{D9272F34-3167-4C17-91FF-0ABD427E7DA8} = {F2614066-27C2-4DA8-82EC-DFA0209D3775}
 		{EDCC72CE-2288-45E6-B035-1EE8F7342CDD} = {DBBB1856-3CF3-45F6-8284-627DF1BA9AB1}
-		{DF1F0AA6-97AA-482C-8DEA-543EA48F3A6F} = {DBBB1856-3CF3-45F6-8284-627DF1BA9AB1}
-		{63BDEA09-22DE-42BC-85FE-4D4C1F5D323B} = {DBBB1856-3CF3-45F6-8284-627DF1BA9AB1}
 		{FADEA56C-46EC-414F-A594-503C421BF47C} = {DBBB1856-3CF3-45F6-8284-627DF1BA9AB1}
+		{568B0B6C-EBF1-4222-A51E-90CF5DA349AF} = {DBBB1856-3CF3-45F6-8284-627DF1BA9AB1}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {27AF5C62-89C5-4AE2-B5DD-7DC1D1DDA605}

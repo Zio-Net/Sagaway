@@ -166,6 +166,7 @@ app.MapPost("/inventory-queue", async (
             await daprClient.InvokeBindingAsync(callbackQueueNameProvider.CallbackQueueName, "create", reservationOperationResult);
             return;
         }
+
         //else
         logger.LogInformation("Car class {CarClass} is reserved for order id: {orderId}, canceling reservation",
             request.CarClass, orderId);
