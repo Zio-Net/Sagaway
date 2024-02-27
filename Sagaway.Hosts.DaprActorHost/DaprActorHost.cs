@@ -328,7 +328,8 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
 
         return new Dictionary<string, string>
         {
-            { "x-sagaway-callback-method", callbackMethodName }
+            { "x-sagaway-callback-method", callbackMethodName },
+            { "x-sagaway-message-dispatch-time", DateTime.UtcNow.ToString("o")} // ISO 8601 format
         };
     }
 }

@@ -9,6 +9,7 @@ public class HeaderPropagationMiddleware(RequestDelegate next)
     public static readonly AsyncLocal<string?> ActorId = new();
     public static readonly AsyncLocal<string?> CallbackQueueName = new();
     public static readonly AsyncLocal<string?> CallbackMethodName = new();
+    public static readonly AsyncLocal<string?> MessageDispatchTime = new();
 
     public async Task InvokeAsync(HttpContext context)
     {

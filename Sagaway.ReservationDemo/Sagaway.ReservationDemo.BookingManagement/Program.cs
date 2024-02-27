@@ -4,6 +4,8 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Sagaway.Callback.Propagator;
 using Sagaway.ReservationDemo.BookingManagement;
+using System.Globalization;
+using System.Net;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -34,6 +36,7 @@ if (app.Environment.IsDevelopment())
 
 app.MapPost("/booking-queue", async (
         [FromBody] CarReservationRequest request,
+        [FromHeader(Name = "x-sagaway-message-dispatch-time")] string messageDispatchTimeHeader,
         [FromServices] ILogger<Program> logger,
         [FromServices] ICallbackQueueNameProvider callbackQueueNameProvider,
         [FromServices] DaprClient daprClient) =>
@@ -43,9 +46,47 @@ app.MapPost("/booking-queue", async (
 
         var reservationId = request.ReservationId.ToString();
 
+        // Parse the dispatch time from the header
+        var decodedMessageDispatchTimeHeader = WebUtility.UrlDecode(messageDispatchTimeHeader);
+
+        if (DateTime.TryParseExact(decodedMessageDispatchTimeHeader, "o", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var messageDispatchTime))
+        {
+            logger.LogInformation("Reservation: {reservationId}, Message dispatch time: {messageDispatchTime}",
+                reservationId, messageDispatchTime);
+        }
+        else
+        {
+            logger.LogError("Reservation: {reservationId}, Invalid message dispatch time format.",
+                reservationId);
+            return;
+        }
+
         var reservationOperationResult = new ReservationOperationResult()
         {
-            ReservationId = request.ReservationId,
+            ReservationId = request.ReservationId
+        };
+
+        var (reservationState, etag) = await daprClient.GetStateAndETagAsync<ReservationState>("statestore", reservationId);
+
+        //supporting out-of-order message
+        if (reservationState != null && messageDispatchTime < reservationState.ReservationStatusUpdateTime)
+        {
+            logger.LogInformation("Receive an out of order message. Ignoring. {CustomerName}",
+                request.CustomerName);
+            return;
+        }
+
+        reservationState ??= new ReservationState
+        {
+            Id = request.ReservationId,
+            ReservationStatusUpdateTime = messageDispatchTime,
+            CustomerName = request.CustomerName,
+            IsReserved = false
+        };
+
+        var stateOptions = new StateOptions()
+        {
+            Consistency = ConsistencyMode.Strong,
         };
 
 
@@ -64,49 +105,18 @@ app.MapPost("/booking-queue", async (
 
         async Task ReserveCarAsync()
         {
-            reservationOperationResult.Activity = "CarBooking";
-
-            var reservationState = new ReservationState
-            {
-                CustomerName = request.CustomerName,
-                Id = request.ReservationId
-            };
-
-            // Check if the car class is already reserved
-            var state = await daprClient.GetStateAsync<ReservationState>("statestore", reservationId);
-
-            if (state?.IsReserved ?? false)
-            {
-                logger.LogInformation("Reservation id is already reserved for {CustomerName}", request.CustomerName);
-
-                reservationOperationResult.IsSuccess = true;
-
-                // Send the response to the response queue
-                await daprClient.InvokeBindingAsync(callbackQueueNameProvider.CallbackQueueName, "create", reservationOperationResult);
-                return;
-            }
-
-            //else
             logger.LogInformation("Reserving car class {CarClass} for {CustomerName}", request.CarClass, request.CustomerName);
 
             reservationState.IsReserved = true;
 
-            // Set time to live for 10 minutes to reset the state for demo purposes
-            var metadata = new Dictionary<string, string>
-            {
-                { "ttlInSeconds", "600" } // TTL set for 10 minutes
-            };
-
             try
             {
-                await daprClient.SaveStateAsync("statestore", reservationId, reservationState,
-                    new StateOptions()
-                    {
-                        Consistency = ConsistencyMode.Strong
-                    }, metadata);
+                var result = await daprClient.TrySaveStateAsync("statestore", reservationId, 
+                    reservationState, etag, stateOptions);
 
-                logger.LogInformation("Car class {CarClass} reserved for {CustomerName}", request.CarClass, request.CustomerName);
-                reservationOperationResult.IsSuccess = true;
+                logger.LogInformation("Car class {CarClass} {result} reserved for {CustomerName}", 
+                    request.CarClass, result ? "has" : "failed to", request.CustomerName);
+                reservationOperationResult.IsSuccess = result;
             }
             catch (Exception e)
             {
@@ -121,26 +131,34 @@ app.MapPost("/booking-queue", async (
 
         async Task CancelCarReservationAsync()
         {
-           reservationOperationResult.Activity = "cancellingCarBooking";
 
-           var state = await daprClient.GetStateAsync<ReservationState>("statestore", reservationId);
+            logger.LogInformation("Cancelling car class {CarClass} reservation id {reservationId} for {CustomerName}",
+                request.CarClass, reservationId, request.CustomerName);
 
-            if (state?.IsReserved ?? false)
+            reservationState.IsReserved = false;
+
+            // TTL set for 5 minutes, this has the effect of deleting the entry
+            // but only after the Saga is done, support for compensation
+            var metadata = new Dictionary<string, string>
             {
-                logger.LogInformation("Cancelling car class {CarClass} reservation id {reservationId} for {CustomerName}",
-                    request.CarClass, reservationId, request.CustomerName);
+                { "ttlInSeconds", "300" }
+            };
 
-                try
-                {
-                    await daprClient.DeleteStateAsync("statestore", reservationId);
-                    reservationOperationResult.IsSuccess = true;
-                    logger.LogInformation("Reservation id {reservationId} cancelled for {CustomerName}", reservationId, request.CustomerName);
-                }
-                catch (Exception e)
-                {
-                    logger.LogError(e, "Failed to cancel reservation id {reservationId} for {CustomerName}", reservationId, request.CustomerName);
-                    reservationOperationResult.IsSuccess = false;
-                }
+
+            try
+            {
+                var result = await daprClient.TrySaveStateAsync("statestore", reservationId, reservationState, 
+                    etag, stateOptions, metadata);
+
+                reservationOperationResult.IsSuccess = result;
+                logger.LogInformation("Reservation id {reservationId} {result} cancelled for {CustomerName}",
+                    reservationId, result ? "has" : "failed to", request.CustomerName);
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, "Failed to cancel reservation id {reservationId} for {CustomerName}", reservationId,
+                    request.CustomerName);
+                reservationOperationResult.IsSuccess = false;
             }
 
             // Send the response to the response queue

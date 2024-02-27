@@ -4,6 +4,8 @@ using Dapr.Client;
 using Microsoft.AspNetCore.Mvc;
 using Sagaway.Callback.Propagator;
 using Sagaway.ReservationDemo.InventoryManagement;
+using System.Globalization;
+using System.Net;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -37,6 +39,7 @@ if (app.Environment.IsDevelopment())
 
 app.MapPost("/inventory-queue", async (
         [FromBody] CarInventoryRequest request,
+        [FromHeader(Name = "x-sagaway-message-dispatch-time")] string messageDispatchTimeHeader,
         [FromServices] ILogger<Program> logger,
         [FromServices] ICallbackQueueNameProvider callbackQueueNameProvider,
         [FromServices] DaprClient daprClient) =>
@@ -46,10 +49,45 @@ app.MapPost("/inventory-queue", async (
 
     var orderId = request.OrderId.ToString();
 
+    // Parse the dispatch time from the header
+    var decodedMessageDispatchTimeHeader = WebUtility.UrlDecode(messageDispatchTimeHeader);
+
+    if (DateTime.TryParseExact(decodedMessageDispatchTimeHeader, "o", CultureInfo.InvariantCulture,
+            DateTimeStyles.RoundtripKind, out var messageDispatchTime))
+    {
+        logger.LogInformation("Order: {orderId}, Message dispatch time: {messageDispatchTime}",
+            orderId, messageDispatchTime);
+    }
+    else
+    {
+        logger.LogError("Order: {orderId}, Invalid message dispatch time format.",
+            orderId);
+        return;
+    }
+
     var reservationOperationResult = new ReservationOperationResult()
     {
         ReservationId = request.OrderId,
     };
+
+    var (reservationState, orderIdEtag) = await daprClient.GetStateAndETagAsync<ReservationState>("statestore", orderId);
+
+    //supporting out-of-order message
+    if (reservationState != null && messageDispatchTime < reservationState.LastUpdateTime)
+    {
+        logger.LogInformation("Receive an out of order message. Ignoring. {orderId}",
+            orderId);
+        return;
+    }
+
+    reservationState ??= new ReservationState()
+    {
+        Id = request.OrderId,
+        LastUpdateTime = messageDispatchTime,
+        CarClass = request.CarClass,
+        IsReserved = false
+    };
+
 
     switch (request.ActionType)
     {
@@ -66,22 +104,6 @@ app.MapPost("/inventory-queue", async (
 
     async Task ReserveCarAsync()
     {
-        reservationOperationResult.Activity = "inventoryReserving";
-
-        // Check if the car class is already reserved
-        var (state, etag) = await daprClient.GetStateAndETagAsync<ReservationState>("statestore", orderId);
-
-        //supporting idempotency
-        if (state?.IsReserved ?? false)
-        {
-            logger.LogInformation("Car class {CarClass} is already reserved", request.CarClass);
-
-            reservationOperationResult.IsSuccess = true;
-            // Send the response to the response queue
-            await daprClient.InvokeBindingAsync(callbackQueueNameProvider.CallbackQueueName, "create", reservationOperationResult);
-            return;
-        }
-
         //get the number of car reserved in the class
         var (carClassState, carClassEtag) = await daprClient.GetStateAndETagAsync<int>("statestore", request.CarClass);
 
@@ -101,29 +123,20 @@ app.MapPost("/inventory-queue", async (
 
         logger.LogInformation("Car class {CarClass} is available", request.CarClass);
 
-        var reservationState = new ReservationState
+        if (!reservationState.IsReserved)
         {
-            Id = request.OrderId,
-            IsReserved = true,
-            CarClass = request.CarClass
-        };
-
-        //we need to update the number of cars reserved in the class and the reservation state
-        //in a transactional way
-
-        // Set time to live for 10 minutes to reset the state for demo purposes
-        var metadata = new Dictionary<string, string>
-        {
-            { "ttlInSeconds", "600" } // TTL set for 10 minutes
-        };
+            reservationState.IsReserved = true;
+            // Increment the count only if not previously reserved
+            carClassState += 1;
+        }
 
         var carClassStateUpdate = new StateTransactionRequest(request.CarClass, 
-            System.Text.Encoding.UTF8.GetBytes((carClassState + 1).ToString()),
-            StateOperationType.Upsert, carClassEtag, metadata);
+            System.Text.Encoding.UTF8.GetBytes(carClassState.ToString()),
+            StateOperationType.Upsert, carClassEtag);
 
         var reservationStateUpdate = new StateTransactionRequest(orderId, 
                        JsonSerializer.SerializeToUtf8Bytes(reservationState),
-                                  StateOperationType.Upsert, etag, metadata);
+                                  StateOperationType.Upsert, orderIdEtag);
 
         var transactionOperations = new List<StateTransactionRequest>()
         {
@@ -152,39 +165,32 @@ app.MapPost("/inventory-queue", async (
 
     async Task CancelCarReservationAsync()
     {
-        reservationOperationResult.Activity = "inventoryCancelling";
-        //check if there is a reservation with the order id
-        var state = await daprClient.GetStateAsync<ReservationState>("statestore", orderId);
-
-        if (!state?.IsReserved ?? true) //not reserved
+        // TTL set for 5 minutes, this has the effect of deleting the entry
+        // but only after the Saga is done, support for compensation
+        var metadata = new Dictionary<string, string>
         {
-            logger.LogInformation("Car class {CarClass} is not reserved for order id: {orderId}", 
-                request.CarClass, orderId);
-
-            reservationOperationResult.IsSuccess = true;
-
-            await daprClient.InvokeBindingAsync(callbackQueueNameProvider.CallbackQueueName, "create", reservationOperationResult);
-            return;
-        }
-
-        //else
-        logger.LogInformation("Car class {CarClass} is reserved for order id: {orderId}, canceling reservation",
-            request.CarClass, orderId);
-
-        // Cancel the reservation
-        state.IsReserved = false;
+            { "ttlInSeconds", "300" } 
+        };
 
         //get the number of car reserved in the class
         var (carClassState, carClassEtag) = await daprClient.GetStateAndETagAsync<int>("statestore", request.CarClass);
 
+        // Cancel the reservation
+        if (reservationState.IsReserved)
+        {
+            reservationState.IsReserved = false;
+            // Decrement the count only if it was previously reserved
+            carClassState = Math.Max(0, carClassState - 1); // Ensure it doesn't go below 0
+        }
+
         //we need transactional update to the number of cars reserved in the class and the reservation state
         var carClassStateUpdate = new StateTransactionRequest(request.CarClass,
-            System.Text.Encoding.UTF8.GetBytes((carClassState - 1).ToString()),
-            StateOperationType.Delete, carClassEtag);
+            System.Text.Encoding.UTF8.GetBytes(carClassState.ToString()),
+            StateOperationType.Upsert, carClassEtag);
 
         var reservationStateUpdate = new StateTransactionRequest(orderId,
             JsonSerializer.SerializeToUtf8Bytes(carClassState),
-            StateOperationType.Delete);
+            StateOperationType.Upsert, orderIdEtag, metadata);
 
         var transactionOperations = new List<StateTransactionRequest>()
         {
@@ -196,7 +202,7 @@ app.MapPost("/inventory-queue", async (
         {
             await daprClient.ExecuteStateTransactionAsync("statestore", transactionOperations);
             logger.LogInformation("Car class {CarClass} for order id {orderId} canceled - {CarClassState} cars reserved",
-                request.CarClass, request.OrderId, carClassState - 1);
+                request.CarClass, request.OrderId, carClassState);
 
             reservationOperationResult.IsSuccess = true;
 

@@ -5,6 +5,7 @@ using Xunit.Abstractions;
 
 namespace Sagaway.IntegrationTests.TestProject;
 
+[Collection("Integration Test Collection")]
 public class IntegrationTests
 {
     private readonly IntegrationTestSupportFixture _testServiceHelper;
@@ -58,6 +59,8 @@ public class IntegrationTests
 
         var result = await SignalR.WaitForSignalREventAsync(50);
 
+        Assert.True(result);
+        
         var testResult = _testServiceHelper.GetTestResultFromSignalR(testInfo.Id);
 
         Assert.True(testResult.IsSuccess);
