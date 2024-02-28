@@ -5,7 +5,7 @@ using Xunit.Abstractions;
 
 namespace Sagaway.IntegrationTests.TestProject;
 
-[Collection("Integration Test Collection")]
+[Collection("Sagaway Integration Tests")]
 public class IntegrationTests
 {
     private readonly IntegrationTestSupportFixture _testServiceHelper;
@@ -46,7 +46,7 @@ public class IntegrationTests
             }
         };
 
-        SignalR.ListenToSignalR(testInfo.Id.ToString());
+        await SignalR.StartSignalRAsync(testInfo.Id.ToString());
 
         var body = new StringContent(JsonSerializer.Serialize(testInfo, SerializeOptions), Encoding.UTF8, "application/json");
 

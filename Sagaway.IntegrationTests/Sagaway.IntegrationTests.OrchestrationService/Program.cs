@@ -14,8 +14,18 @@ builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
+builder.Services.AddSingleton<SignalRService>()
+#pragma warning disable CS8631 // The type cannot be used as type parameter in the generic type or method. Nullability of type argument doesn't match constraint type.
+#pragma warning disable CS8634 // The type cannot be used as type parameter in the generic type or method. Nullability of type argument doesn't match 'class' constraint.
+    .AddHostedService(sp => sp.GetService<SignalRService>())
+#pragma warning restore CS8634 // The type cannot be used as type parameter in the generic type or method. Nullability of type argument doesn't match 'class' constraint.
+#pragma warning restore CS8631 // The type cannot be used as type parameter in the generic type or method. Nullability of type argument doesn't match constraint type.
+    .AddSingleton<IHubContextStore>(sp => sp.GetService<SignalRService>()!)
+    .AddDaprClient();
+
+
 // Register DaprClient
-builder.Services.AddControllers().AddDapr().AddJsonOptions(options =>
+builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: false));
@@ -40,9 +50,20 @@ builder.Services.AddActors(options =>
     };
 });
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+            .AllowAnyHeader()
+            .AllowAnyMethod(); // This includes OPTIONS
+    });
+});
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddSingleton<IHubContextStore, SignalRService>();
+
+builder.Services.AddHostedService<SignalRService>();
 
 var app = builder.Build();
 
@@ -82,13 +103,13 @@ app.MapPost("/run-test", async (
 
 
 app.MapPost("/negotiate", async (
-    [FromServices] IHubContextStore store, 
+    [FromServices] IHubContextStore store,
     [FromServices] ILogger<Program> logger) =>
 {
     var accountManagerCallbackHubContext = store.AccountManagerCallbackHubContext;
 
     logger.LogInformation($"MessageHubNegotiate: SignalR negotiate for user: Test");
-    
+
     var negotiateResponse = await accountManagerCallbackHubContext!.NegotiateAsync(new()
     {
         UserId = "Test", //user,
@@ -101,6 +122,8 @@ app.MapPost("/negotiate", async (
         { "accessToken", negotiateResponse.AccessToken! }
     });
 });
+
+app.UseCors("AllowAll");
 
 app.MapControllers();
 app.MapSubscribeHandler();

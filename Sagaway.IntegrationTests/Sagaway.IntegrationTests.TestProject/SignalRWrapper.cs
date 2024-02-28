@@ -26,7 +26,7 @@ public class SignalRWrapper : ISignalRWrapper
         _signalRHubConnection = new HubConnectionBuilder()
             .WithUrl(signalRUrl, c =>
             {
-                c.Headers.Add("authorization", token);
+                //c.Headers.Add("authorization", token);
             })
             .WithAutomaticReconnect().ConfigureLogging(lb =>
             {
@@ -47,8 +47,8 @@ public class SignalRWrapper : ISignalRWrapper
         _signalRHubConnection = new HubConnectionBuilder()
             .WithUrl(signalRUrl, options =>
             {
-                options.Headers.Add("authorization", _token);
-                options.Headers.Add("testUser", alternativeUser);
+                //options.Headers.Add("authorization", _token);
+                //options.Headers.Add("testUser", alternativeUser);
             })
             .WithAutomaticReconnect()
             .ConfigureLogging(lb =>

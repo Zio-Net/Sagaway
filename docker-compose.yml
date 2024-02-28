@@ -180,6 +180,7 @@ services:
       - ACTOR_TYPE=TestActor
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://orchestrationservice:80
+      - AZURE__SignalR__ConnectionString=Endpoint=http://localhost:8888;Port=8888;AccessKey=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGH;Version=1.0;
     depends_on:
       - rabbitmq
       - redis

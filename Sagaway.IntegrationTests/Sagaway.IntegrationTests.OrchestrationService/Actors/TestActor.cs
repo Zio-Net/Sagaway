@@ -81,7 +81,7 @@ public class TestActor : DaprActorHost<TestActorOperations>, ITestActor
         {
             _logger.LogInformation("RunTestAsync called with test info: {testInfo}", testInfo);
 
-            if (_testInfo == null || _testInfo.Id == Guid.Empty)
+            if (testInfo == null || testInfo.Id == Guid.Empty)
             {
                 _logger.LogError("RunTestAsync is called with an invalid test info");
                 throw new Exception("RunTestAsync is called with an invalid test info");

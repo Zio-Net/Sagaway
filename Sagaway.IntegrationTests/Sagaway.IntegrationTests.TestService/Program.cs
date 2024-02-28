@@ -4,6 +4,9 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Sagaway.Callback.Propagator;
 using Sagaway.IntegrationTests.TestService;
+using System.Globalization;
+using System.Net;
+using Polly;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -34,13 +37,31 @@ if (app.Environment.IsDevelopment())
 
 app.MapPost("/test-queue", async (
         [FromBody] ServiceTestInfo request,
+        [FromHeader(Name = "x-sagaway-message-dispatch-time")] string messageDispatchTimeHeader,
         [FromServices] ILogger<Program> logger,
         [FromServices] ICallbackQueueNameProvider callbackQueueNameProvider,
         [FromServices] DaprClient daprClient) =>
     {
         logger.LogInformation("Received test request: {request}", request);
 
+        var reservationId = request.CallId;
+
         await Task.Delay(TimeSpan.FromSeconds(request.DelayOnCallInSeconds));
+
+        // Parse the dispatch time from the header
+        var decodedMessageDispatchTimeHeader = WebUtility.UrlDecode(messageDispatchTimeHeader);
+
+        if (DateTime.TryParseExact(decodedMessageDispatchTimeHeader, "o", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var messageDispatchTime))
+        {
+            logger.LogInformation("Reservation: {reservationId}, Message dispatch time: {messageDispatchTime}",
+                reservationId, messageDispatchTime);
+        }
+        else
+        {
+            logger.LogError("Reservation: {reservationId}, Invalid message dispatch time format.",
+                reservationId);
+            return;
+        }
 
         if (!request.ShouldSucceed)
         {
@@ -54,46 +75,53 @@ app.MapPost("/test-queue", async (
                 await daprClient.InvokeBindingAsync(callbackQueueNameProvider.CallbackQueueName, "create", false);
             }
 
-            return Results.Ok();
+            return;
         }
 
-        var result = true;
-
-        // Set time to live for 10 minutes to reset the state for demo purposes
+        // Set time to live for 2 seconds for delete, and 10 minutes to reset the test state for house cleaning
         var metadata = new Dictionary<string, string>
         {
-            { "ttlInSeconds", "600" } // TTL set for 10 minutes
+            { "ttlInSeconds", request.IsReverting ? "2" : "600" }
         };
 
+       
+        var retryPolicy = Policy
+            .Handle<Exception>()
+            .RetryAsync(3, (exception, retryCount) =>
+            {
+                logger.LogWarning($"Retrying save state operation due to exception: {exception.Message}. Retry count: {retryCount}");
+            });
+
+        var result = true;
         try
         {
-            if (request.IsReverting)
+            await retryPolicy.ExecuteAsync(async () =>
             {
-                await daprClient.DeleteStateAsync("statestore", request.CallId,
-                    new StateOptions()
-                    {
-                        Consistency = ConsistencyMode.Strong
-                    });
-            }
-            else
-            {
-                await daprClient.SaveStateAsync("statestore", request.CallId, request.CallId,
-                    new StateOptions()
+                var (_, etag) =
+                    await daprClient.GetStateAndETagAsync<string>("statestore", reservationId);
+
+
+                var saveResult = await daprClient.TrySaveStateAsync("statestore", request.CallId, etag,
+                    request.CallId, new StateOptions()
                     {
                         Consistency = ConsistencyMode.Strong
                     }, metadata);
-            }
+
+                if (!saveResult)
+                {
+                    throw new Exception("Failed to save state");
+                }
+            });
         }
         catch (Exception e)
         {
             result = false;
-            logger.LogError(e, "Failed to do {action} for call id: {TestCallId} ", request.IsReverting ? "revert" : "set", request.CallId);
+            logger.LogError(e, "Failed to do {action} for call id: {TestCallId} ",
+                request.IsReverting ? "revert" : "set", request.CallId);
         }
 
         // Send the response to the response queue
         await daprClient.InvokeBindingAsync(callbackQueueNameProvider.CallbackQueueName, "create", result);
-
-        return Results.Ok();
     })
     .WithName("CarReservationQueue")
     .WithOpenApi();
