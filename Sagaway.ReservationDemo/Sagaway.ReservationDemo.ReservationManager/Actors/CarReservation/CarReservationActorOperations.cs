@@ -1,4 +1,4 @@
-﻿namespace Sagaway.ReservationDemo.ReservationManager.Actors;
+﻿namespace Sagaway.ReservationDemo.ReservationManager.Actors.CarReservation;
 
 [Flags]
 public enum CarReservationActorOperations

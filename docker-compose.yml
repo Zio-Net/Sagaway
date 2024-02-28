@@ -14,7 +14,7 @@ services:
     networks:
       - sagaway-network
     environment:
-      - ACTOR_TYPE=CarReservationActor
+      - ACTOR_TYPE=CarReservationActor,CarReservationCancellationActor
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://reservation-manager:80
     depends_on:

@@ -70,7 +70,17 @@ app.MapPost("/inventory-queue", async (
         ReservationId = request.OrderId,
     };
 
-    var (reservationState, orderIdEtag) = await daprClient.GetStateAndETagAsync<ReservationState>("statestore", orderId);
+    ReservationState? reservationState = null;
+    string? orderIdEtag = null;
+
+    try
+    {
+        (reservationState, orderIdEtag) = await daprClient.GetStateAndETagAsync<ReservationState>("statestore", orderId);
+    }
+    catch (Exception e)
+    {
+       logger.LogInformation(e, "Order id {orderId} is not exist", orderId);
+    }
 
     //supporting out-of-order message
     if (reservationState != null && messageDispatchTime < reservationState.LastUpdateTime)

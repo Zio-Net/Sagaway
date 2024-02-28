@@ -5,5 +5,5 @@
 /// </summary>
 public class CallbackQueueNameProvider : ICallbackQueueNameProvider
 {
-    public string CallbackQueueName => HeaderPropagationMiddleware.CallbackQueueName.Value ?? throw new InvalidOperationException("CallbackQueueName is not set");
+    public string CallbackQueueName => HeaderPropagationMiddleware.SagawayContext.Value?.CallbackQueueName ?? throw new InvalidOperationException("CallbackQueueName is not set");
 }

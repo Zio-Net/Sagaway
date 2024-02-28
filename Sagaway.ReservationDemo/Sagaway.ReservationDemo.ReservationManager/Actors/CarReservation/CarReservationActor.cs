@@ -4,7 +4,7 @@ using Sagaway.ReservationDemo.ReservationManager.Actors.BillingDto;
 using Sagaway.ReservationDemo.ReservationManager.Actors.BookingDto;
 using Sagaway.ReservationDemo.ReservationManager.Actors.InventoryDto;
 
-namespace Sagaway.ReservationDemo.ReservationManager.Actors;
+namespace Sagaway.ReservationDemo.ReservationManager.Actors.CarReservation;
 
 [Actor(TypeName = "CarReservationActor")]
 // ReSharper disable once UnusedType.Global
@@ -16,7 +16,7 @@ public class CarReservationActor : DaprActorHost<CarReservationActorOperations>,
     private ReservationInfo? _reservationInfo;
 
     // ReSharper disable once ConvertToPrimaryConstructor
-    public CarReservationActor(ActorHost host, 
+    public CarReservationActor(ActorHost host,
         ILogger<CarReservationActor> logger)
         : base(host, logger)
     {
@@ -97,7 +97,7 @@ public class CarReservationActor : DaprActorHost<CarReservationActorOperations>,
                 reservationInfo.CarClass, reservationInfo.ReservationId, reservationInfo.CustomerName);
 
             await StateManager.SetStateAsync("reservationInfo", reservationInfo);
-           
+
             _reservationInfo = reservationInfo;
 
             await SagaRunAsync();
@@ -125,8 +125,8 @@ public class CarReservationActor : DaprActorHost<CarReservationActorOperations>,
             CustomerName = _reservationInfo.CustomerName,
             ReservationId = _reservationInfo.ReservationId,
         };
-        
-        await DaprClient.InvokeBindingAsync("booking-queue", "create", carReservationRequest, 
+
+        await DaprClient.InvokeBindingAsync("booking-queue", "create", carReservationRequest,
             GetCallbackMetadata(nameof(OnCarBookingResultAsync)));
     }
 
@@ -220,7 +220,7 @@ public class CarReservationActor : DaprActorHost<CarReservationActorOperations>,
 
         await ReportCompleteOperationOutcomeAsync(CarReservationActorOperations.InventoryReserving, reservationOperationResult.IsSuccess);
     }
-    
+
     private async Task<bool> ValidateReserveInventoryAsync()
     {
         _logger.LogInformation("Validating inventory reservation for reservation id: {reservationId}",
@@ -233,7 +233,7 @@ public class CarReservationActor : DaprActorHost<CarReservationActorOperations>,
             var reservationState =
                 await DaprClient.InvokeMethodAsync<InventoryDto.ReservationState>(HttpMethod.Get,
                     "inventory-management", $"/reservation-state/{orderId}");
-            
+
             return reservationState.IsReserved;
         }
         catch (Exception e)
@@ -253,7 +253,7 @@ public class CarReservationActor : DaprActorHost<CarReservationActorOperations>,
             CarClass = _reservationInfo!.CarClass,
             OrderId = _reservationInfo.ReservationId,
         };
-        
+
 
         await DaprClient.InvokeBindingAsync("inventory-queue", "create", carInventoryRequest,
             GetCallbackMetadata(nameof(OnRevertReserveInventoryAsync)));

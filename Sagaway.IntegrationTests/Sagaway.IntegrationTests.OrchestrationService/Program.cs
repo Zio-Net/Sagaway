@@ -54,7 +54,7 @@ if (app.Environment.IsDevelopment())
 }
 
 //enable callback router
-app.UseSagawayCallbackRouter("response-queue", "TestActor");
+app.UseSagawayCallbackRouter("response-queue");
 
 app.MapPost("/run-test", async (
         [FromServices] IActorProxyFactory actorProxyFactory,
