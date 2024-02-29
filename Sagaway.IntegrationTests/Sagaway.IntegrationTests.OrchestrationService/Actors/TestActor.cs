@@ -1,5 +1,4 @@
 ﻿using Dapr.Actors.Runtime;
-using Microsoft.AspNetCore.Mvc;
 using Sagaway.Hosts;
 using System.Text.Json;
 
@@ -33,21 +32,21 @@ public class TestActor : DaprActorHost<TestActorOperations>, ITestActor
 
             .WithOperation(TestActorOperations.CallA)
             .WithDoOperation(async ()=> await CallTestServiceAsync(TestActorOperations.CallA))
-            .WithMaxRetries(5)
+            .WithMaxRetries(3)
             .WithRetryIntervalTime(TimeSpan.FromSeconds(10))
-            .WithValidateFunction(async ()=> await ValidateCallTestServiceAsync(TestActorOperations.CallA))
+            .WithValidateFunction(async () => await ValidateCallTestServiceAsync(TestActorOperations.CallA))
             .WithUndoOperation(async () => await RevertCallTestServiceAsync(TestActorOperations.CallA))
-            .WithMaxRetries(5)
+            .WithMaxRetries(3)
             .WithUndoRetryInterval(TimeSpan.FromSeconds(10))
             .WithValidateFunction(async () => await ValidateRevertCallTestServiceAsync(TestActorOperations.CallA))
 
             .WithOperation(TestActorOperations.CallB)
             .WithDoOperation(async () => await CallTestServiceAsync(TestActorOperations.CallB))
-            .WithMaxRetries(5)
+            .WithMaxRetries(3)
             .WithRetryIntervalTime(TimeSpan.FromSeconds(10))
             .WithValidateFunction(async () => await ValidateCallTestServiceAsync(TestActorOperations.CallB))
             .WithUndoOperation(async () => await RevertCallTestServiceAsync(TestActorOperations.CallB))
-            .WithMaxRetries(5)
+            .WithMaxRetries(3)
             .WithUndoRetryInterval(TimeSpan.FromSeconds(10))
             .WithValidateFunction(async () => await ValidateRevertCallTestServiceAsync(TestActorOperations.CallB))
 
@@ -87,6 +86,30 @@ public class TestActor : DaprActorHost<TestActorOperations>, ITestActor
                 throw new Exception("RunTestAsync is called with an invalid test info");
             }
 
+            if ((testInfo.ServiceACall!.ShouldReturnCallbackResultOnCall?.Length ?? 0) < testInfo.ServiceACall.SuccessOnCall)
+            {
+                _logger.LogError("The test A info is invalid. The success call index is less than the callback result length");
+                throw new Exception("The test A info is invalid. The success call index is less than the callback result length");
+            }
+
+            if ((testInfo.ServiceBCall!.ShouldReturnCallbackResultOnCall?.Length ?? 0) < testInfo.ServiceBCall.SuccessOnCall)
+            {
+                _logger.LogError("The test B info is invalid. The success call index is less than the callback result length");
+                throw new Exception("The test B info is invalid. The success call index is less than the callback result length");
+            }
+
+            if ((testInfo.ServiceACall.DelayOnCallInSeconds?.Length ?? 0) < testInfo.ServiceACall.SuccessOnCall)
+            {
+                _logger.LogError("The test A info is invalid. The delay call index is less than the callback result length");
+                throw new Exception("The test A info is invalid. The delay call index is less than the callback result length");
+            }
+
+            if ((testInfo.ServiceBCall.DelayOnCallInSeconds?.Length ?? 0) < testInfo.ServiceBCall.SuccessOnCall)
+            {
+                _logger.LogError("The test B info is invalid. The delay call index is less than the callback result length");
+                throw new Exception("The test B info is invalid. The delay call index is less than the callback result length");
+            }
+
             await StateManager.SetStateAsync("testInfo", testInfo);
            
             _testInfo = testInfo;
@@ -103,7 +126,7 @@ public class TestActor : DaprActorHost<TestActorOperations>, ITestActor
     private async Task CallTestServiceAsync(TestActorOperations testActorOperations)
     {
         //get from the state the iteration number
-        var iterationId = $"iteration_{_testInfo!.Id}_{testActorOperations}";
+        var iterationId = $"iteration_{_testInfo?.Id}_{testActorOperations}";
         
 
         var storedIteration = await StateManager.TryGetStateAsync<int>(iterationId);
@@ -112,8 +135,8 @@ public class TestActor : DaprActorHost<TestActorOperations>, ITestActor
         
         var info = testActorOperations switch
         {
-            TestActorOperations.CallA => _testInfo!.ServiceACall,
-            TestActorOperations.CallB => _testInfo!.ServiceBCall,
+            TestActorOperations.CallA => _testInfo?.ServiceACall,
+            TestActorOperations.CallB => _testInfo?.ServiceBCall,
             _ => throw new ArgumentException("Invalid testActorOperations")
         };
 
@@ -122,7 +145,7 @@ public class TestActor : DaprActorHost<TestActorOperations>, ITestActor
             CallId = info!.CallId,
             IsReverting = false,
             DelayOnCallInSeconds = info.DelayOnCallInSeconds?[iteration - 1] ?? 0,
-            ShouldSucceed = info.SuccessOnCall == iteration - 1,
+            ShouldSucceed = info.SuccessOnCall == iteration,
             ShouldReturnCallbackResult = info.ShouldReturnCallbackResultOnCall?[iteration - 1] ?? true
         };
 
@@ -298,20 +321,29 @@ public class TestActor : DaprActorHost<TestActorOperations>, ITestActor
 
     private async Task PublishMessageToSignalRAsync(TestResult testResult)
     {
-        var callbackRequest = JsonSerializer.Serialize(testResult);
+        var jsonSerializationOptions = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
+
+        var callbackRequest = JsonSerializer.Serialize(testResult, jsonSerializationOptions);
+        var jsonDocument = JsonDocument.Parse(callbackRequest);
+
         var argument = new Argument
         {
-            Text = callbackRequest
+            Sender = "dapr",
+            Text = jsonDocument
         };
 
         SignalRMessage message = new()
         {
+            UserId = "testUser", 
             Target = _testInfo!.Id.ToString(),
             Arguments = [argument]
         };
 
         _logger.LogInformation("publishing message to SignalR: {argumentText}", argument.Text);
 
-        await DaprClient.InvokeBindingAsync("test-callback", "create", message); //sending through dapr to the signalR Hub
+        await DaprClient.InvokeBindingAsync("testcallback", "create", message); //sending through dapr to the signalR Hub
     }
 }

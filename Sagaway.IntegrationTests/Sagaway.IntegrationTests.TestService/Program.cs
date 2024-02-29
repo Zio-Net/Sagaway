@@ -6,6 +6,7 @@ using Sagaway.Callback.Propagator;
 using Sagaway.IntegrationTests.TestService;
 using System.Globalization;
 using System.Net;
+using Dapr;
 using Polly;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -22,6 +23,7 @@ builder.Services.AddControllers().AddDaprWithSagawayContextPropagator().AddJsonO
     options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
 });
 
+builder.Services.AddHealthChecks();
 builder.Services.AddSagawayContextPropagator();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -95,14 +97,30 @@ app.MapPost("/test-queue", async (
         var result = true;
         try
         {
+            SaveState? savedState;
+            string? etag = null;
+
             await retryPolicy.ExecuteAsync(async () =>
             {
-                var (_, etag) =
-                    await daprClient.GetStateAndETagAsync<string>("statestore", reservationId);
+                try
+                {
+                    (savedState, etag) =
+                        await daprClient.GetStateAndETagAsync<SaveState>("statestore", reservationId);
 
+                }
+                catch (DaprException ex) when (ex.HResult == 404) //not found
+                {
+                    
+                }
 
-                var saveResult = await daprClient.TrySaveStateAsync("statestore", request.CallId, etag,
-                    request.CallId, new StateOptions()
+                savedState = new()
+                {
+                    CallerId = request.CallId,
+                    MessageDispatchTime = messageDispatchTime
+                };
+
+                var saveResult = await daprClient.TrySaveStateAsync("statestore", request.CallId, savedState,
+                    etag, new StateOptions()
                     {
                         Consistency = ConsistencyMode.Strong
                     }, metadata);
@@ -133,14 +151,11 @@ app.MapGet("/test/{callId}", async ([FromRoute] Guid callId, [FromServices] Dapr
 
         try
         {
-            var reservationState = await daprClient.GetStateAsync<Guid?>("statestore", callId.ToString());
-
+            var reservationState = await daprClient.GetStateAsync<SaveState>("statestore", callId.ToString());
             if (reservationState == null)
             {
-                logger.LogWarning($"CallId: {callId} not found.");
-                return Results.NotFound(new { Message = $"CallId: {callId} not found." });
+                return Results.NotFound($"No test status found for callId: {callId}");
             }
-
             return Results.Ok(callId);
         }
         catch (Exception ex)
@@ -152,6 +167,7 @@ app.MapGet("/test/{callId}", async ([FromRoute] Guid callId, [FromServices] Dapr
     .WithName("GetTestCallIdStatus")
     .WithOpenApi(); // This adds the endpoint to OpenAPI/Swagger documentation if enabled
 
+app.MapHealthChecks("/healthz");
 app.UseSagawayContextPropagator();
 app.MapControllers();
 app.MapSubscribeHandler();

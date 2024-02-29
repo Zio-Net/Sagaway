@@ -23,6 +23,7 @@ builder.Services.AddSingleton<SignalRService>()
     .AddSingleton<IHubContextStore>(sp => sp.GetService<SignalRService>()!)
     .AddDaprClient();
 
+builder.Services.AddHealthChecks();
 
 // Register DaprClient
 builder.Services.AddControllers().AddJsonOptions(options =>
@@ -74,8 +75,10 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.MapHealthChecks("/healthz");
+
 //enable callback router
-app.UseSagawayCallbackRouter("response-queue");
+app.UseSagawayCallbackRouter("test-response-queue");
 
 app.MapPost("/run-test", async (
         [FromServices] IActorProxyFactory actorProxyFactory,
@@ -88,6 +91,13 @@ app.MapPost("/run-test", async (
         logger.LogError("Test name is required");
         return Results.BadRequest("Test name is required");
     }
+
+    testInfo.ServiceACall ??= new ();
+    testInfo.ServiceBCall ??= new ();
+    testInfo.ServiceARevert ??= new ();
+    testInfo.ServiceBRevert ??= new ();
+    
+
 
     logger.LogInformation("Starting test {TestName}", testInfo.TestName);
 
@@ -108,11 +118,11 @@ app.MapPost("/negotiate", async (
 {
     var accountManagerCallbackHubContext = store.AccountManagerCallbackHubContext;
 
-    logger.LogInformation($"MessageHubNegotiate: SignalR negotiate for user: Test");
+    logger.LogInformation("MessageHubNegotiate: SignalR negotiate for user");
 
     var negotiateResponse = await accountManagerCallbackHubContext!.NegotiateAsync(new()
     {
-        UserId = "Test", //user,
+        UserId = "testUser", //user,
         EnableDetailedErrors = true
     });
 

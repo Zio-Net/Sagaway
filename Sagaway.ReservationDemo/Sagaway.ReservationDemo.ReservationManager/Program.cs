@@ -44,6 +44,7 @@ builder.Services.AddActors(options =>
     };
 });
 
+builder.Services.AddHealthChecks();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -163,6 +164,7 @@ app.MapPost("/cancel", async (
     .WithOpenApi();
 
 
+app.MapHealthChecks("/healthz");
 app.MapControllers();
 app.MapSubscribeHandler();
 app.UseRouting();

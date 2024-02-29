@@ -22,6 +22,7 @@ builder.Services.AddControllers().AddDapr(b => b.AddSagawayContextPropagator()).
     options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
 });
 
+builder.Services.AddHealthChecks();
 builder.Services.AddSagawayContextPropagator();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -260,6 +261,7 @@ app.MapGet("/reservation-state/{orderId}", async (
 .WithName("GetReservationState")
 .WithOpenApi();
 
+app.MapHealthChecks("/healthz");
 app.UseSagawayContextPropagator();
 app.MapControllers();
 app.MapSubscribeHandler();

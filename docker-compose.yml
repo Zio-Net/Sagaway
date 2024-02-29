@@ -36,7 +36,7 @@ services:
      "-app-port", "80",
      "-placement-host-address", "placement:50006",
      "-dapr-http-port", "3500",
-     "-components-path", "/dapr/components",
+     "-resources-path", "/dapr/components",
      "-config", "/dapr/config.yaml"]
     volumes:
         - "./dapr/:/dapr"
@@ -76,7 +76,7 @@ services:
      "-app-port", "80",
      "-placement-host-address", "placement:50006",
      "-dapr-http-port", "3500",
-     "-components-path", "/dapr/components",
+     "-resources-path", "/dapr/components",
      "-config", "/dapr/config.yaml"]
     volumes:
         - "./dapr/:/dapr"
@@ -115,7 +115,7 @@ services:
      "-app-port", "80",
      "-placement-host-address", "placement:50006",
      "-dapr-http-port", "3500",
-     "-components-path", "/dapr/components",
+     "-resources-path", "/dapr/components",
      "-config", "/dapr/config.yaml"]
     volumes:
         - "./dapr/:/dapr"
@@ -154,7 +154,7 @@ services:
      "-app-port", "80",
      "-placement-host-address", "placement:50006",
      "-dapr-http-port", "3500",
-     "-components-path", "/dapr/components",
+     "-resources-path", "/dapr/components",
      "-config", "/dapr/config.yaml"]
     volumes:
         - "./dapr/:/dapr"
@@ -200,7 +200,7 @@ services:
      "-app-port", "80",
      "-placement-host-address", "placement:50006",
      "-dapr-http-port", "3500",
-     "-components-path", "/dapr/components",
+     "-resources-path", "/dapr/components",
      "-config", "/dapr/config.yaml"]
     volumes:
         - "./dapr/:/dapr"
@@ -238,7 +238,7 @@ services:
      "-app-port", "80",
      "-placement-host-address", "placement:50006",
      "-dapr-http-port", "3500",
-     "-components-path", "/dapr/components",
+     "-resources-path", "/dapr/components",
      "-config", "/dapr/config.yaml"]
     volumes:
         - "./dapr/:/dapr"

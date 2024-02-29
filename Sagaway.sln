@@ -36,12 +36,14 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "components", "components", 
 	ProjectSection(SolutionItems) = preProject
 		dapr\components\billing-queue.yaml = dapr\components\billing-queue.yaml
 		dapr\components\booking-queue.yaml = dapr\components\booking-queue.yaml
+		dapr\components\dapr-secretstore.json = dapr\components\dapr-secretstore.json
 		dapr\components\inventory-queue.yaml = dapr\components\inventory-queue.yaml
 		dapr\components\reservation-response-queue.yaml = dapr\components\reservation-response-queue.yaml
+		dapr\components\secretstore.yaml = dapr\components\secretstore.yaml
 		dapr\components\statestore.yaml = dapr\components\statestore.yaml
-		dapr\components\test-callback.yaml = dapr\components\test-callback.yaml
 		dapr\components\test-response-queue.yaml = dapr\components\test-response-queue.yaml
 		dapr\components\test-queue.yaml = dapr\components\test-queue.yaml
+		dapr\components\testcallback.yaml = dapr\components\testcallback.yaml
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sagaway.IntegrationTests.OrchestrationService", "Sagaway.IntegrationTests\Sagaway.IntegrationTests.OrchestrationService\Sagaway.IntegrationTests.OrchestrationService.csproj", "{EDCC72CE-2288-45E6-B035-1EE8F7342CDD}"

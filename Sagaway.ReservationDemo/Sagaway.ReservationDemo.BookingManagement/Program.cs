@@ -21,6 +21,7 @@ builder.Services.AddControllers().AddDaprWithSagawayContextPropagator().AddJsonO
     options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
 });
 
+builder.Services.AddHealthChecks();
 builder.Services.AddSagawayContextPropagator();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -194,6 +195,7 @@ app.MapGet("/reservations/{reservationId}", async ([FromRoute] Guid reservationI
     .WithName("GetReservationStatus")
     .WithOpenApi(); // This adds the endpoint to OpenAPI/Swagger documentation if enabled
 
+app.MapHealthChecks("/healthz");
 app.UseSagawayContextPropagator();
 app.MapControllers();
 app.MapSubscribeHandler();

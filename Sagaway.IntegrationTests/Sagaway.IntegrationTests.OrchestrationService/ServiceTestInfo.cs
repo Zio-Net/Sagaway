@@ -7,11 +7,11 @@ public record ServiceTestInfo
     public string CallId { get; init; } = Guid.NewGuid().ToString();
 
     //array of int to define the delay on each call
-    public int[]? DelayOnCallInSeconds { get; init; }
+    public int[]? DelayOnCallInSeconds { get; set; } = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 
     //The call retry that should return a success result
     public int SuccessOnCall { get; init; } = 1;
 
     //array of bool to define if the call should return a result in the callback
-    public bool[]? ShouldReturnCallbackResultOnCall { get; init; }
+    public bool[]? ShouldReturnCallbackResultOnCall { get; set; } = [true, true, true, true, true, true, true, true, true, true];
 }

@@ -1,7 +1,11 @@
-﻿namespace Sagaway.IntegrationTests.OrchestrationService.Actors;
+﻿using System.Text.Json;
+using System.Text.Json.Nodes;
+
+namespace Sagaway.IntegrationTests.OrchestrationService.Actors;
 
 public record Argument
 {
-    public string Sender { get; set; } = "dapr";
-    public string Text { get; set; } = string.Empty;
+    public string Sender { get; set; } = string.Empty;
+    // ReSharper disable once PropertyCanBeMadeInitOnly.Global
+    public JsonDocument? Text { get; set; } 
 }

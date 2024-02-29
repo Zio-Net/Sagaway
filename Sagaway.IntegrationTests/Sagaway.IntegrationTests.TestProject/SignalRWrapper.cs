@@ -48,7 +48,7 @@ public class SignalRWrapper : ISignalRWrapper
             .WithUrl(signalRUrl, options =>
             {
                 //options.Headers.Add("authorization", _token);
-                //options.Headers.Add("testUser", alternativeUser);
+                options.Headers.Add("testUser", alternativeUser);
             })
             .WithAutomaticReconnect()
             .ConfigureLogging(lb =>

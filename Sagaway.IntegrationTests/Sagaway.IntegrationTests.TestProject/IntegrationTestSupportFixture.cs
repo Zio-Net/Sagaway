@@ -53,6 +53,7 @@ public class IntegrationTestSupportFixture : IDisposable
     public JsonSerializerOptions SerializeOptions => new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        PropertyNameCaseInsensitive = false,
         WriteIndented = true
     };
 

@@ -33,16 +33,16 @@ public class IntegrationTests
             ServiceACall = new ServiceTestInfo
             {
                 CallId = Guid.NewGuid().ToString(),
-                DelayOnCallInSeconds = [0],
+                DelayOnCallInSeconds = [0,0,0,0,0],
                 SuccessOnCall = 1,
-                ShouldReturnCallbackResultOnCall = [true]
+                ShouldReturnCallbackResultOnCall = [true, true, true, true, true]
             },
             ServiceBCall = new ServiceTestInfo
             {
                 CallId = Guid.NewGuid().ToString(),
-                DelayOnCallInSeconds = [0],
+                DelayOnCallInSeconds = [0, 0, 0, 0, 0],
                 SuccessOnCall = 1,
-                ShouldReturnCallbackResultOnCall = [true]
+                ShouldReturnCallbackResultOnCall = [true, true, true, true, true]
             }
         };
 
