@@ -6,5 +6,4 @@ public record CarReservationRequest
     public string CarClass { get; set; } = string.Empty;
     public string CustomerName { get; set; } = string.Empty;
     public Guid ReservationId { get; set; }
-    //public string ResponseQueueName { get; set; } = string.Empty;
 }

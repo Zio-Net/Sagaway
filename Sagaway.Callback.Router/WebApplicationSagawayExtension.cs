@@ -10,9 +10,9 @@ namespace Sagaway.Callback.Router;
 
 public static class WebApplicationSagawayExtension
 {
-    public static void UseSagawayCallbackRouter(this WebApplication app, string callbackQueueName)
+    public static void UseSagawayCallbackRouter(this WebApplication app, string callbackBindingName, string actorTypeName)
     {
-        app.MapPost("/" + callbackQueueName, async (
+        app.MapPost("/" + callbackBindingName, async (
             HttpRequest httpRequest,
             [FromBody] JsonNode payload,
             [FromServices] IActorProxyFactory actorProxyFactory,
