@@ -41,8 +41,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "components", "components", 
 		dapr\components\reservation-response-queue.yaml = dapr\components\reservation-response-queue.yaml
 		dapr\components\secretstore.yaml = dapr\components\secretstore.yaml
 		dapr\components\statestore.yaml = dapr\components\statestore.yaml
-		dapr\components\test-response-queue.yaml = dapr\components\test-response-queue.yaml
 		dapr\components\test-queue.yaml = dapr\components\test-queue.yaml
+		dapr\components\test-response-queue.yaml = dapr\components\test-response-queue.yaml
 		dapr\components\testcallback.yaml = dapr\components\testcallback.yaml
 	EndProjectSection
 EndProject
@@ -54,9 +54,15 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SignalREmulator", "SignalRE
 		SignalREmulator\settings.json = SignalREmulator\settings.json
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sagaway.IntegrationTests.TestProject", "Sagaway.IntegrationTests\Sagaway.IntegrationTests.TestProject\Sagaway.IntegrationTests.TestProject.csproj", "{FADEA56C-46EC-414F-A594-503C421BF47C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sagaway.IntegrationTests.TestProject", "Sagaway.IntegrationTests\Sagaway.IntegrationTests.TestProject\Sagaway.IntegrationTests.TestProject.csproj", "{FADEA56C-46EC-414F-A594-503C421BF47C}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sagaway.IntegrationTests.TestService", "Sagaway.IntegrationTests\Sagaway.IntegrationTests.TestService\Sagaway.IntegrationTests.TestService.csproj", "{568B0B6C-EBF1-4222-A51E-90CF5DA349AF}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{0AAE3F54-A9DE-4EA7-A88E-7BF9BB9708A7}"
+	ProjectSection(SolutionItems) = preProject
+		LICENSE = LICENSE
+		README.md = README.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

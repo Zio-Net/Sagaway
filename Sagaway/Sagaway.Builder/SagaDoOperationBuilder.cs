@@ -51,7 +51,7 @@ public partial class Saga<TEOperations> where TEOperations : Enum
             /// <summary>
             /// Set the maximum retry count for the operation
             /// </summary>
-            /// <param name="maxRetries">Optional: How many time to retry the operation on a failure.</param>
+            /// <param name="maxRetries">Optional: How many times to retry the operation on a failure.</param>
             /// <returns>The fluent interface</returns>
             public SagaDoOperationBuilder WithMaxRetries(int maxRetries)
             {
