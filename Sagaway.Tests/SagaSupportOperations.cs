@@ -9,6 +9,7 @@ class SagaSupportOperations : ISagaSupport
     private readonly Func<string, Task> _reminderCallback;
 
 
+    // ReSharper disable once ConvertToPrimaryConstructor
     public SagaSupportOperations(Func<string, Task> reminderCallback)
     {
         _reminderCallback = reminderCallback;
@@ -18,6 +19,11 @@ class SagaSupportOperations : ISagaSupport
     {
         await _reminders[reminderName].DisposeAsync();
         _reminders.Remove(reminderName);
+    }
+
+    public ILockWrapper CreateLock()
+    {
+        return new ReentrantAsyncLock();
     }
 
     public async Task<JsonObject?> LoadSagaAsync(string sagaId)

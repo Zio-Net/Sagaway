@@ -25,6 +25,8 @@ namespace Sagaway
         private readonly StringBuilder _stepRecorder = new();
         private bool _deactivated;
         private bool _hasFailedReported;
+        private ILockWrapper _lock;
+
 
         private string SagaStateName => $"Saga_{_sagaUniqueId}";
 
@@ -63,6 +65,7 @@ namespace Sagaway
             _onFailedCallback = onFailedCallback;
             _onRevertedCallback = onRevertedCallback;
             _onRevertFailureCallback = onRevertFailureCallback;
+            _lock = _sagaSupportOperations.CreateLock();
 
             Validate();
             SetExecutableOperationDependencies();
@@ -166,20 +169,24 @@ namespace Sagaway
         /// <returns>Async operation</returns>
         public async Task InformActivatedAsync()
         {
-            _deactivated = false;
-            try
+            await _lock.LockAsync(async () =>
             {
-                await LoadStateAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error loading saga state {SagaStateName}");
-                throw;
-            }
-            if (!InProgress)
-            {
-                throw new InvalidOperationException("Saga is not in progress");
-            }
+                _deactivated = false;
+                try
+                {
+                    await LoadStateAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, $"Error loading saga state {SagaStateName}");
+                    throw;
+                }
+
+                if (!InProgress)
+                {
+                    throw new InvalidOperationException("Saga is not in progress");
+                }
+            });
         }
 
         /// <summary>
@@ -188,23 +195,26 @@ namespace Sagaway
         /// <returns>Async operation</returns>
         public async Task InformDeactivatedAsync()
         {
-            if (!InProgress)
+            await _lock.LockAsync(async () =>
             {
-                _logger.LogInformation($"Saga {_sagaUniqueId} is already completed, no need to deactivate.");
-                return;
-            }
+                if (!InProgress)
+                {
+                    _logger.LogInformation($"Saga {_sagaUniqueId} is already completed, no need to deactivate.");
+                    return;
+                }
 
-            try
-            {
-                _stepRecorder.AppendLine($"{SagaStateName} is deactivated.");
-                _deactivated = true;
-                await StoreStateAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error saving saga state {SagaStateName}");
-                throw;
-            }
+                try
+                {
+                    _stepRecorder.AppendLine($"{SagaStateName} is deactivated.");
+                    _deactivated = true;
+                    await StoreStateAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, $"Error saving saga state {SagaStateName}");
+                    throw;
+                }
+            });
         }
 
         private async Task LoadStateAsync()
@@ -258,20 +268,23 @@ namespace Sagaway
         /// <returns>Async method</returns>
         public async Task RunAsync()
         {
-            while (InProgress && !_deactivated)
+            await _lock.LockAsync(async () =>
             {
-                var allWaitingOperations = _operations.Where(o => o.CanExecute).ToList();
-                
-                if (!allWaitingOperations.Any() || allWaitingOperations.All(o => o.Failed))
-                    return;
-                
-                foreach (var operation in allWaitingOperations)
+                while (InProgress && !_deactivated)
                 {
-                    await operation.StartExecuteAsync();
-                    if (!InProgress || _deactivated)
-                        break;
+                    var allWaitingOperations = _operations.Where(o => o.CanExecute).ToList();
+
+                    if (!allWaitingOperations.Any() || allWaitingOperations.All(o => o.Failed))
+                        return;
+
+                    foreach (var operation in allWaitingOperations)
+                    {
+                        await operation.StartExecuteAsync();
+                        if (!InProgress || _deactivated)
+                            break;
+                    }
                 }
-            }
+            });
         }
 
         /// <summary>
@@ -283,25 +296,28 @@ namespace Sagaway
         /// <returns>Async operation</returns>
         public async Task ReportOperationOutcomeAsync(TEOperations operation, bool success, bool failFast)
         {
-            if (!InProgress)
-                return;
+            await _lock.LockAsync(async () =>
+            {
+                if (!InProgress)
+                    return;
 
-            try
-            {
-                var operationExecution = _operations.Single(o => o.Operation.Operation.Equals(operation));
-                if (success)
+                try
                 {
-                    await operationExecution.InformSuccessOperationAsync();
+                    var operationExecution = _operations.Single(o => o.Operation.Operation.Equals(operation));
+                    if (success)
+                    {
+                        await operationExecution.InformSuccessOperationAsync();
+                    }
+                    else
+                    {
+                        await operationExecution.InformFailureOperationAsync(failFast);
+                    }
                 }
-                else
+                finally
                 {
-                    await operationExecution.InformFailureOperationAsync(failFast);
+                    await RunAsync();
                 }
-            }
-            finally
-            {
-                await RunAsync();
-            }
+            });
         }
 
         /// <summary>
@@ -312,18 +328,21 @@ namespace Sagaway
         /// <returns>Async operation</returns>
         public async Task ReportUndoOperationOutcomeAsync(TEOperations operation, bool success)
         {
-            if (!InProgress)
-                return;
-            
-            var operationExecution = _operations.Single(o => o.Operation.Operation.Equals(operation));
-            if (success)
+            await _lock.LockAsync(async () =>
             {
-                await operationExecution.InformSuccessUndoOperationAsync();
-            }
-            else
-            {
-                await operationExecution.InformFailureUndoOperationAsync();
-            }
+                if (!InProgress)
+                    return;
+
+                var operationExecution = _operations.Single(o => o.Operation.Operation.Equals(operation));
+                if (success)
+                {
+                    await operationExecution.InformSuccessUndoOperationAsync();
+                }
+                else
+                {
+                    await operationExecution.InformFailureUndoOperationAsync();
+                }
+            });
         }
 
         private void CheckForCompletion()
@@ -413,21 +432,25 @@ namespace Sagaway
         /// <returns>Async operation</returns>
         public async Task ReportReminderAsync(string reminder)
         {
-            try
+            await _lock.LockAsync(async () =>
             {
-                if (_deactivated)
+                try
                 {
-                    await InformActivatedAsync();
+                    if (_deactivated)
+                    {
+                        await InformActivatedAsync();
+                    }
+
+                    var operationName = reminder.Split(':')[0];
+                    var operation = _operations.Single(o => o.Operation.Operation.ToString().Equals(operationName));
+                    await operation.OnReminderAsync();
                 }
-                var operationName = reminder.Split(':')[0];
-                var operation = _operations.Single(o => o.Operation.Operation.ToString().Equals(operationName));
-                await operation.OnReminderAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error handling reminder {reminder}, canceling reminder.");
-                await _sagaSupportOperations.CancelReminderAsync(reminder);
-            }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, $"Error handling reminder {reminder}, canceling reminder.");
+                    await _sagaSupportOperations.CancelReminderAsync(reminder);
+                }
+            });
         }
     }
 }
