@@ -37,5 +37,12 @@ namespace Sagaway
         /// <param name="sagaId">The saga unique id</param>
         /// <returns>The serialized saga state</returns>
         Task<JsonObject?> LoadSagaAsync(string sagaId);
+
+        /// <summary>
+        /// Provide the lock for a thread safe saga, if required
+        /// Can utilize the <see cref="ReentrantAsyncLock"/> or <see cref="NonLockAsync"/>
+        /// </summary>
+        /// <returns>A lock implementor</returns>
+        ILockWrapper CreateLock();
     }
 }

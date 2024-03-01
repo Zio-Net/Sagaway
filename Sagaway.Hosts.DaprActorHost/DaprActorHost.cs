@@ -225,6 +225,15 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     }
 
     /// <summary>
+    /// The Dapr Actor ensures a single call at a time, so no need for a lock
+    /// </summary>
+    /// <returns></returns>
+    public ILockWrapper CreateLock()
+    {
+        return new NonLockAsync();
+    }
+
+    /// <summary>
     /// Inform the outcome of an operation
     /// </summary>
     /// <param name="operation">The operation</param>
