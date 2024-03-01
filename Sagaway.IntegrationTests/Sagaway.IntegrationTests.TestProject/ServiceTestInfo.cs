@@ -13,4 +13,13 @@ public record ServiceTestInfo
 
     //array of bool to define if the call should return a result in the callback
     public bool[]? ShouldReturnCallbackResultOnCall { get; init; }
+
+    //Is this info in use
+    public bool InUse { get; set; }
+
+    //max times that the Saga calls should retry
+    public int MaxRetries { get; set; } = 1;
+
+    //delay in seconds to retry the call
+    public int RetryDelayInSeconds { get; set; } = 0;
 }

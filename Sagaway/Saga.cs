@@ -188,6 +188,12 @@ namespace Sagaway
         /// <returns>Async operation</returns>
         public async Task InformDeactivatedAsync()
         {
+            if (!InProgress)
+            {
+                _logger.LogInformation($"Saga {_sagaUniqueId} is already completed, no need to deactivate.");
+                return;
+            }
+
             try
             {
                 _stepRecorder.AppendLine($"{SagaStateName} is deactivated.");
@@ -336,16 +342,16 @@ namespace Sagaway
             {
                 _onSuccessCallback(recordedSteps);
             }
-            else if (Failed && _onFailedCallback != null && !_hasFailedReported)
+            if (Failed && _onFailedCallback != null && !_hasFailedReported)
             {
                 _hasFailedReported = true;
                 _onFailedCallback(recordedSteps);
             }
-            else if (Reverted && _onRevertedCallback != null)
+            if (Reverted && _onRevertedCallback != null)
             {
                 _onRevertedCallback(recordedSteps);
             }
-            else if (RevertFailed && _onRevertFailureCallback != null)
+            if (RevertFailed && _onRevertFailureCallback != null)
             {
                 _onRevertFailureCallback(recordedSteps);
             }

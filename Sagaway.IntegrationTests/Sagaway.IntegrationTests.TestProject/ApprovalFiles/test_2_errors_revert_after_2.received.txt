@@ -1,0 +1,35 @@
+﻿Test Name: test_2_errors_revert_after_2
+Result: False
+Saga Log: [*time*][CallB]: Retry operation. Retry count: 1
+[*time*][CallB]: Start Executing 
+[*time*][CallB]: Registering reminder CallB:Retry for CallB with interval 00:50:00
+[*time*][CallA]: Start Executing 
+[*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:50:00
+[*time*][CallB]: Start Executing 
+[*time*][CallB]: Registering reminder CallB:Retry for CallB with interval 00:50:00
+[*time*][CallB]: Retry operation. Retry count: 2
+[*time*][CallB]: Start Executing 
+[*time*][CallB]: Registering reminder CallB:Retry for CallB with interval 00:50:00
+[*time*][CallA]: Retry operation. Retry count: 1
+[*time*][CallA]: Start Executing 
+[*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:50:00
+[*time*][CallB]: Retry operation. Retry count: 3
+[*time*][CallB]: Start Executing 
+[*time*][CallB]: Registering reminder CallB:Retry for CallB with interval 00:50:00
+[*time*][CallB]: Failed. Retries exhausted.
+[*time*][CallA]: Start Executing Revert 
+[*time*][CallA]: Registering reminder CallA:Retry for Revert CallA with interval 00:50:00
+[*time*][CallB]: Start Executing Revert 
+[*time*][CallB]: Registering reminder CallB:Retry for Revert CallB with interval 00:50:00
+[*time*][CallA]: Revert Success
+[*time*][CallB]: Retry Revert operation. Retry count: 1
+[*time*][CallB]: Start Executing Revert 
+[*time*][CallB]: Registering reminder CallB:Retry for Revert CallB with interval 00:50:00
+[*time*][CallB]: Retry Revert operation. Retry count: 2
+[*time*][CallB]: Start Executing Revert 
+[*time*][CallB]: Registering reminder CallB:Retry for Revert CallB with interval 00:50:00
+[*time*][CallB]: Retry Revert operation. Retry count: 3
+[*time*][CallB]: Start Executing Revert 
+[*time*][CallB]: Registering reminder CallB:Retry for Revert CallB with interval 00:50:00
+[*time*][CallB]: Revert Failed. Retries exhausted.
+

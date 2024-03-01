@@ -1,0 +1,2 @@
+﻿failure_with_successful_retries
+The circuit is now open and is not allowing calls.

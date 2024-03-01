@@ -1,0 +1,9 @@
+﻿Test Name: test_a_success_on_2_no_callback
+Result: True
+Saga Log:
+[*time*][CallA]: Start Executing 
+[*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:05
+[*time*][CallA]: Retry operation. Retry count: 1
+[*time*][CallA]: Start Executing 
+[*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:05
+[*time*][CallA]: Success

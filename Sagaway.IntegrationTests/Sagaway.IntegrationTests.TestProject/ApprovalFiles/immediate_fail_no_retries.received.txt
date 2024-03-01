@@ -1,0 +1,4 @@
+﻿immediate_fail_no_retries
+Assert.Equal() Failure: Values differ
+Expected: OK
+Actual:   InternalServerError

@@ -3,6 +3,7 @@ using System.Text.Json;
 using Dapr.Actors;
 using Microsoft.AspNetCore.Mvc;
 using Dapr.Actors.Client;
+using Dapr.Client;
 using Sagaway.Callback.Router;
 using Sagaway.IntegrationTests.OrchestrationService;
 using Sagaway.IntegrationTests.OrchestrationService.Actors;
@@ -38,11 +39,10 @@ builder.Services.AddActors(options =>
     // Register actor types and configure actor settings
     options.Actors.RegisterActor<TestActor>();
     // Configure default settings
-    options.ActorIdleTimeout = TimeSpan.FromMinutes(10);
-    options.ActorScanInterval = TimeSpan.FromSeconds(35);
-    options.DrainOngoingCallTimeout = TimeSpan.FromSeconds(35);
+    options.ActorIdleTimeout = TimeSpan.FromMinutes(3);
+    options.ActorScanInterval = TimeSpan.FromSeconds(60);
+    options.DrainOngoingCallTimeout = TimeSpan.FromSeconds(120);
     options.DrainRebalancedActors = true;
-
     options.JsonSerializerOptions = new JsonSerializerOptions
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -83,6 +83,7 @@ app.UseSagawayCallbackRouter("test-response-queue");
 app.MapPost("/run-test", async (
         [FromServices] IActorProxyFactory actorProxyFactory,
         [FromServices] ILogger < Program > logger,
+        [FromServices] DaprClient daprClient,
         [FromBody] TestInfo? testInfo) =>
 {
 
@@ -96,14 +97,21 @@ app.MapPost("/run-test", async (
     testInfo.ServiceBCall ??= new ();
     testInfo.ServiceARevert ??= new ();
     testInfo.ServiceBRevert ??= new ();
-    
-
 
     logger.LogInformation("Starting test {TestName}", testInfo.TestName);
 
+    var actorId = testInfo.Id.ToString("D");
     var proxy = actorProxyFactory.CreateActorProxy<ITestActor>(
-        new ActorId(testInfo.Id.ToString("D")), "TestActor");
-    
+        new ActorId(actorId), "TestActor");
+
+    //a hack for testing
+    var metadata = new Dictionary<string, string>
+    {
+        { "ttlInSeconds", "300" }
+    };
+
+    await daprClient.SaveStateAsync("statestore", actorId, testInfo, null, metadata);
+
     await proxy.RunTestAsync(testInfo);
 
     return Results.Ok();

@@ -24,33 +24,59 @@ public class TestActor : DaprActorHost<TestActorOperations>, ITestActor
 
     protected override ISaga<TestActorOperations> ReBuildSaga()
     {
-        var saga = Saga<TestActorOperations>.Create(_actorHost.Id.ToString(), this, _logger)
+        if (_testInfo == null)
+        {
+            Task.Run(async () =>
+            {
+                var actorId = Guid.Parse(ActorHost.Id.ToString()).ToString("D");
+                _testInfo = await DaprClient.GetStateAsync<TestInfo>("statestore", actorId);
+            }).Wait();
+        }
+
+        var sagaBuilder = Saga<TestActorOperations>.Create(_actorHost.Id.ToString(), this, _logger)
             .WithOnSuccessCompletionCallback(OnSuccessCompletionCallbackAsync)
             .WithOnRevertedCallback(OnRevertedCallbackAsync)
             .WithOnFailedRevertedCallback(OnFailedRevertedCallbackAsync)
-            .WithOnFailedCallback(OnFailedCallbackAsync)
+            .WithOnFailedCallback(OnFailedCallbackAsync);
 
-            .WithOperation(TestActorOperations.CallA)
-            .WithDoOperation(async ()=> await CallTestServiceAsync(TestActorOperations.CallA))
-            .WithMaxRetries(3)
-            .WithRetryIntervalTime(TimeSpan.FromSeconds(10))
-            .WithValidateFunction(async () => await ValidateCallTestServiceAsync(TestActorOperations.CallA))
-            .WithUndoOperation(async () => await RevertCallTestServiceAsync(TestActorOperations.CallA))
-            .WithMaxRetries(3)
-            .WithUndoRetryInterval(TimeSpan.FromSeconds(10))
-            .WithValidateFunction(async () => await ValidateRevertCallTestServiceAsync(TestActorOperations.CallA))
+        if (_testInfo?.ServiceACall?.InUse ?? false)
+        {
+            var sagaOperationBuilder = sagaBuilder.WithOperation(TestActorOperations.CallA)
+                .WithDoOperation(async () => await CallTestServiceAsync(TestActorOperations.CallA))
+                .WithMaxRetries(_testInfo!.ServiceACall!.MaxRetries)
+                .WithRetryIntervalTime(TimeSpan.FromSeconds(_testInfo.ServiceACall.RetryDelayInSeconds))
+                .WithValidateFunction(async () => await ValidateCallTestServiceAsync(TestActorOperations.CallA));
 
-            .WithOperation(TestActorOperations.CallB)
-            .WithDoOperation(async () => await CallTestServiceAsync(TestActorOperations.CallB))
-            .WithMaxRetries(3)
-            .WithRetryIntervalTime(TimeSpan.FromSeconds(10))
-            .WithValidateFunction(async () => await ValidateCallTestServiceAsync(TestActorOperations.CallB))
-            .WithUndoOperation(async () => await RevertCallTestServiceAsync(TestActorOperations.CallB))
-            .WithMaxRetries(3)
-            .WithUndoRetryInterval(TimeSpan.FromSeconds(10))
-            .WithValidateFunction(async () => await ValidateRevertCallTestServiceAsync(TestActorOperations.CallB))
+            if (_testInfo?.ServiceARevert?.InUse ?? false)
+            {
+                sagaOperationBuilder
+                    .WithUndoOperation(async () => await RevertCallTestServiceAsync(TestActorOperations.CallA))
+                    .WithMaxRetries(_testInfo.ServiceARevert!.MaxRetries)
+                    .WithUndoRetryInterval(TimeSpan.FromSeconds(_testInfo.ServiceARevert.RetryDelayInSeconds))
+                    .WithValidateFunction(async () =>
+                        await ValidateRevertCallTestServiceAsync(TestActorOperations.CallA));
+            }
+        }
 
-            .Build();
+        if (_testInfo?.ServiceBCall?.InUse ?? false)
+        {
+            var sagaOperationBuilder = sagaBuilder.WithOperation(TestActorOperations.CallB)
+                .WithDoOperation(async () => await CallTestServiceAsync(TestActorOperations.CallB))
+                .WithMaxRetries(_testInfo.ServiceBCall!.MaxRetries)
+                .WithRetryIntervalTime(TimeSpan.FromSeconds(_testInfo.ServiceBCall.RetryDelayInSeconds))
+                .WithValidateFunction(async () => await ValidateCallTestServiceAsync(TestActorOperations.CallB));
+
+            if (_testInfo?.ServiceBRevert?.InUse ?? false)
+            {
+                sagaOperationBuilder
+                    .WithUndoOperation(async () => await RevertCallTestServiceAsync(TestActorOperations.CallB))
+                    .WithMaxRetries(_testInfo.ServiceBRevert!.MaxRetries)
+                    .WithUndoRetryInterval(TimeSpan.FromSeconds(_testInfo.ServiceBRevert.RetryDelayInSeconds))
+                    .WithValidateFunction(async () =>
+                        await ValidateRevertCallTestServiceAsync(TestActorOperations.CallB));
+            }
+        }
+        var saga = sagaBuilder.Build();
 
         saga.OnSagaCompleted += async (s, e) => await OnSagaCompletedAsync(s, e);
 
@@ -110,9 +136,14 @@ public class TestActor : DaprActorHost<TestActorOperations>, ITestActor
                 throw new Exception("The test B info is invalid. The delay call index is less than the callback result length");
             }
 
-            await StateManager.SetStateAsync("testInfo", testInfo);
-           
             _testInfo = testInfo;
+
+            await InitiateIterationId(TestActorOperations.CallA, false);
+            await InitiateIterationId(TestActorOperations.CallA, true);
+            await InitiateIterationId(TestActorOperations.CallB, false);
+            await InitiateIterationId(TestActorOperations.CallB, true);
+
+            await StateManager.SetStateAsync("testInfo", testInfo);
 
             await SagaRunAsync();
         }
@@ -123,12 +154,21 @@ public class TestActor : DaprActorHost<TestActorOperations>, ITestActor
         }
     }
 
+    private string GetIterationId(TestActorOperations testActorOperations, bool isReverting)
+    {
+        var prefix = isReverting ? "revert" : "iteration";
+        return $"{prefix}_{_testInfo?.Id}_{testActorOperations}";
+    }
+
+    private async Task InitiateIterationId(TestActorOperations testActorOperations, bool isReverting)
+    {
+        var iterationId = GetIterationId(testActorOperations, isReverting);
+        await StateManager.SetStateAsync(iterationId, 0);
+    }
+
     private async Task CallTestServiceAsync(TestActorOperations testActorOperations)
     {
-        //get from the state the iteration number
-        var iterationId = $"iteration_{_testInfo?.Id}_{testActorOperations}";
-        
-
+        var iterationId = GetIterationId(testActorOperations, false);
         var storedIteration = await StateManager.TryGetStateAsync<int>(iterationId);
 
         int iteration = storedIteration.HasValue ? storedIteration.Value + 1 : 1;
@@ -204,11 +244,11 @@ public class TestActor : DaprActorHost<TestActorOperations>, ITestActor
     private async Task RevertCallTestServiceAsync(TestActorOperations testActorOperations)
     {
         //get from the state the iteration number
-        var iterationId = $"iteration_{_testInfo!.Id}_{testActorOperations}";
+        var iterationId = GetIterationId(testActorOperations, true);
 
         var storedIteration = await StateManager.TryGetStateAsync<int>(iterationId);
 
-        var iteration = storedIteration.HasValue ? storedIteration.Value : 1;
+        int iteration = storedIteration.HasValue ? storedIteration.Value + 1 : 1;
 
         var info = testActorOperations switch
         {
@@ -222,7 +262,7 @@ public class TestActor : DaprActorHost<TestActorOperations>, ITestActor
             CallId = info!.CallId,
             IsReverting = true,
             DelayOnCallInSeconds = info.DelayOnCallInSeconds?[iteration - 1] ?? 0,
-            ShouldSucceed = info.SuccessOnCall == iteration - 1,
+            ShouldSucceed = info.SuccessOnCall == iteration,
             ShouldReturnCallbackResult = info.ShouldReturnCallbackResultOnCall?[iteration - 1] ?? true
         };
 

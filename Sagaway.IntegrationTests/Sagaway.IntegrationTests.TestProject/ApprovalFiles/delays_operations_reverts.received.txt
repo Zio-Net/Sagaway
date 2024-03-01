@@ -1,0 +1,2 @@
+﻿delays_operations_reverts
+The circuit is now open and is not allowing calls.

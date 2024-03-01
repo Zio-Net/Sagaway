@@ -1,0 +1,2 @@
+﻿revert_operations_failing
+The circuit is now open and is not allowing calls.

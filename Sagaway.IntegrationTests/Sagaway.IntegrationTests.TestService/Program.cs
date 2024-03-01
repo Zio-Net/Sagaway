@@ -138,8 +138,12 @@ app.MapPost("/test-queue", async (
                 request.IsReverting ? "revert" : "set", request.CallId);
         }
 
-        // Send the response to the response queue
-        await daprClient.InvokeBindingAsync(callbackQueueNameProvider.CallbackQueueName, "create", result);
+        if (request.ShouldReturnCallbackResult)
+        {
+            logger.LogInformation("Sending callback result for test {request.CallId}",
+                               request.CallId);
+            await daprClient.InvokeBindingAsync(callbackQueueNameProvider.CallbackQueueName, "create", result);
+        }
     })
     .WithName("CarReservationQueue")
     .WithOpenApi();
@@ -154,14 +158,14 @@ app.MapGet("/test/{callId}", async ([FromRoute] Guid callId, [FromServices] Dapr
             var reservationState = await daprClient.GetStateAsync<SaveState>("statestore", callId.ToString());
             if (reservationState == null)
             {
-                return Results.NotFound($"No test status found for callId: {callId}");
+                return Results.Ok(false);
             }
-            return Results.Ok(callId);
+            return Results.Ok(true);
         }
         catch (Exception ex)
         {
             logger.LogError(ex, $"Error fetching callId: {callId}");
-            return Results.Problem($"An error occurred while fetching the callId: {callId}");
+            return Results.Ok(false);
         }
     })
     .WithName("GetTestCallIdStatus")

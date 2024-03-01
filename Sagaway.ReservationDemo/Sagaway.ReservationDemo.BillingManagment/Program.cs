@@ -20,7 +20,7 @@ builder.Services.AddControllers().AddDapr().AddJsonOptions(options =>
     options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
 });
 
-
+builder.Services.AddHealthChecks();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -84,6 +84,7 @@ app.MapGet("/billing-status/{reservationId}", ([FromRoute] Guid reservationId, [
     .WithName("BillingStatus")
     .WithOpenApi();
 
+app.MapHealthChecks("/healthz");
 app.MapControllers();
 app.MapSubscribeHandler();
 app.UseRouting();

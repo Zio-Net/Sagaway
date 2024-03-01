@@ -4,11 +4,11 @@ namespace Sagaway.Tests;
 
 public partial class Tests
 {
-    class AprovvalNamer : IApprovalNamer
+    class AprovalNamer : IApprovalNamer
     {
         private readonly string _testName;
 
-        public AprovvalNamer(string testName)
+        public AprovalNamer(string testName)
         {
             _testName = testName;
         }

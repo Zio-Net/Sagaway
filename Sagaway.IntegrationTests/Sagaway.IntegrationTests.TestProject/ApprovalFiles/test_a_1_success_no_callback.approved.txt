@@ -1,0 +1,7 @@
+﻿Test Name: test_a_1_success_no_callback
+Result: True
+Saga Log:
+[*time*][CallA]: Start Executing 
+[*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:05
+[*time*][CallA]: Wake by a reminder
+[*time*][CallA]: Success
