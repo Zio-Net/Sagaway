@@ -42,7 +42,7 @@ app.MapPost("/test-queue", async (
     [FromHeader(Name = "x-sagaway-message-dispatch-time")]
     string messageDispatchTimeHeader,
     [FromServices] ILogger<Program> logger,
-    [FromServices] ICallbackQueueNameProvider callbackQueueNameProvider,
+    [FromServices] ICallbackBindingNameProvider callbackBindingNameProvider,
     [FromServices] DaprClient daprClient) =>
 {
     logger.LogInformation("Received test request: {request}", request);
@@ -76,7 +76,7 @@ app.MapPost("/test-queue", async (
         {
             logger.LogInformation("Sending callback failure result for test {request.CallId}",
                 request.CallId);
-            await daprClient.InvokeBindingAsync(callbackQueueNameProvider.CallbackQueueName, "create", false);
+            await daprClient.InvokeBindingAsync(callbackBindingNameProvider.CallbackBindingName, "create", false);
         }
 
         return;
@@ -145,7 +145,7 @@ app.MapPost("/test-queue", async (
     {
         logger.LogInformation("Sending callback result for test {request.CallId}",
             request.CallId);
-        await daprClient.InvokeBindingAsync(callbackQueueNameProvider.CallbackQueueName, "create", result);
+        await daprClient.InvokeBindingAsync(callbackBindingNameProvider.CallbackBindingName, "create", result);
     }
 }).ExcludeFromDescription();
     

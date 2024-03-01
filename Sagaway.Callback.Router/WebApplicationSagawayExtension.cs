@@ -10,7 +10,7 @@ namespace Sagaway.Callback.Router;
 
 public static class WebApplicationSagawayExtension
 {
-    public static void UseSagawayCallbackRouter(this WebApplication app, string callbackBindingName, string actorTypeName)
+    public static void UseSagawayCallbackRouter(this WebApplication app, string callbackBindingName)
     {
         app.MapPost("/" + callbackBindingName, async (
             HttpRequest httpRequest,

@@ -86,7 +86,7 @@ public class TestActor : DaprActorHost<TestActorOperations>, ITestActor
 
     #region Saga Activation methods
 
-    protected override string GetCallbackQueueName()
+    protected override string GetCallbackBindingName()
     {
         return "test-response-queue";
     }

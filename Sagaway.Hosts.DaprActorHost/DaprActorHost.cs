@@ -90,6 +90,7 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     {
         var httpClient = CreateHttpClient(); // Get the custom or default HttpClient
         httpClient.DefaultRequestHeaders.Add("x-sagaway-dapr-actor-id", ActorHost.Id.GetId());
+        httpClient.DefaultRequestHeaders.Add("x-sagaway-dapr-actor-type", ActorHost.ActorTypeInfo.ActorTypeName);
         httpClient.DefaultRequestHeaders.Add("x-sagaway-callback-binding-name", GetCallbackBindingName());
         
         var daprClientBuilder = new DaprClientBuilder();
