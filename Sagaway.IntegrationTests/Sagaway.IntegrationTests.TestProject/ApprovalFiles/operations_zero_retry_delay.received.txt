@@ -1,0 +1,2 @@
+﻿operations_zero_retry_delay
+The circuit is now open and is not allowing calls.

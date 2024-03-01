@@ -1,0 +1,2 @@
+﻿revert_success_first_attempt_after_failure
+The circuit is now open and is not allowing calls.

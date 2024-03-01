@@ -1,14 +1,12 @@
-
-using ApprovalTests;
-using ApprovalTests.Reporters;
-using Microsoft.Extensions.Logging;
-using Sagaway;
 using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
+using ApprovalTests;
+using ApprovalTests.Reporters;
+using Microsoft.Extensions.Logging;
 using Xunit.Abstractions;
 
-namespace SagawayTests;
+namespace Sagaway.Tests;
 
 /****************************************************************************************************************************
 Testing the Sagaway Saga Framework is a complex process. Each time the Saga calls a method, the method can throw an 
@@ -89,7 +87,7 @@ public partial class Tests
         }
         catch (Exception ex)
         {
-            Approvals.RegisterDefaultNamerCreation(() => new AprovvalNamer(testName));
+            Approvals.RegisterDefaultNamerCreation(() => new AprovalNamer(testName));
             ApprovalVerifyWithDump.Verify(testName + Environment.NewLine + ex.Message, _testOutputHelper);
             return;
         }
@@ -112,7 +110,7 @@ public partial class Tests
         }
         catch (Exception ex)
         {
-            Approvals.RegisterDefaultNamerCreation(() => new AprovvalNamer(nameof(TestValidationNoOperation)));
+            Approvals.RegisterDefaultNamerCreation(() => new AprovalNamer(nameof(TestValidationNoOperation)));
             ApprovalVerifyWithDump.Verify(nameof(TestValidationNoOperation) + Environment.NewLine + ex.Message, _testOutputHelper);
             return;
         }
@@ -135,7 +133,7 @@ public partial class Tests
         }
         catch (Exception ex)
         {
-            Approvals.RegisterDefaultNamerCreation(() => new AprovvalNamer(nameof(TestValidationNoOnSuccessCompletionCallback)));
+            Approvals.RegisterDefaultNamerCreation(() => new AprovalNamer(nameof(TestValidationNoOnSuccessCompletionCallback)));
             ApprovalVerifyWithDump.Verify(nameof(TestValidationNoOnSuccessCompletionCallback) + Environment.NewLine + ex.Message, _testOutputHelper);
             return;
         }
@@ -158,7 +156,7 @@ public partial class Tests
         }
         catch (Exception ex)
         {
-            Approvals.RegisterDefaultNamerCreation(() => new AprovvalNamer(nameof(TestValidationNoOnRevertedCallback)));
+            Approvals.RegisterDefaultNamerCreation(() => new AprovalNamer(nameof(TestValidationNoOnRevertedCallback)));
             ApprovalVerifyWithDump.Verify(nameof(TestValidationNoOnRevertedCallback) + Environment.NewLine + ex.Message, _testOutputHelper);
             return;
         }
@@ -181,7 +179,7 @@ public partial class Tests
         }
         catch (Exception ex)
         {
-            Approvals.RegisterDefaultNamerCreation(() => new AprovvalNamer(nameof(TestValidationNoOnFailedRevertedCallback)));
+            Approvals.RegisterDefaultNamerCreation(() => new AprovalNamer(nameof(TestValidationNoOnFailedRevertedCallback)));
             ApprovalVerifyWithDump.Verify(nameof(TestValidationNoOnFailedRevertedCallback) + Environment.NewLine + ex.Message, _testOutputHelper);
             return;
         }
@@ -204,7 +202,7 @@ public partial class Tests
         }
         catch (Exception ex)
         {
-            Approvals.RegisterDefaultNamerCreation(() => new AprovvalNamer(nameof(TestValidationOperationNoDoOperation)));
+            Approvals.RegisterDefaultNamerCreation(() => new AprovalNamer(nameof(TestValidationOperationNoDoOperation)));
             ApprovalVerifyWithDump.Verify(nameof(TestValidationOperationNoDoOperation) + Environment.NewLine + ex.Message, _testOutputHelper);
             return;
         }
@@ -319,7 +317,7 @@ public partial class Tests
             }
         }
         await Task.Delay(500);
-        Approvals.RegisterDefaultNamerCreation(() => new AprovvalNamer(testName));
+        Approvals.RegisterDefaultNamerCreation(() => new AprovalNamer(testName));
         ApprovalVerifyWithDump.Verify(sb.ToString(), _testOutputHelper, RemoveDynamic);
     }
     private void AddSagaToBuilder(TestOperationInput testOperation, Saga<Operations>.SagaBuilder builder, StringBuilder sb)

@@ -1,6 +1,6 @@
 ﻿using System.Text;
 
-namespace SagawayTests;
+namespace Sagaway.Tests;
 
 public partial class Tests
 {

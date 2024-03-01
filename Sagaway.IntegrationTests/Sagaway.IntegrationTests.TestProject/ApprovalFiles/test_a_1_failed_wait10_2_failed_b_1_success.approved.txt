@@ -1,0 +1,20 @@
+﻿Test Name: test_a_1_failed_wait10_2_failed_b_1_success
+Result: False
+Saga Log:
+[*time*][CallA]: Start Executing 
+[*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:30
+[*time*][CallB]: Start Executing 
+[*time*][CallB]: Registering reminder CallB:Retry for CallB with interval 00:00:30
+[*time*][CallA]: Retry operation. Retry count: 1
+[*time*][CallA]: Start Executing 
+[*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:30
+[*time*][CallB]: Success
+[*time*][CallA]: Retry operation. Retry count: 2
+[*time*][CallA]: Start Executing 
+[*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:30
+[*time*][CallA]: Failed. Retries exhausted.
+[*time*][CallA]: Start Executing Revert 
+[*time*][CallA]: No undo operation for CallA. Marking as reverted
+[*time*][CallB]: Start Executing Revert 
+[*time*][CallB]: Registering reminder CallB:Retry for Revert CallB with interval 00:00:10
+[*time*][CallB]: Revert Success

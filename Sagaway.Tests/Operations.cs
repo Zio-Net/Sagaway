@@ -1,4 +1,4 @@
-﻿namespace SagawayTests;
+﻿namespace Sagaway.Tests;
 
 [Flags]
 enum Operations

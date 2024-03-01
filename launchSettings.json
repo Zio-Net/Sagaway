@@ -19,7 +19,12 @@
         "rabbitmq": "StartWithoutDebugging",
         "redis": "StartWithoutDebugging",
         "reservation-manager-dapr": "StartWithoutDebugging",
-        "zipkin": "StartWithoutDebugging"
+        "zipkin": "StartWithoutDebugging",
+        "orchestrationservice": "StartDebugging",
+        "orchestrationservice-dapr": "StartWithoutDebugging",
+        "testservice": "StartDebugging",
+        "testservice-dapr": "StartWithoutDebugging",
+        "signalr": "StartWithoutDebugging"
       }
     }
   }

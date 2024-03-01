@@ -9,35 +9,54 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sagaway.Hosts.DaprActorHost
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sagaway.Tests", "Sagaway.Tests\Sagaway.Tests.csproj", "{7B8E3D0B-81E0-47CA-88D8-AC1C5734ABBB}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SagaReservationDemo", "SagaReservationDemo", "{FFF6DF40-5A9F-46B9-BE17-1AD17D40AC17}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Sagaway.ReservationDemo", "Sagaway.ReservationDemo", "{FFF6DF40-5A9F-46B9-BE17-1AD17D40AC17}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "dapr", "dapr", "{2FEC9466-6230-458F-AF40-987FD9D08B6B}"
-	ProjectSection(SolutionItems) = preProject
-		SagaReservationDemo\dapr\config.yaml = SagaReservationDemo\dapr\config.yaml
-	EndProjectSection
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sagaway.Callback.Router", "Sagaway.Callback.Router\Sagaway.Callback.Router.csproj", "{3B41421B-5E7D-4E56-89D5-651188CA170E}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "components", "components", "{B947F801-3598-47AD-8B63-CD185FF9F96C}"
-	ProjectSection(SolutionItems) = preProject
-		SagaReservationDemo\dapr\components\billing-queue.yaml = SagaReservationDemo\dapr\components\billing-queue.yaml
-		SagaReservationDemo\dapr\components\booking-queue.yaml = SagaReservationDemo\dapr\components\booking-queue.yaml
-		SagaReservationDemo\dapr\components\inventory-queue.yaml = SagaReservationDemo\dapr\components\inventory-queue.yaml
-		SagaReservationDemo\dapr\components\reservation-response-queue.yaml = SagaReservationDemo\dapr\components\reservation-response-queue.yaml
-		SagaReservationDemo\dapr\components\statestore.yaml = SagaReservationDemo\dapr\components\statestore.yaml
-	EndProjectSection
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sagaway.Callback.Propagator", "Sagaway.Callback.Propagator\Sagaway.Callback.Propagator.csproj", "{F5743519-6C29-4C4F-80AC-BA5EB779E89B}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SagaReservationDemo.ReservationManager", "SagaReservationDemo\SagaReservationDemo.ReservationManager\SagaReservationDemo.ReservationManager.csproj", "{368E0809-9900-4BA5-BB2F-968135C83706}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Sagaway.IntegrationTests", "Sagaway.IntegrationTests", "{DBBB1856-3CF3-45F6-8284-627DF1BA9AB1}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SagaReservationDemo.BookingManagement", "SagaReservationDemo\SagaReservationDemo.ReserveCar\SagaReservationDemo.BookingManagement.csproj", "{801E0226-1E51-4DB6-A811-117FF697EDB4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sagaway.ReservationDemo.BillingManagement", "Sagaway.ReservationDemo\Sagaway.ReservationDemo.BillingManagment\Sagaway.ReservationDemo.BillingManagement.csproj", "{016D3D27-F1DF-491A-BB5D-8DAF399F6D12}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SagaReservationDemo.BillingManagement", "SagaReservationDemo\SagaReservationDemo.BillingManagment\SagaReservationDemo.BillingManagement.csproj", "{407124C7-702D-4E0B-B4B6-A648148DEC0C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sagaway.ReservationDemo.BookingManagement", "Sagaway.ReservationDemo\Sagaway.ReservationDemo.BookingManagement\Sagaway.ReservationDemo.BookingManagement.csproj", "{CC536C40-71FC-4AE8-ACC6-C37E342BEE8A}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SagaReservationDemo.InventoryManagement", "SagaReservationDemo\SagaReservationDemo.InventoryManagement\SagaReservationDemo.InventoryManagement.csproj", "{5C71F72E-69C3-4E46-B623-820E8BDF7655}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sagaway.ReservationDemo.InventoryManagement", "Sagaway.ReservationDemo\Sagaway.ReservationDemo.InventoryManagement\Sagaway.ReservationDemo.InventoryManagement.csproj", "{20D75192-6155-43C5-AC8B-BA6E7E22FF6B}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sagaway.ReservationDemo.ReservationManager", "Sagaway.ReservationDemo\Sagaway.ReservationDemo.ReservationManager\Sagaway.ReservationDemo.ReservationManager.csproj", "{C6FF42BA-F626-446A-8100-CC4854C75EAB}"
 EndProject
 Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-compose.dcproj", "{B57015E3-BD2C-4B95-B024-5EFCAA5668F1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sagaway.Callback.Router", "Sagaway.Callback.Router\Sagaway.Callback.Router.csproj", "{3B41421B-5E7D-4E56-89D5-651188CA170E}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "dapr", "dapr", "{F2614066-27C2-4DA8-82EC-DFA0209D3775}"
+	ProjectSection(SolutionItems) = preProject
+		dapr\config.yaml = dapr\config.yaml
+	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sagaway.Callback.Propagator", "Sagaway.Callback.Propagator\Sagaway.Callback.Propagator.csproj", "{F5743519-6C29-4C4F-80AC-BA5EB779E89B}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "components", "components", "{D9272F34-3167-4C17-91FF-0ABD427E7DA8}"
+	ProjectSection(SolutionItems) = preProject
+		dapr\components\billing-queue.yaml = dapr\components\billing-queue.yaml
+		dapr\components\booking-queue.yaml = dapr\components\booking-queue.yaml
+		dapr\components\dapr-secretstore.json = dapr\components\dapr-secretstore.json
+		dapr\components\inventory-queue.yaml = dapr\components\inventory-queue.yaml
+		dapr\components\reservation-response-queue.yaml = dapr\components\reservation-response-queue.yaml
+		dapr\components\secretstore.yaml = dapr\components\secretstore.yaml
+		dapr\components\statestore.yaml = dapr\components\statestore.yaml
+		dapr\components\test-response-queue.yaml = dapr\components\test-response-queue.yaml
+		dapr\components\test-queue.yaml = dapr\components\test-queue.yaml
+		dapr\components\testcallback.yaml = dapr\components\testcallback.yaml
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sagaway.IntegrationTests.OrchestrationService", "Sagaway.IntegrationTests\Sagaway.IntegrationTests.OrchestrationService\Sagaway.IntegrationTests.OrchestrationService.csproj", "{EDCC72CE-2288-45E6-B035-1EE8F7342CDD}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SignalREmulator", "SignalREmulator", "{F0F3C263-A7BC-48CE-A9A6-84CD48DB4850}"
+	ProjectSection(SolutionItems) = preProject
+		SignalREmulator\Dockerfile = SignalREmulator\Dockerfile
+		SignalREmulator\settings.json = SignalREmulator\settings.json
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sagaway.IntegrationTests.TestProject", "Sagaway.IntegrationTests\Sagaway.IntegrationTests.TestProject\Sagaway.IntegrationTests.TestProject.csproj", "{FADEA56C-46EC-414F-A594-503C421BF47C}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sagaway.IntegrationTests.TestService", "Sagaway.IntegrationTests\Sagaway.IntegrationTests.TestService\Sagaway.IntegrationTests.TestService.csproj", "{568B0B6C-EBF1-4222-A51E-90CF5DA349AF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -57,26 +76,6 @@ Global
 		{7B8E3D0B-81E0-47CA-88D8-AC1C5734ABBB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7B8E3D0B-81E0-47CA-88D8-AC1C5734ABBB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7B8E3D0B-81E0-47CA-88D8-AC1C5734ABBB}.Release|Any CPU.Build.0 = Release|Any CPU
-		{368E0809-9900-4BA5-BB2F-968135C83706}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{368E0809-9900-4BA5-BB2F-968135C83706}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{368E0809-9900-4BA5-BB2F-968135C83706}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{368E0809-9900-4BA5-BB2F-968135C83706}.Release|Any CPU.Build.0 = Release|Any CPU
-		{801E0226-1E51-4DB6-A811-117FF697EDB4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{801E0226-1E51-4DB6-A811-117FF697EDB4}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{801E0226-1E51-4DB6-A811-117FF697EDB4}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{801E0226-1E51-4DB6-A811-117FF697EDB4}.Release|Any CPU.Build.0 = Release|Any CPU
-		{407124C7-702D-4E0B-B4B6-A648148DEC0C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{407124C7-702D-4E0B-B4B6-A648148DEC0C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{407124C7-702D-4E0B-B4B6-A648148DEC0C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{407124C7-702D-4E0B-B4B6-A648148DEC0C}.Release|Any CPU.Build.0 = Release|Any CPU
-		{5C71F72E-69C3-4E46-B623-820E8BDF7655}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{5C71F72E-69C3-4E46-B623-820E8BDF7655}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{5C71F72E-69C3-4E46-B623-820E8BDF7655}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{5C71F72E-69C3-4E46-B623-820E8BDF7655}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B57015E3-BD2C-4B95-B024-5EFCAA5668F1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B57015E3-BD2C-4B95-B024-5EFCAA5668F1}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B57015E3-BD2C-4B95-B024-5EFCAA5668F1}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B57015E3-BD2C-4B95-B024-5EFCAA5668F1}.Release|Any CPU.Build.0 = Release|Any CPU
 		{3B41421B-5E7D-4E56-89D5-651188CA170E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{3B41421B-5E7D-4E56-89D5-651188CA170E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3B41421B-5E7D-4E56-89D5-651188CA170E}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -85,17 +84,51 @@ Global
 		{F5743519-6C29-4C4F-80AC-BA5EB779E89B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F5743519-6C29-4C4F-80AC-BA5EB779E89B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F5743519-6C29-4C4F-80AC-BA5EB779E89B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{016D3D27-F1DF-491A-BB5D-8DAF399F6D12}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{016D3D27-F1DF-491A-BB5D-8DAF399F6D12}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{016D3D27-F1DF-491A-BB5D-8DAF399F6D12}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{016D3D27-F1DF-491A-BB5D-8DAF399F6D12}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CC536C40-71FC-4AE8-ACC6-C37E342BEE8A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CC536C40-71FC-4AE8-ACC6-C37E342BEE8A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CC536C40-71FC-4AE8-ACC6-C37E342BEE8A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CC536C40-71FC-4AE8-ACC6-C37E342BEE8A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{20D75192-6155-43C5-AC8B-BA6E7E22FF6B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{20D75192-6155-43C5-AC8B-BA6E7E22FF6B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{20D75192-6155-43C5-AC8B-BA6E7E22FF6B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{20D75192-6155-43C5-AC8B-BA6E7E22FF6B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C6FF42BA-F626-446A-8100-CC4854C75EAB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C6FF42BA-F626-446A-8100-CC4854C75EAB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C6FF42BA-F626-446A-8100-CC4854C75EAB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C6FF42BA-F626-446A-8100-CC4854C75EAB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B57015E3-BD2C-4B95-B024-5EFCAA5668F1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B57015E3-BD2C-4B95-B024-5EFCAA5668F1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B57015E3-BD2C-4B95-B024-5EFCAA5668F1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B57015E3-BD2C-4B95-B024-5EFCAA5668F1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EDCC72CE-2288-45E6-B035-1EE8F7342CDD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EDCC72CE-2288-45E6-B035-1EE8F7342CDD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EDCC72CE-2288-45E6-B035-1EE8F7342CDD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EDCC72CE-2288-45E6-B035-1EE8F7342CDD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FADEA56C-46EC-414F-A594-503C421BF47C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FADEA56C-46EC-414F-A594-503C421BF47C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FADEA56C-46EC-414F-A594-503C421BF47C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FADEA56C-46EC-414F-A594-503C421BF47C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{568B0B6C-EBF1-4222-A51E-90CF5DA349AF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{568B0B6C-EBF1-4222-A51E-90CF5DA349AF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{568B0B6C-EBF1-4222-A51E-90CF5DA349AF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{568B0B6C-EBF1-4222-A51E-90CF5DA349AF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{2FEC9466-6230-458F-AF40-987FD9D08B6B} = {FFF6DF40-5A9F-46B9-BE17-1AD17D40AC17}
-		{B947F801-3598-47AD-8B63-CD185FF9F96C} = {2FEC9466-6230-458F-AF40-987FD9D08B6B}
-		{368E0809-9900-4BA5-BB2F-968135C83706} = {FFF6DF40-5A9F-46B9-BE17-1AD17D40AC17}
-		{801E0226-1E51-4DB6-A811-117FF697EDB4} = {FFF6DF40-5A9F-46B9-BE17-1AD17D40AC17}
-		{407124C7-702D-4E0B-B4B6-A648148DEC0C} = {FFF6DF40-5A9F-46B9-BE17-1AD17D40AC17}
-		{5C71F72E-69C3-4E46-B623-820E8BDF7655} = {FFF6DF40-5A9F-46B9-BE17-1AD17D40AC17}
+		{016D3D27-F1DF-491A-BB5D-8DAF399F6D12} = {FFF6DF40-5A9F-46B9-BE17-1AD17D40AC17}
+		{CC536C40-71FC-4AE8-ACC6-C37E342BEE8A} = {FFF6DF40-5A9F-46B9-BE17-1AD17D40AC17}
+		{20D75192-6155-43C5-AC8B-BA6E7E22FF6B} = {FFF6DF40-5A9F-46B9-BE17-1AD17D40AC17}
+		{C6FF42BA-F626-446A-8100-CC4854C75EAB} = {FFF6DF40-5A9F-46B9-BE17-1AD17D40AC17}
+		{D9272F34-3167-4C17-91FF-0ABD427E7DA8} = {F2614066-27C2-4DA8-82EC-DFA0209D3775}
+		{EDCC72CE-2288-45E6-B035-1EE8F7342CDD} = {DBBB1856-3CF3-45F6-8284-627DF1BA9AB1}
+		{FADEA56C-46EC-414F-A594-503C421BF47C} = {DBBB1856-3CF3-45F6-8284-627DF1BA9AB1}
+		{568B0B6C-EBF1-4222-A51E-90CF5DA349AF} = {DBBB1856-3CF3-45F6-8284-627DF1BA9AB1}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {27AF5C62-89C5-4AE2-B5DD-7DC1D1DDA605}

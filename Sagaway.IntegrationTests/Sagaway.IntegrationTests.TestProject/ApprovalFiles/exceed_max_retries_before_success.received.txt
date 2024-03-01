@@ -1,0 +1,2 @@
+﻿exceed_max_retries_before_success
+The circuit is now open and is not allowing calls.

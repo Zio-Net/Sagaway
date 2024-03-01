@@ -10,7 +10,7 @@ namespace Sagaway.Callback.Router;
 
 public static class WebApplicationSagawayExtension
 {
-    public static void UseSagawayCallbackRouter(this WebApplication app, string callbackBindingName, string actorTypeName)
+    public static void UseSagawayCallbackRouter(this WebApplication app, string callbackBindingName)
     {
         app.MapPost("/" + callbackBindingName, async (
             HttpRequest httpRequest,
@@ -19,10 +19,10 @@ public static class WebApplicationSagawayExtension
             [FromServices] ILogger<ISagawayActor> logger) =>
         {
            
-            var methodName = httpRequest.Headers["x-sagaway-callback-method"].FirstOrDefault();
+            var methodName = httpRequest.Headers["x-sagaway-dapr-callback-method-name"].FirstOrDefault();
             if (string.IsNullOrEmpty(methodName))
             {
-                logger.LogError("x-callback-method header is missing or empty.");
+                logger.LogError("x-sagaway-callback-method-name header is missing or empty.");
                 return Results.Ok();
             }
 
@@ -30,6 +30,13 @@ public static class WebApplicationSagawayExtension
             if (string.IsNullOrEmpty(actorId))
             {
                 logger.LogError("x-sagaway-dapr-actor-id header is missing or empty.");
+                return Results.Ok();
+            }
+
+            var actorTypeName = httpRequest.Headers["x-sagaway-dapr-actor-type"].FirstOrDefault();
+            if (string.IsNullOrEmpty(actorTypeName))
+            {
+                logger.LogError("x-sagaway-dapr-actor-type header is missing or empty.");
                 return Results.Ok();
             }
 

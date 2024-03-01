@@ -7,7 +7,7 @@
     <ProjectGuid>b57015e3-bd2c-4b95-b024-5efcaa5668f1</ProjectGuid>
     <DockerLaunchAction>LaunchBrowser</DockerLaunchAction>
     <DockerServiceUrl>{Scheme}://localhost:{ServicePort}/swagger</DockerServiceUrl>
-    <DockerServiceName>sagareservationdemo.billingmanagement</DockerServiceName>
+    <DockerServiceName>reservation-manager</DockerServiceName>
   </PropertyGroup>
   <ItemGroup>
     <None Include="docker-compose.yml" />

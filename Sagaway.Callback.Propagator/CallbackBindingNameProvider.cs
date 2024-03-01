@@ -5,5 +5,5 @@
 /// </summary>
 public class CallbackBindingNameProvider : ICallbackBindingNameProvider
 {
-    public string CallbackBindingName => HeaderPropagationMiddleware.CallbackBindingName.Value ?? throw new InvalidOperationException("CallbackBindingName is not set");
+    public string CallbackBindingName => HeaderPropagationMiddleware.CallbackBindingName;
 }

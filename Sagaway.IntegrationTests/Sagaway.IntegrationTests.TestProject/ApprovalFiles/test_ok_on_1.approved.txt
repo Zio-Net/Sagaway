@@ -1,0 +1,6 @@
+﻿Test Name: test_ok_on_1
+Result: True
+Saga Log:
+[*time*][CallA]: Start Executing 
+[*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:30
+[*time*][CallA]: Success

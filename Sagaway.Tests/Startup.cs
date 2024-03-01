@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 
-namespace SagawayTests
+namespace Sagaway.Tests
 {
     public class Startup
     {
