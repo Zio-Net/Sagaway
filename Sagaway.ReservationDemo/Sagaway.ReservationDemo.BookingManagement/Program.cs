@@ -13,7 +13,7 @@ builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
-// Register DaprClient that support Sagaway context propagator
+// Register DaprClient that supports Sagaway context propagator
 builder.Services.AddControllers().AddDaprWithSagawayContextPropagator().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
