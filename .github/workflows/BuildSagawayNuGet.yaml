@@ -24,4 +24,4 @@ jobs:
         name: packages
         path: "Sagaway/bin/Release/Sagaway.${{github.event.release.tag_name}}.nupkg"
     - name: Publish Nuget Package
-      run: dotnet nuget push **/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
+      run: dotnet nuget push **/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --no-service-endpoint --source https://api.nuget.org/v3/index.json
