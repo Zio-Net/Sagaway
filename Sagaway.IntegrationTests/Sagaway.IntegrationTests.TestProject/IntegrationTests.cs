@@ -26,7 +26,51 @@ public class IntegrationTests
     private JsonSerializerOptions SerializeOptions => _testServiceHelper.SerializeOptions;
 
     private ISignalRWrapper SignalR => _testServiceHelper.SignalR;
-    
+
+    [Trait("Integration Test", "Simple Saga")]
+    [Fact]
+    public async Task CreateSimpleSagaTest()
+    {
+        TestInfo testInfo = new()
+        {
+            TestName = "Simple Saga Test",
+            Id = Guid.NewGuid(),
+            ServiceACall = new ServiceTestInfo
+            {
+                CallId = Guid.NewGuid().ToString(),
+                DelayOnCallInSeconds = [0,0,0,0,0],
+                SuccessOnCall = 1,
+                ShouldReturnCallbackResultOnCall = [true, true, true, true, true]
+            },
+            ServiceBCall = new ServiceTestInfo
+            {
+                CallId = Guid.NewGuid().ToString(),
+                DelayOnCallInSeconds = [0, 0, 0, 0, 0],
+                SuccessOnCall = 1,
+                ShouldReturnCallbackResultOnCall = [true, true, true, true, true]
+            }
+        };
+
+        await SignalR.StartSignalRAsync(testInfo.Id.ToString());
+
+        var body = new StringContent(JsonSerializer.Serialize(testInfo, SerializeOptions), Encoding.UTF8, "application/json");
+
+        var response = await HttpClient.PostAsync("run-test", body);
+
+        var responseContent = await response.Content.ReadAsStringAsync();
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        TestOutputHelper.WriteLine(responseContent);
+
+        var result = await SignalR.WaitForSignalREventAsync(50);
+
+        Assert.True(result);
+        
+        var testResult = _testServiceHelper.GetTestResultFromSignalR(testInfo.Id);
+
+        Assert.True(testResult.IsSuccess);
+    }
+
     [Theory]
     [Trait("Integration Test", "Scenarios")]
     [InlineData("test_ok_on_1", true, 1, 30, "", 1)]
