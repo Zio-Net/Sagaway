@@ -57,6 +57,7 @@ services:
       - rabbitmq
       - redis
       - zipkin
+      - placement
     networks:
       - sagaway-network
     environment:
@@ -96,6 +97,7 @@ services:
       - rabbitmq
       - redis
       - zipkin
+      - placement
     networks:
       - sagaway-network
     environment:
@@ -135,6 +137,7 @@ services:
       - rabbitmq
       - redis
       - zipkin
+      - placement
     networks:
       - sagaway-network
     environment:
