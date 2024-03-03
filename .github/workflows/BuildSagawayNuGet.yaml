@@ -17,11 +17,11 @@ jobs:
       with:
         dotnet-version: 8.0.x
     - name: Create Nuget Package
-      run: dotnet pack -c Release /p:VersionNumber=${{ github.event.release.tag_name}} /p:PackageReleaseNotes="See https://github.com/alonf/Sagaway/releases/tag/${{github.event.release.tag_name}}" Sagaway/Sagaway.csproj
+      run: dotnet pack -c Release /p:VersionNumber=${{ github.event.release.tag_name}} /p:PackageReleaseNotes="See https://github.com/alonf/Sagaway/blob/master/README.md" Sagaway/Sagaway.csproj
     - name: Archive Nuget Package for Sagaway
       uses: actions/upload-artifact@v3
       with:
         name: packages
         path: "Sagaway/bin/Release/Sagaway.${{github.event.release.tag_name}}.nupkg"
     - name: Publish Nuget Package
-      run: dotnet nuget push **/*.nupkg --api-key ${{ secrets.nuget_api_key }} --source https://api.nuget.org/v3/index.json
+      run: dotnet nuget push **/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
