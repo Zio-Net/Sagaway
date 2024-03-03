@@ -3,23 +3,24 @@
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 USER app
 WORKDIR /app
-EXPOSE 80
-EXPOSE 443
+EXPOSE 8080
+EXPOSE 8081
 
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["Sagaway.ReservationDemo/Sagaway.ReservationDemo.BookingManagement/Sagaway.ReservationDemo.BookingManagement.csproj", "Sagaway.ReservationDemo/Sagaway.ReservationDemo.BookingManagement/"]
-RUN dotnet restore "./Sagaway.ReservationDemo/Sagaway.ReservationDemo.BookingManagement/Sagaway.ReservationDemo.BookingManagement.csproj"
+COPY ["Sagaway.IntegrationTests/Sagaway.IntegrationTests.TestService/Sagaway.IntegrationTests.TestService.csproj", "Sagaway.IntegrationTests/Sagaway.IntegrationTests.TestService/"]
+COPY ["Sagaway.Callback.Propagator/Sagaway.Callback.Propagator.csproj", "Sagaway.Callback.Propagator/"]
+RUN dotnet restore "./Sagaway.IntegrationTests/Sagaway.IntegrationTests.TestService/Sagaway.IntegrationTests.TestService.csproj"
 COPY . .
-WORKDIR "/src/Sagaway.ReservationDemo/Sagaway.ReservationDemo.BookingManagement"
-RUN dotnet build "./Sagaway.ReservationDemo.BookingManagement.csproj" -c $BUILD_CONFIGURATION -o /app/build
+WORKDIR "/src/Sagaway.IntegrationTests/Sagaway.IntegrationTests.TestService"
+RUN dotnet build "./Sagaway.IntegrationTests.TestService.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./Sagaway.ReservationDemo.BookingManagement.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "./Sagaway.IntegrationTests.TestService.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "Sagaway.ReservationDemo.BookingManagement.dll"]
+ENTRYPOINT ["dotnet", "Sagaway.IntegrationTests.TestService.dll"]
