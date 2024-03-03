@@ -1,0 +1,55 @@
+name: Integration Tests
+
+on:
+  workflow_dispatch:
+  workflow_call:
+  push:
+    branches:
+      - master
+    paths-ignore:
+    - '.github/**'
+   
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+    branches:
+      - master
+    paths-ignore:
+    - '.github/**'
+    
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    environment: test
+    defaults:
+      run:
+        shell: bash
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    - name: change signalr dapr secret store file to use Azure SignalR service
+      run: |
+            rm ./dapr/components/dapr-secretstore.json
+            echo "{\"SignalRConnectionString\": \"${{ secrets.SAGAWAY_SIGNALR_CONNECTION_STRING }}\"}" > ./dapr/components/dapr-secretstore.json
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: |
+          8.0.x
+    - name: Sagaway Core Tests
+      run: dotnet test --no-build --verbosity normal --configuration Debug Sagaway.Tests/Sagaway.Tests.csproj
+    - name: Docker Compose Up
+      run: docker compose -f docker-compose.yml -f docker-compose-github-test.yml up -d
+    - name: Restore dependencies
+      run: dotnet restore Sagaway.sln
+    - name: Build
+      run: dotnet build --no-restore Sagaway.sln
+    - name: Docker ps
+      run: docker ps
+    - name: Sagaway and Dapr Host Integration Tests
+      run: dotnet test --no-build --verbosity normal --configuration Debug Sagaway.IntegrationTests/Sagaway.IntegrationTests.TestProject/Sagaway.IntegrationTests.TestProject.csproj
+    - name: Dump docker logs on failure
+      if: failure()
+      uses: jwalton/gh-docker-logs@v2
+    - name: Stop containers
+      if: always()
+      run: docker compose down
