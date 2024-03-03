@@ -38,7 +38,7 @@ jobs:
         dotnet-version: |
           8.0.x
     - name: Sagaway Core Tests
-      run: dotnet test --no-build --verbosity normal --configuration Debug Sagaway.Tests/Sagaway.Tests.csproj
+      run: dotnet test --verbosity normal --configuration Debug Sagaway.Tests/Sagaway.Tests.csproj
     - name: ls
       run: ls -lah
     - name: Docker Compose Up
