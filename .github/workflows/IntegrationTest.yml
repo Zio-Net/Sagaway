@@ -15,7 +15,9 @@ on:
       - master
     paths-ignore:
     - '.github/**'
-    
+env:
+  SignalRConnectionString: ${{ secrets.SAGAWAY_SIGNALR_CONNECTION_STRING }}
+  
 jobs:
   build:
     runs-on: ubuntu-22.04
