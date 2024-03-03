@@ -9,15 +9,15 @@ EXPOSE 443
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["Sagaway.ReservationDemo/Sagaway.ReservationDemo.BillingManagment/Sagaway.ReservationDemo.BillingManagment.csproj", "Sagaway.ReservationDemo/Sagaway.ReservationDemo.BillingManagment/"]
-RUN dotnet restore "./Sagaway.ReservationDemo/Sagaway.ReservationDemo.BillingManagment/./Sagaway.ReservationDemo.BillingManagment.csproj"
+COPY ["Sagaway.ReservationDemo/Sagaway.ReservationDemo.BillingManagment/Sagaway.ReservationDemo.BillingManagement.csproj", "Sagaway.ReservationDemo/Sagaway.ReservationDemo.BillingManagment/"]
+RUN dotnet restore "./Sagaway.ReservationDemo/Sagaway.ReservationDemo.BillingManagment/./Sagaway.ReservationDemo.BillingManagement.csproj"
 COPY . .
 WORKDIR "/src/Sagaway.ReservationDemo/Sagaway.ReservationDemo.BillingManagment"
-RUN dotnet build "./Sagaway.ReservationDemo.BillingManagment.csproj" -c $BUILD_CONFIGURATION -o /app/build
+RUN dotnet build "./Sagaway.ReservationDemo.BillingManagement.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./Sagaway.ReservationDemo.BillingManagment.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "./Sagaway.ReservationDemo.BillingManagement.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app

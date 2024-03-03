@@ -10,7 +10,7 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["Sagaway.ReservationDemo/Sagaway.ReservationDemo.InventoryManagement/Sagaway.ReservationDemo.InventoryManagement.csproj", "Sagaway.ReservationDemo/Sagaway.ReservationDemo.InventoryManagement/"]
-RUN dotnet restore "./Sagaway.ReservationDemo/Sagaway.ReservationDemo.InventoryManagement/./Sagaway.ReservationDemo.InventoryManagement.csproj"
+RUN dotnet restore "./Sagaway.ReservationDemo/Sagaway.ReservationDemo.InventoryManagement/Sagaway.ReservationDemo.InventoryManagement.csproj"
 COPY . .
 WORKDIR "/src/Sagaway.ReservationDemo/Sagaway.ReservationDemo.InventoryManagement"
 RUN dotnet build "./Sagaway.ReservationDemo.InventoryManagement.csproj" -c $BUILD_CONFIGURATION -o /app/build
