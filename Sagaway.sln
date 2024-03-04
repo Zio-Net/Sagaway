@@ -48,7 +48,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sagaway.IntegrationTests.Te
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sagaway.IntegrationTests.TestService", "Sagaway.IntegrationTests\Sagaway.IntegrationTests.TestService\Sagaway.IntegrationTests.TestService.csproj", "{568B0B6C-EBF1-4222-A51E-90CF5DA349AF}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Sagaway.ReservationDemo", "Sagaway.ReservationDemo", "{4A2310A3-C97A-4CD6-B109-0FD058A228FA}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Sagaway", "Sagaway", "{4A2310A3-C97A-4CD6-B109-0FD058A228FA}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sagaway.ReservationDemo.BillingManagement", "Sagaway.ReservationDemo\Sagaway.ReservationDemo.BillingManagment\Sagaway.ReservationDemo.BillingManagement.csproj", "{9B57BAFB-8A24-41C7-9EEE-6955F0AD1847}"
 EndProject
