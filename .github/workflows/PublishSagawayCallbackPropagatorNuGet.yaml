@@ -1,4 +1,4 @@
-name: Build and Publish the main Sagaway NuGet Package
+name: Build and Publish the Sagaway Callback Propagator NuGet Package
 
 on:
   workflow_dispatch:
