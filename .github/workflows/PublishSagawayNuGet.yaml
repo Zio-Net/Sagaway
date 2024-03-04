@@ -1,4 +1,4 @@
-name: Buld the main Sagaway NuGet Packadge
+name: Build and Publish the main Sagaway NuGet Package
 
 on:
   workflow_dispatch:
