@@ -17,7 +17,7 @@ jobs:
       with:
         dotnet-version: 8.0.x
     - name: Create Nuget Package
-      run: dotnet pack -c Release /p:VersionNumber=${{ github.event.release.tag_name}} /p:PackageReleaseNotes="See https://github.com/alonf/Sagaway/blob/master/README.md" Sagaway/Sagaway.csproj
+      run: dotnet pack -c Release /p:VersionNumber=${{ github.event.release.tag_name}} /p:PackageReleaseNotes="See https://raw.githubusercontent.com/alonf/Sagaway/master/README.md" Sagaway/Sagaway.csproj
     - name: Archive Nuget Package for Sagaway
       uses: actions/upload-artifact@v4
       with:
