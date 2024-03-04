@@ -4,7 +4,22 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <Title>Sagaway Main Package</Title>
+    <Authors>Alon Fliess</Authors>
+    <Company>ZioNet</Company>
+    <Description>The callback propagator package of the Sagaway Saga Framework. Use by a participant remote service to propagate the context</Description>
+    <PackageProjectUrl>https://github.com/alonf/Sagaway</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/alonf/Sagaway</RepositoryUrl>
+    <EnableNETAnalyzers>True</EnableNETAnalyzers>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\..\Temp\delmesaga\Sagaway\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.2.0" />
