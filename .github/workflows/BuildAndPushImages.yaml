@@ -1,0 +1,51 @@
+name: update-docker-images
+on:
+  workflow_dispatch:
+  
+jobs:     
+    build-and-push-image:
+      runs-on: ubuntu-latest
+      strategy:
+        fail-fast: false
+        matrix:
+          include:
+              # sagaway demo billing manager
+            - dockerfile: ./Sagaway.ReservationDemo/Sagaway.ReservationDemo.BillingManagment/Dockerfile
+              image: sagaway.demo.billing.manager
+              # sagaway demo booking management
+            - dockerfile: ./Sagaway.ReservationDemo/Sagaway.ReservationDemo.BookingManagement/Dockerfile
+              image: sagaway.demo.booking.manager
+              # sagaway demo inventory manager
+            - dockerfile: ./Sagaway.ReservationDemo/Sagaway.ReservationDemo.InventoryManagement/Dockerfile
+              image: sagaway.demo.inventory.manager
+              # sagaway demo reservation manager
+            - dockerfile: ./Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationManager/Dockerfile
+              image: sagaway.demo.reservation.manager
+              # sagaway demo test orchestration
+            - dockerfile: ./Sagaway.IntegrationTests/Sagaway.IntegrationTests.OrchestrationService/Dockerfile
+              image: sagaway.demo.test.orchestration
+              # sagaway demo test service
+            - dockerfile: ./Sagaway.IntegrationTests/Sagaway.IntegrationTests.TestService/Dockerfile
+              image: sagaway.demo.test.service
+              # sagaway demo signalR emulator
+            - dockerfile: ./SignalREmulator/Dockerfile
+              image: sagaway.demo.signalr.emulator       
+      permissions:
+        contents: read
+        packages: write
+
+      steps:
+        - uses: actions/checkout@v2
+    
+        - name: Login to Azure Container Registry
+          uses: azure/docker-login@v1
+          with:
+            login-server: trialkitregistery.azurecr.io
+            username: ${{ secrets.ACR_USERNAME }}
+            password: ${{ secrets.ACR_PASSWORD }}
+    
+        - name: Build Docker image
+          run: docker build -f ${{ matrix.dockerfile }} -t trialkitregistery.azurecr.io/${{ matrix.image }}:${{ github.sha }}  .
+    
+        - name: Push Docker image to Azure Container Registry
+          run: docker push trialkitregistery.azurecr.io/${{ matrix.image }}:${{ github.sha }}
