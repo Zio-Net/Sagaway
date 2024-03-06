@@ -41,8 +41,8 @@ jobs:
           uses: azure/docker-login@v1
           with:
             login-server: trialkitregistery.azurecr.io
-            username: trialkitregistery
-            password: txpecfj4ywtx5LIKgYxdwSzgg8CRpqHp7dpOav6DEv+ACRD495/V
+            username: ${{secrets.ACR_USERNAME}}
+            password: ${{secrets.ACR_PASSWORD}}
     
         - name: Build Docker image
           run: docker build -f ${{ matrix.dockerfile }} -t trialkitregistery.azurecr.io/${{ matrix.image }}:${{ github.sha }}  .
