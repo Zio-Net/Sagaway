@@ -6,15 +6,13 @@ namespace Sagaway
     {
         internal class OnActionFailure : SagaAction
         {
+            // ReSharper disable once ConvertToPrimaryConstructor
             public OnActionFailure(Saga<TEOperations> saga, SagaOperation sagaOperation, ILogger logger)
                 : base(saga, sagaOperation, logger)
             {
             }
             protected override bool IsRevert => true;
 
-            protected override TimeSpan RetryInterval => SagaOperation.RevertRetryInterval;
-
-            protected override int MaxRetries => SagaOperation.RevertMaxRetries;
 
             protected override async Task ExecuteActionAsync()
             {
@@ -27,6 +25,11 @@ namespace Sagaway
                 //else
                 await SagaOperation.RevertOperationAsync();
             }
+
+            protected override TimeSpan GetRetryInterval(int retryIteration) =>
+                SagaOperation.RevertRetryIntervalFunction?.Invoke(retryIteration) ?? SagaOperation.RevertRetryInterval;
+
+            protected override int MaxRetries => SagaOperation.RevertMaxRetries;
 
             protected override async Task OnActionFailureAsync()
             {

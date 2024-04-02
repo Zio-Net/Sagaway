@@ -18,7 +18,7 @@ builder.Logging.AddDebug();
 builder.Services.AddSingleton<SignalRService>()
 #pragma warning disable CS8631 // The type cannot be used as type parameter in the generic type or method. Nullability of type argument doesn't match constraint type.
 #pragma warning disable CS8634 // The type cannot be used as type parameter in the generic type or method. Nullability of type argument doesn't match 'class' constraint.
-    .AddHostedService(sp => sp.GetService<SignalRService>())
+    .AddHostedService(sp => sp.GetService<SignalRService>()!)
 #pragma warning restore CS8634 // The type cannot be used as type parameter in the generic type or method. Nullability of type argument doesn't match 'class' constraint.
 #pragma warning restore CS8631 // The type cannot be used as type parameter in the generic type or method. Nullability of type argument doesn't match constraint type.
     .AddSingleton<IHubContextStore>(sp => sp.GetService<SignalRService>()!)

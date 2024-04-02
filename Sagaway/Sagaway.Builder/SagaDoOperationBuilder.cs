@@ -70,6 +70,18 @@ public partial class Saga<TEOperations> where TEOperations : Enum
                 return this;
             }
 
+
+            /// <summary>
+            /// Set the retry pause time as a function to provide a dynamic interval
+            /// </summary>
+            /// <param name="retryIterationFunc">The function that returns the retry interval</param>
+            /// <returns>The fluent interface</returns>
+            public SagaDoOperationBuilder WithRetryIntervalTime(Func<int, TimeSpan> retryIterationFunc)
+            {
+                _sagaOperation.RetryIntervalFunction = retryIterationFunc;
+                return this;
+            }
+
             /// <summary>
             /// Used to check if the operation succeeded on timeout
             /// </summary>
