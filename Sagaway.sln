@@ -48,13 +48,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sagaway.IntegrationTests.Te
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sagaway.IntegrationTests.TestService", "Sagaway.IntegrationTests\Sagaway.IntegrationTests.TestService\Sagaway.IntegrationTests.TestService.csproj", "{568B0B6C-EBF1-4222-A51E-90CF5DA349AF}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sagaway.ReservationDemo.BillingManagement", "Sagaway.ReservationDemo\Sagaway.ReservationDemo.BillingManagment\Sagaway.ReservationDemo.BillingManagement.csproj", "{9B57BAFB-8A24-41C7-9EEE-6955F0AD1847}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sagaway.ReservationDemo.BookingManagement", "Sagaway.ReservationDemo\Sagaway.ReservationDemo.BookingManagement\Sagaway.ReservationDemo.BookingManagement.csproj", "{09D92533-570D-4E3B-8D7B-E9FD3BB55E81}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sagaway.ReservationDemo.InventoryManagement", "Sagaway.ReservationDemo\Sagaway.ReservationDemo.InventoryManagement\Sagaway.ReservationDemo.InventoryManagement.csproj", "{49CECF77-091C-4679-A4AC-098A24C5C7BE}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sagaway.ReservationDemo.ReservationManager", "Sagaway.ReservationDemo\Sagaway.ReservationDemo.ReservationManager\Sagaway.ReservationDemo.ReservationManager.csproj", "{A007A380-9B32-4E4D-B8B0-F5E84E753A17}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sagaway.ReservationDemo.BillingManagement", "Sagaway.ReservationDemo\Sagaway.ReservationDemo.BillingManagement\Sagaway.ReservationDemo.BillingManagement.csproj", "{4C4C221E-7B30-4F2D-848E-3A0791800C11}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -98,10 +98,6 @@ Global
 		{568B0B6C-EBF1-4222-A51E-90CF5DA349AF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{568B0B6C-EBF1-4222-A51E-90CF5DA349AF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{568B0B6C-EBF1-4222-A51E-90CF5DA349AF}.Release|Any CPU.Build.0 = Release|Any CPU
-		{9B57BAFB-8A24-41C7-9EEE-6955F0AD1847}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{9B57BAFB-8A24-41C7-9EEE-6955F0AD1847}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{9B57BAFB-8A24-41C7-9EEE-6955F0AD1847}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{9B57BAFB-8A24-41C7-9EEE-6955F0AD1847}.Release|Any CPU.Build.0 = Release|Any CPU
 		{09D92533-570D-4E3B-8D7B-E9FD3BB55E81}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{09D92533-570D-4E3B-8D7B-E9FD3BB55E81}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{09D92533-570D-4E3B-8D7B-E9FD3BB55E81}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -114,6 +110,10 @@ Global
 		{A007A380-9B32-4E4D-B8B0-F5E84E753A17}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A007A380-9B32-4E4D-B8B0-F5E84E753A17}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A007A380-9B32-4E4D-B8B0-F5E84E753A17}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4C4C221E-7B30-4F2D-848E-3A0791800C11}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4C4C221E-7B30-4F2D-848E-3A0791800C11}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4C4C221E-7B30-4F2D-848E-3A0791800C11}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4C4C221E-7B30-4F2D-848E-3A0791800C11}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
