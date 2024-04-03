@@ -39,14 +39,14 @@ jobs:
           8.0.x
     - name: Sagaway Core Tests
       run: dotnet test --verbosity normal --configuration Debug Sagaway.Tests/Sagaway.Tests.csproj
-    - name: ls
-      run: ls -lah
     - name: Docker Compose Up
       run: docker compose -f docker-compose.yml -f docker-compose-github-test.yml up -d
     - name: Restore dependencies
       run: dotnet restore Sagaway.sln
     - name: Build
       run: dotnet build --no-restore Sagaway.sln
+    - name: delay for init done
+      run: sleep 60s
     - name: Docker ps
       run: docker ps
     - name: Sagaway and Dapr Host Integration Tests
