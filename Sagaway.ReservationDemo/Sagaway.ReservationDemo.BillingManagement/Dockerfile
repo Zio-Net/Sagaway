@@ -9,10 +9,10 @@ EXPOSE 443
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["Sagaway.ReservationDemo/Sagaway.ReservationDemo.BillingManagment/Sagaway.ReservationDemo.BillingManagement.csproj", "Sagaway.ReservationDemo/Sagaway.ReservationDemo.BillingManagment/"]
-RUN dotnet restore "./Sagaway.ReservationDemo/Sagaway.ReservationDemo.BillingManagment/./Sagaway.ReservationDemo.BillingManagement.csproj"
+COPY ["Sagaway.ReservationDemo/Sagaway.ReservationDemo.BillingManagement/Sagaway.ReservationDemo.BillingManagement.csproj", "Sagaway.ReservationDemo/Sagaway.ReservationDemo.BillingManagement/"]
+RUN dotnet restore "./Sagaway.ReservationDemo/Sagaway.ReservationDemo.BillingManagement/./Sagaway.ReservationDemo.BillingManagement.csproj"
 COPY . .
-WORKDIR "/src/Sagaway.ReservationDemo/Sagaway.ReservationDemo.BillingManagment"
+WORKDIR "/src/Sagaway.ReservationDemo/Sagaway.ReservationDemo.BillingManagement"
 RUN dotnet build "./Sagaway.ReservationDemo.BillingManagement.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 FROM build AS publish
@@ -22,4 +22,4 @@ RUN dotnet publish "./Sagaway.ReservationDemo.BillingManagement.csproj" -c $BUIL
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "Sagaway.ReservationDemo.BillingManagment.dll"]
+ENTRYPOINT ["dotnet", "Sagaway.ReservationDemo.BillingManagement.dll"]

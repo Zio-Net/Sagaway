@@ -52,7 +52,7 @@ services:
     image: ${DOCKER_REGISTRY-}sagawayreservationdemobillingmanagement
     build:
       context: .
-      dockerfile: Sagaway.ReservationDemo/Sagaway.ReservationDemo.BillingManagment/Dockerfile
+      dockerfile: Sagaway.ReservationDemo/Sagaway.ReservationDemo.BillingManagement/Dockerfile
     depends_on:
       - rabbitmq
       - redis
