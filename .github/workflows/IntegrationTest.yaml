@@ -28,11 +28,6 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
-    - name: Setup tmate session
-      uses: mxschmitt/action-tmate@v3
-      with:
-        # This will keep the tmate session alive for 30 minutes
-        limit-access-to-actor: true
     - name: change signalr dapr secret store file to use Azure SignalR service
       run: |
             rm ./dapr/components/dapr-secretstore.json
@@ -54,6 +49,11 @@ jobs:
       run: sleep 60s
     - name: Docker ps
       run: docker ps
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
+      with:
+        # This will keep the tmate session alive for 30 minutes
+        limit-access-to-actor: true
     - name: Sagaway and Dapr Host Integration Tests
       run: dotnet test --no-build --verbosity normal --configuration Debug Sagaway.IntegrationTests/Sagaway.IntegrationTests.TestProject/Sagaway.IntegrationTests.TestProject.csproj
     - name: Dump docker logs on failure
