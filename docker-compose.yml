@@ -265,13 +265,12 @@ services:
 # Redis state store
 ############################
   redis:
-    image: "redis:alpine"
+    image: "redis/redis-stack-server:latest"
     hostname: redisserver
     ports:
       - "6379:6379"
     networks:
       - sagaway-network
-    command: redis-server 
     environment:
      - REDIS_REPLICATION_MODE=master
  

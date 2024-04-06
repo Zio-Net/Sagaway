@@ -133,12 +133,11 @@ namespace Sagaway
                 throw new ValidationException("Retry count must be greater than 0 for all operations that provide a validate function");
             }
 
-            //for each operation that provided a validate function, a positive  Retry Interval must be provided
-            if (_operations.Any(o => o.Operation is { ValidateAsync: { }, RetryInterval.TotalSeconds: <= 0 }))
+            //for each operation that provided a validate function, a positive  Retry Interval or retry function must be provided
+            if (_operations.Any(o => o.Operation is { ValidateAsync: not null, RetryInterval.TotalSeconds: <= 0, RetryIntervalFunction: null }))
             {
-                throw new ValidationException("Retry interval must be greater than 0 for all operations that provide a validate function");
+                throw new ValidationException("Retry interval must be greater than 0 or a retry delay function is provided for all operations that provide a validate function");
             }
-
         }
 
         //called by the ctor

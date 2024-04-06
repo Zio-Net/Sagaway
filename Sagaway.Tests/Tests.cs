@@ -32,8 +32,8 @@ UF# => The number of times the revert operation fails
 UW#.# => The Time the revert operation waits for each call before return a failure or success (UW Call.Wait)
 V#.# => Validate function. The first number is the call number; the second number is the result S/F (Success/Fail)
 RV#.# => Revert Validate function. The first number is the call number; the second number is the result S/F (Success/Fail)
-RW# => Between retry call delay. The number is the delay in seconds
-RRW# => Between revert retry call delay. The number is the delay in seconds
+RW# => Between retry call delay. The number is the delay in seconds, use e instead of a number to use the exponential backoff
+RRW# => Between revert retry call delay. The number is the delay in seconds, use e instead of a number to use the exponential backoff
 S# => Deactivate the Saga on the number calls
 T# => Throw exception on the number calls
 UT# => Throw exception on the revert operation on the number calls
@@ -49,6 +49,7 @@ public partial class Tests
     private readonly ITestOutputHelper _testOutputHelper;
     private ISaga<Operations>? _saga;
 
+    // ReSharper disable once ConvertToPrimaryConstructor
     public Tests(ILogger<Tests> logger, ITestOutputHelper testOutputHelper)
     {
         _logger = logger;
@@ -226,6 +227,7 @@ public partial class Tests
     [InlineData("test_single_fail_no_retry", "O1|F1")]
     [InlineData("test_single_fail_no_retry_report_failure", "O1|F1|RF")]
     [InlineData("test_single_fail_and_retry", "O1|R2|F1|RW10")]
+    [InlineData("test_single_fail_and_exponential_retry", "O1|R2|F1|RWe")]
     [InlineData("test_single_fail_fast_and_retry", "O1|R2|FF|RW10")]
     [InlineData("test_single_long_wait_validate_true", "O1|R1|RW2|W1.5|V1.S")]
     [InlineData("test_single_long_wait_validate_false", "O1|R1|RW2|W1.5|V1.F")]
@@ -234,6 +236,7 @@ public partial class Tests
     [InlineData("test_single_throw_exception", "O1|T1")]
     [InlineData("test_single_throw_exception_report_fail", "O1|T1|RF")]
     [InlineData("test_single_throw_exception_and_retry", "O1|T1|R1|RW2")]
+    [InlineData("test_single_throw_exception_and_exponential_retry", "O1|T1|R1|RWe")]
     [InlineData("test_single_throw_exception_twice_and_retry_three_times", "O1|T1|T2|R3|RW2")]
     [InlineData("test_single_long_wait_validate_exception", "O1|R1|RW2|W1.5|V1.S|V2.S|VT1")]
     [InlineData("test_single_long_wait_validate_false_with_revert_exception", "O1|R1|RW2|F2|W1.5|W2.5|RRW2|V1.F|V2.F|UR2|UF2|RVT1|RVT2")]
@@ -267,6 +270,7 @@ public partial class Tests
     [Trait("Saga", "Five Operations")]
     [InlineData("test_five_success", "O1", "O2", "O3", "O4", "O5")]
     [InlineData("test_five_deactivated_each", "O1|S1|R2|RW1|W1.10|V1.S", "O2|S1|R2|RW3|W1.10|V1.S", "O3|S1|R2|RW5|W1.10|V1.S", "O4|S1|R2|RW7|W1.10|V1.S", "O5|S1|R2|RW9|W1.10|V1.S")]
+    [InlineData("test_five_deactivated_each_exponential_wait", "O1|S1|R2|RWe|W1.10|V1.S", "O2|S1|R2|RWe|W1.10|V1.S", "O3|S1|R2|RWe|W1.10|V1.S", "O4|S1|R2|RWe|W1.10|V1.S", "O5|S1|R2|RWe|W1.10|V1.S")]
     [InlineData("test_five_throw_on_fifth", "O1", "O2", "O3", "O4", "O5|T1")]
     [InlineData("test_five_throw_on_fifth_report_failure", "O1|RF", "O2|W1.1", "O3|W1.2", "O4|W1.3", "O5|W1.4|T1")]
     [InlineData("test_five_failfast_on_third", "O1", "O2|W1.1", "O3|W1.2|FF", "O4|W1.3", "O5|W1.4")]
@@ -330,12 +334,16 @@ public partial class Tests
             await DoOperation(sb, testOperation);
         })
         .WithMaxRetries(testOperation.MaxRetries);
+        
         if (testOperation.HasValidate)
         {
             operationBuilder.WithValidateFunction(async () => await Validate(sb, testOperation));
         }
+        
         if (testOperation.RetryDelay > 0)
             operationBuilder.WithRetryIntervalTime(TimeSpan.FromSeconds(testOperation.RetryDelay));
+        else if (testOperation.UseExponentialBackoff)
+            operationBuilder.WithRetryIntervalTime(ExponentialBackoff.InSeconds(1,32, 0));
 
         if (!testOperation.HasRevert) 
             return;
@@ -346,12 +354,16 @@ public partial class Tests
 
             })
             .WithMaxRetries(testOperation.RevertMaxRetries);
+
         if (testOperation.HasRevertValidate)
         {
             undoOperationBuilder.WithValidateFunction(async () => await RevertValidate(sb, testOperation));
         }
+
         if (testOperation.RevertRetryDelay > 0)
-            operationBuilder.WithRetryIntervalTime(TimeSpan.FromSeconds(testOperation.RevertRetryDelay));
+            undoOperationBuilder.WithUndoRetryInterval(TimeSpan.FromSeconds(testOperation.RevertRetryDelay));
+        else if (testOperation.UseRevertExponentialBackoff)
+            undoOperationBuilder.WithUndoRetryInterval(ExponentialBackoff.InSeconds(1,32, 0));
     }
     
     private async Task DoOperation(StringBuilder sb, TestOperationInput testOperation)
@@ -455,10 +467,12 @@ public partial class Tests
             var failFast = entries.Any(e=> e == "FF");
             var delays = ExtractDelayByIteration("W");
             var retryDelay = NumberOfElements("RW");
+            bool useExponentialBackoff = UseExponentialBackoff("RW");
             var revertMaxRetry = NumberOfElements("UR");
             var numberOfRevertFailures = NumberOfElements("UF");
             var revertDelays = ExtractDelayByIteration("UW");
             var revertRetryDelay = NumberOfElements("RRW");
+            var useRevertExponentialBackoff = UseExponentialBackoff("RRW");
             var validateFunctionResults = entries.Where(e => e.StartsWith("V") && IsDigit(e[1])).Select(e => e[1..].Split(".")).ToDictionary(k => int.Parse(k[0]), v => v[1].StartsWith("S"));
             var revertValidateFunctionResults = entries.Where(e => e.StartsWith("RV") && IsDigit(e[2])).Select(e => e[2..].Split(".")).ToDictionary(k => int.Parse(k[0]), v => v[1].StartsWith("S"));
             var deactivate = entries.Where(e => e.StartsWith("S")).Select(e => int.Parse(e[1..])).ToArray();
@@ -467,10 +481,17 @@ public partial class Tests
             var revertThrowException = entries.Where(e => e.StartsWith("UT")).Select(e => int.Parse(e[2..])).ToArray(); 
             var revertValidateThrowException = entries.Where(e => e.StartsWith("RVT")).Select(e => int.Parse(e[3..])).ToArray();
             var hasReportFail = entries.FirstOrDefault(e => e.StartsWith("RF")) != null;
+            
             int NumberOfElements(string elementName)
             {
                 var n = entries.Where(e => e.StartsWith(elementName) && IsDigit(e[elementName.Length..][0])).Select(e => int.Parse(e[elementName.Length..])).FirstOrDefault();
                 return n;
+            }
+
+            bool UseExponentialBackoff(string elementName)
+            {
+                var e = entries.FirstOrDefault(e => e.StartsWith(elementName) && e.EndsWith("e")) != null;
+                return e;
             }
 
             static bool IsDigit(char c) => c is >= '0' and <= '9';
@@ -491,10 +512,12 @@ public partial class Tests
                 NumberOfFailures = numberOfFailures,
                 CallDelays = delays,
                 RetryDelay = retryDelay,
+                UseExponentialBackoff = useExponentialBackoff,
                 RevertMaxRetries = revertMaxRetry,
                 RevertNumberOfFailures = numberOfRevertFailures,
                 RevertCallDelay = revertDelays,
                 RevertRetryDelay = revertRetryDelay,
+                UseRevertExponentialBackoff = useRevertExponentialBackoff,
                 ValidateFunctionResults = validateFunctionResults,
                 RevertValidateFunctionResults = revertValidateFunctionResults,
                 Deactivate = deactivate,

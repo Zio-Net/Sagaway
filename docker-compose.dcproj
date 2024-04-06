@@ -10,6 +10,7 @@
     <DockerServiceName>reservation-manager</DockerServiceName>
   </PropertyGroup>
   <ItemGroup>
+    <None Include="docker-compose-github-test.yml" />
     <None Include="docker-compose.yml" />
     <None Include=".dockerignore" />
   </ItemGroup>

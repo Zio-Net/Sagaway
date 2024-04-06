@@ -60,6 +60,52 @@ if (app.Environment.IsDevelopment())
 //enable callback router
 app.UseSagawayCallbackRouter("reservation-response-queue");
 
+app.MapGet("/reservation/{reservationId}", async ([FromRoute] Guid reservationId, [FromServices] DaprClient daprClient,
+    [FromServices] ILogger<Program> logger) =>
+    {
+        logger.LogInformation("Received request to get reservation details for reservation: {ReservationId}", reservationId);
+
+        try
+        {
+            var reservationInfo = await daprClient.InvokeMethodAsync<BookingInfo>(HttpMethod.Get, "booking-management",
+                $"/reservations/{reservationId}");
+
+            return Results.Ok(reservationInfo);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error getting reservation details for reservation: {ReservationId}", reservationId);
+            return Results.Problem("An error occurred while getting reservation details. Please try again later.");
+        }
+    })
+    .WithName("GetReservation")
+    .WithOpenApi();
+
+
+app.MapGet("/reservations/{customerName}", async (
+        [FromRoute] string customerName,
+        [FromServices] DaprClient daprClient,
+        [FromServices] ILogger<Program> logger) =>
+    {
+        logger.LogInformation("Received request to get reservations for customer: {CustomerName}", customerName);
+
+        try
+        {
+            var customerReservation = 
+                await daprClient.InvokeMethodAsync<IList<BookingInfo>>(HttpMethod.Get, "booking-management",
+                $"/customer-reservations?customerName={customerName}");
+
+            return Results.Ok(customerReservation);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error getting reservations for customer: {CustomerName}", customerName);
+            return Results.Problem("An error occurred while getting reservations. Please try again later.");
+        }
+    })
+    .WithName("GetReservations")
+    .WithOpenApi();
+
 app.MapPost("/reserve", async (
         [FromQuery] Guid? reservationId, 
         [FromQuery] string customerName, 

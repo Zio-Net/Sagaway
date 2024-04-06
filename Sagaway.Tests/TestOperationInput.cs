@@ -12,10 +12,12 @@ public partial class Tests
         public int NumberOfFailures { get; init; } = 0;
         public Dictionary<int, int> CallDelays { get; init; } = new Dictionary<int, int>();
         public int RetryDelay { get; init; } = 0;
+        public bool UseExponentialBackoff { get; init; } = false;
         public int RevertMaxRetries { get; init; } = 0;
         public int RevertNumberOfFailures { get; init; } = 0;
         public Dictionary<int, int> RevertCallDelay { get; init; } = new Dictionary<int, int>();
         public int RevertRetryDelay { get; init; } = 0;
+        public bool UseRevertExponentialBackoff { get; init; } = false;
         public Dictionary<int, bool> ValidateFunctionResults { get; init; } = new Dictionary<int, bool>();
         public Dictionary<int, bool> RevertValidateFunctionResults { get; init; } = new Dictionary<int, bool>();
         public int CallCounter { get; set; } = 0;
@@ -32,6 +34,7 @@ public partial class Tests
         public bool HasRevertValidate => (RevertValidateFunctionResults?.Keys?.Count ?? 0) > 0;
         public bool HasReportFail { get; internal set; } = false;
         public bool HasFailFast { get; internal set; } = false;
+        
 
         public override string ToString()
         {

@@ -12,3 +12,16 @@ spec:
     value: ""
   - name: actorStateStore
     value: "true"
+  - name: queryIndexes
+    value: |
+      [
+        {
+          "name": "customerNameIndex",
+          "indexes": [
+            {
+              "key": "customerName",
+              "type": "TEXT"
+            }
+          ]
+        }
+      ]

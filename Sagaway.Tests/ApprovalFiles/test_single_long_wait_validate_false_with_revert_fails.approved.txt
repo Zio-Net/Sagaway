@@ -42,8 +42,10 @@ Run Log:
 [*time*][Op1]: The state is unknown in the reminder, retry action
 [*time*][Op1]: Failed. Retries exhausted.
 [*time*][Op1]: Start Executing Revert 
+[*time*][Op1]: Registering reminder Op1:Retry for Revert Op1 with interval 00:00:02
 [*time*][Op1]: Retry Revert operation. Retry count: 1
 [*time*][Op1]: Start Executing Revert 
+[*time*][Op1]: Registering reminder Op1:Retry for Revert Op1 with interval 00:00:02
 [*time*][Op1]: Revert Failed. Retries exhausted.
 
 
