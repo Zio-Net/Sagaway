@@ -32,6 +32,9 @@ jobs:
       run: |
             rm ./dapr/components/dapr-secretstore.json
             echo "{\"SignalRConnectionString\": \"${{ secrets.SAGAWAY_SIGNALR_CONNECTION_STRING }}\"}" > ./dapr/components/dapr-secretstore.json
+            echo "{\"SignalRConnectionString\": \"${{ secrets.SAGAWAY_SIGNALR_CONNECTION_STRING }}\"}"
+            ls -l ./dapr/components
+            cat ./dapr/components/dapr-secretstore.json
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
