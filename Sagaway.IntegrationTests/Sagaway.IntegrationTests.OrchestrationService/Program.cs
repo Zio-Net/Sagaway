@@ -80,6 +80,9 @@ app.MapHealthChecks("/healthz");
 //enable callback router
 app.UseSagawayCallbackRouter("test-response-queue");
 
+app.MapPost("/demo", () => Task.FromResult(Results.Ok("Yofee"))).WithName("demo")
+.WithOpenApi();
+
 app.MapPost("/run-test", async (
         [FromServices] IActorProxyFactory actorProxyFactory,
         [FromServices] ILogger < Program > logger,
@@ -139,10 +142,14 @@ app.MapPost("/negotiate", async (
         { "url", negotiateResponse.Url! },
         { "accessToken", negotiateResponse.AccessToken! }
     });
-});
+})
+.WithName("negotiate")
+.WithOpenApi();
 
 app.UseRouting();
+
 app.UseCors("AllowAll");
+
 app.MapControllers();
 app.MapSubscribeHandler();
 
