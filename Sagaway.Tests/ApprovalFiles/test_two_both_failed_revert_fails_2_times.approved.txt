@@ -60,10 +60,13 @@ Run Log:
 [*time*][Op1]: Start Executing 
 [*time*][Op1]: Failed. Retries exhausted.
 [*time*][Op1]: Start Executing Revert 
+[*time*][Op1]: Registering reminder Op1:Retry for Revert Op1 with interval 00:00:01
 [*time*][Op1]: Retry Revert operation. Retry count: 1
 [*time*][Op1]: Start Executing Revert 
+[*time*][Op1]: Registering reminder Op1:Retry for Revert Op1 with interval 00:00:01
 [*time*][Op1]: Retry Revert operation. Retry count: 2
 [*time*][Op1]: Start Executing Revert 
+[*time*][Op1]: Registering reminder Op1:Retry for Revert Op1 with interval 00:00:01
 [*time*][Op1]: Revert Success
 [*time*][Op2]: Saga test is not reverting not started operation Op2.
 

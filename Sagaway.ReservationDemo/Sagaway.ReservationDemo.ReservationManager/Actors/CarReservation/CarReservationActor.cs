@@ -35,7 +35,7 @@ public class CarReservationActor : DaprActorHost<CarReservationActorOperations>,
             .WithOperation(CarReservationActorOperations.CarBooking)
             .WithDoOperation(BookCarReservationAsync)
             .WithMaxRetries(3)
-            .WithRetryIntervalTime(TimeSpan.FromMinutes(2))
+            .WithRetryIntervalTime(TimeSpan.FromMinutes(2)) //an example of a fixed interval
             .WithValidateFunction(ValidateBookCarReservationAsync)
             .WithUndoOperation(RevertBookCarReservationAsync)
             .WithMaxRetries(3)
@@ -45,24 +45,23 @@ public class CarReservationActor : DaprActorHost<CarReservationActorOperations>,
             .WithOperation(CarReservationActorOperations.InventoryReserving)
             .WithDoOperation(ReserveInventoryAsync)
             .WithMaxRetries(3)
-            .WithRetryIntervalTime(TimeSpan.FromMinutes(2))
+            .WithRetryIntervalTime(ExponentialBackoff.InMinutes()) //An example of an exponential backoff in minutes
             .WithValidateFunction(ValidateReserveInventoryAsync)
             .WithUndoOperation(RevertReserveInventoryAsync)
             .WithMaxRetries(3)
-            .WithUndoRetryInterval(TimeSpan.FromMinutes(10))
+            .WithUndoRetryInterval(ExponentialBackoff.InMinutes())
             .WithValidateFunction(ValidateRevertReserveInventoryAsync)
 
             .WithOperation(CarReservationActorOperations.Billing)
             .WithDoOperation(BillReservationAsync)
             .WithMaxRetries(3)
-            .WithRetryIntervalTime(TimeSpan.FromSeconds(10))
+            .WithRetryIntervalTime(ExponentialBackoff.InSeconds()) //An example of an exponential backoff in seconds
             .WithValidateFunction(ValidateBillReservationAsync)
             .WithPreconditions(CarReservationActorOperations.CarBooking | CarReservationActorOperations.InventoryReserving)
             .WithUndoOperation(RevertBillReservationAsync)
             .WithMaxRetries(3)
-            .WithUndoRetryInterval(TimeSpan.FromSeconds(10))
+            .WithUndoRetryInterval(ExponentialBackoff.InSeconds())
             .WithValidateFunction(ValidateRevertBillReservationAsync)
-
 
             .Build();
 

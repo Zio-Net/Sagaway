@@ -45,6 +45,17 @@ public partial class Saga<TEOperations> where TEOperations : Enum
                 }
 
                 /// <summary>
+                /// Set the retry pause time as a function to provide a dynamic interval
+                /// </summary>
+                /// <param name="retryIterationFunc">The function that returns the retry interval</param>
+                /// <returns>The fluent interface</returns>
+                public UndoActionBuilder WithUndoRetryInterval(Func<int, TimeSpan> retryIterationFunc)
+                {
+                    _sagaDoOperationBuilder._sagaOperation.RevertRetryIntervalFunction = retryIterationFunc;
+                    return this;
+                }
+
+                /// <summary>
                 /// The function to check if the undo operation succeeded
                 /// </summary>
                 /// <param name="undoValidateAsync">Should return true if the undo operation succeeded. Used on timeout cases</param>

@@ -35,6 +35,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+Dictionary<string, string> jsonMetadata = new() { { "contentType", "application/json" } };
+
 app.MapPost("/booking-queue", async (
         [FromBody] CarReservationRequest request,
         [FromHeader(Name = "x-sagaway-message-dispatch-time")] string messageDispatchTimeHeader,
@@ -113,7 +115,7 @@ app.MapPost("/booking-queue", async (
             try
             {
                 var result = await daprClient.TrySaveStateAsync("statestore", reservationId, 
-                    reservationState, etag, stateOptions);
+                    reservationState, etag, stateOptions, jsonMetadata);
 
                 logger.LogInformation("Car class {CarClass} {result} reserved for {CustomerName}", 
                     request.CarClass, result ? "has" : "failed to", request.CustomerName);
@@ -142,9 +144,9 @@ app.MapPost("/booking-queue", async (
             // but only after the Saga is done, support for compensation
             var metadata = new Dictionary<string, string>
             {
-                { "ttlInSeconds", "300" }
+                { "ttlInSeconds", "300" },
+                { "contentType", "application/json" }
             };
-
 
             try
             {
@@ -176,7 +178,7 @@ app.MapGet("/reservations/{reservationId}", async ([FromRoute] Guid reservationI
 
         try
         {
-            var reservationState = await daprClient.GetStateAsync<ReservationState>("statestore", reservationId.ToString());
+            var reservationState = await daprClient.GetStateAsync<ReservationState>("statestore", reservationId.ToString(), metadata: jsonMetadata);
 
             if (reservationState == null)
             {
@@ -194,6 +196,43 @@ app.MapGet("/reservations/{reservationId}", async ([FromRoute] Guid reservationI
     })
     .WithName("GetReservationStatus")
     .WithOpenApi(); // This adds the endpoint to OpenAPI/Swagger documentation if enabled
+
+app.MapGet("/customer-reservations", async ([FromQuery] string customerName, [FromServices] DaprClient daprClient, [FromServices] ILogger<Program> logger) =>
+    {
+        logger.LogInformation($"Fetching reservations for customer: {customerName}");
+
+        try
+        {
+            var query = $$"""
+            {
+                "filter": {
+                    "EQ": { "customerName": "{{customerName}}" }
+                }
+            }
+            """;
+
+            var metadata = new Dictionary<string, string>
+            {
+                { "contentType", "application/json" },
+                { "queryIndexName", "customerNameIndex" }
+            };
+
+            var reservations = await daprClient.QueryStateAsync<ReservationState>("statestore", query, metadata);
+
+            var customerReservations = reservations.Results;
+
+            return Results.Ok(customerReservations.Select(r => r.Data).ToArray());
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, $"Error fetching reservations for customer: {customerName}");
+            return Results.Problem("An error occurred while fetching the reservations. Please try again later.");
+        }
+    })
+    .WithName("GetCustomerReservations")
+    .WithOpenApi();
+
+
 
 app.MapHealthChecks("/healthz");
 app.UseSagawayContextPropagator();

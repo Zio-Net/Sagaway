@@ -6,6 +6,7 @@ namespace Sagaway
     {
         internal class SagaDoAction : SagaAction
         {
+            // ReSharper disable once ConvertToPrimaryConstructor
             public SagaDoAction(Saga<TEOperations> saga, SagaOperation sagaOperation, ILogger logger) 
                 : base(saga, sagaOperation, logger)
             {
@@ -13,7 +14,8 @@ namespace Sagaway
 
             protected override bool IsRevert => false;
 
-            protected override TimeSpan RetryInterval => SagaOperation.RetryInterval;
+            protected override TimeSpan GetRetryInterval(int retryIteration) =>
+                SagaOperation.RetryIntervalFunction?.Invoke(retryIteration) ?? SagaOperation.RetryInterval;
 
             protected override int MaxRetries => SagaOperation.MaxRetries;
 

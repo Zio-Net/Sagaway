@@ -26,10 +26,10 @@ namespace Sagaway
 
             protected abstract bool IsRevert { get; }
 
-            protected abstract TimeSpan RetryInterval { get; }
+            protected abstract TimeSpan GetRetryInterval(int retryIteration);
 
             protected abstract Task ExecuteActionAsync();
-            
+
             protected abstract int MaxRetries { get; }
 
             protected abstract Task OnActionFailureAsync();
@@ -57,27 +57,38 @@ namespace Sagaway
                 _isReminderOn = json["isReminderOn"]?.GetValue<bool>() ?? throw new Exception("Error when loading state, missing isReminderOn entry");
                 _retryCount = json["retryCount"]?.GetValue<int>() ?? throw new Exception("Error when loading state, missing retryCount entry");
             }
-            private async Task ResetReminderAsync()
+
+            private async Task<TimeSpan> ResetReminderAsync()
             {
+                var retryInterval = GetRetryInterval(_retryCount);
+                
+                if (retryInterval == default || MaxRetries == 0)
+                {
+                    return default;
+                }
+
                 await CancelReminderIfOnAsync();
-                LogAndRecord($"Registering reminder {ReminderName} for {RevertText}{_sagaOperation.Operation} with interval {RetryInterval}");
-                await _saga._sagaSupportOperations.SetReminderAsync(ReminderName, RetryInterval);
+
+                LogAndRecord($"Registering reminder {ReminderName} for {RevertText}{_sagaOperation.Operation} with interval {retryInterval}");
+                await _saga._sagaSupportOperations.SetReminderAsync(ReminderName, retryInterval);
                 _isReminderOn = true;
+
+                return retryInterval;
             }
+
             public async Task ExecuteAsync()
             {
                 LogAndRecord($"Start Executing {RevertText}");
+                TimeSpan retryInterval = default;
+
                 try
                 {
-                    if (RetryInterval != default && MaxRetries != 0)
-                    {
-                        await ResetReminderAsync();
-                    }
+                    retryInterval = await ResetReminderAsync();
                     await ExecuteActionAsync(); 
                 }
                 catch (Exception ex)
                 {
-                    LogAndRecord($"Error when calling {RevertText}. Error: {ex.Message}. Retry in {RetryInterval} seconds");
+                    LogAndRecord($"Error when calling {RevertText}. Error: {ex.Message}. Retry in {retryInterval} seconds");
 
                     if (!_isReminderOn)
                     {

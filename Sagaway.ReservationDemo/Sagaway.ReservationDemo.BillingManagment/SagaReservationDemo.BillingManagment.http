@@ -1,6 +1,0 @@
-@Sagaway.ReservationDemo.BillingManagment_HostAddress = http://localhost:5054
-
-GET {{Sagaway.ReservationDemo.BillingManagment_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
