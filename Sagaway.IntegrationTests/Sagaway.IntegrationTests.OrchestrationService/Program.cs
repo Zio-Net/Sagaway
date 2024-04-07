@@ -141,11 +141,11 @@ app.MapPost("/negotiate", async (
     });
 });
 
+app.UseRouting();
 app.UseCors("AllowAll");
-
 app.MapControllers();
 app.MapSubscribeHandler();
-app.UseRouting();
+
 app.MapActorsHandlers();
 
 app.Run();
