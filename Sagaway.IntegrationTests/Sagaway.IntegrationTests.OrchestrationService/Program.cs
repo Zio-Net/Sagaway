@@ -78,7 +78,7 @@ if (app.Environment.IsDevelopment())
 app.MapHealthChecks("/healthz");
 
 //enable callback router
-app.UseSagawayCallbackRouter("test-response-queue");
+//app.UseSagawayCallbackRouter("test-response-queue");
 
 app.MapPost("/demo", () => Task.FromResult(Results.Ok("Yofee"))).WithName("demo")
 .WithOpenApi();
