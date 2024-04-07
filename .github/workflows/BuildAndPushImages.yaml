@@ -10,7 +10,7 @@ jobs:
         matrix:
           include:
               # sagaway demo billing manager
-            - dockerfile: ./Sagaway.ReservationDemo/Sagaway.ReservationDemo.BillingManagment/Dockerfile
+            - dockerfile: ./Sagaway.ReservationDemo/Sagaway.ReservationDemo.BillingManagement/Dockerfile
               image: sagaway.demo.billing.manager
               # sagaway demo booking management
             - dockerfile: ./Sagaway.ReservationDemo/Sagaway.ReservationDemo.BookingManagement/Dockerfile
