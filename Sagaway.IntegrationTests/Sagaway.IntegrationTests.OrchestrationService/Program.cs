@@ -51,15 +51,15 @@ builder.Services.AddActors(options =>
     };
 });
 
-//builder.Services.AddCors(options =>
-//{
-//    options.AddPolicy("AllowAll", policy =>
-//    {
-//        policy.AllowAnyOrigin()
-//            .AllowAnyHeader()
-//            .AllowAnyMethod(); // This includes OPTIONS
-//    });
-//});
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+            .AllowAnyHeader()
+            .AllowAnyMethod(); // This includes OPTIONS
+    });
+});
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -75,11 +75,10 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-
+app.MapHealthChecks("/healthz");
 
 //enable callback router
 app.UseSagawayCallbackRouter("test-response-queue");
-
 
 app.MapPost("/run-test", async (
         [FromServices] IActorProxyFactory actorProxyFactory,
@@ -140,17 +139,13 @@ app.MapPost("/negotiate", async (
         { "url", negotiateResponse.Url! },
         { "accessToken", negotiateResponse.AccessToken! }
     });
-})
-.WithName("negotiate")
-.WithOpenApi();
+});
 
-
-app.MapHealthChecks("/healthz");
-//app.UseCors("AllowAll");
+app.UseCors("AllowAll");
 
 app.MapControllers();
 app.MapSubscribeHandler();
 app.UseRouting();
-//app.MapActorsHandlers();
+app.MapActorsHandlers();
 
 app.Run();
