@@ -51,15 +51,15 @@ builder.Services.AddActors(options =>
     };
 });
 
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowAll", policy =>
-    {
-        policy.AllowAnyOrigin()
-            .AllowAnyHeader()
-            .AllowAnyMethod(); // This includes OPTIONS
-    });
-});
+//builder.Services.AddCors(options =>
+//{
+//    options.AddPolicy("AllowAll", policy =>
+//    {
+//        policy.AllowAnyOrigin()
+//            .AllowAnyHeader()
+//            .AllowAnyMethod(); // This includes OPTIONS
+//    });
+//});
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -75,13 +75,11 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.MapHealthChecks("/healthz");
+
 
 //enable callback router
-//app.UseSagawayCallbackRouter("test-response-queue");
+app.UseSagawayCallbackRouter("test-response-queue");
 
-app.MapPost("/demo", () => Task.FromResult(Results.Ok("Yofee"))).WithName("demo")
-.WithOpenApi();
 
 app.MapPost("/run-test", async (
         [FromServices] IActorProxyFactory actorProxyFactory,
@@ -146,13 +144,13 @@ app.MapPost("/negotiate", async (
 .WithName("negotiate")
 .WithOpenApi();
 
-app.UseRouting();
 
-app.UseCors("AllowAll");
+app.MapHealthChecks("/healthz");
+//app.UseCors("AllowAll");
 
 app.MapControllers();
 app.MapSubscribeHandler();
-
-app.MapActorsHandlers();
+app.UseRouting();
+//app.MapActorsHandlers();
 
 app.Run();
