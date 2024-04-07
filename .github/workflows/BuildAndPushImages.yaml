@@ -45,7 +45,7 @@ jobs:
             password: ${{secrets.ACR_PASSWORD}}
     
         - name: Build Docker image
-          run: docker build -f ${{ matrix.dockerfile }} -t trialkitregistery.azurecr.io/${{ matrix.image }}:${{ github.sha }}  .
+          run: docker build -f ${{ matrix.dockerfile }} -t trialkitregistery.azurecr.io/${{ matrix.image }}:latest  .
     
         - name: Push Docker image to Azure Container Registry
-          run: docker push trialkitregistery.azurecr.io/${{ matrix.image }}:${{ github.sha }}
+          run: docker push trialkitregistery.azurecr.io/${{ matrix.image }}:latest
