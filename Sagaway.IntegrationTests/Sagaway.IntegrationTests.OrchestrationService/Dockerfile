@@ -3,23 +3,26 @@
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 USER app
 WORKDIR /app
-EXPOSE 80
-EXPOSE 443
+EXPOSE 8080
+EXPOSE 8081
 
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationManager/Sagaway.ReservationDemo.ReservationManager.csproj", "Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationManager/"]
-RUN dotnet restore "./Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationManager/./Sagaway.ReservationDemo.ReservationManager.csproj"
+COPY ["Sagaway.IntegrationTests/Sagaway.IntegrationTests.OrchestrationService/Sagaway.IntegrationTests.OrchestrationService.csproj", "Sagaway.IntegrationTests/Sagaway.IntegrationTests.OrchestrationService/"]
+COPY ["Sagaway.Hosts.DaprActorHost/Sagaway.Hosts.DaprActorHost.csproj", "Sagaway.Hosts.DaprActorHost/"]
+COPY ["Sagaway.Callback.Router/Sagaway.Callback.Router.csproj", "Sagaway.Callback.Router/"]
+COPY ["Sagaway/Sagaway.csproj", "Sagaway/"]
+RUN dotnet restore "./Sagaway.IntegrationTests/Sagaway.IntegrationTests.OrchestrationService/Sagaway.IntegrationTests.OrchestrationService.csproj"
 COPY . .
-WORKDIR "/src/Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationManager"
-RUN dotnet build "./Sagaway.ReservationDemo.ReservationManager.csproj" -c $BUILD_CONFIGURATION -o /app/build
+WORKDIR "/src/Sagaway.IntegrationTests/Sagaway.IntegrationTests.OrchestrationService"
+RUN dotnet build "./Sagaway.IntegrationTests.OrchestrationService.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./Sagaway.ReservationDemo.ReservationManager.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "./Sagaway.IntegrationTests.OrchestrationService.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "Sagaway.ReservationDemo.ReservationManager.dll"]
+ENTRYPOINT ["dotnet", "Sagaway.IntegrationTests.OrchestrationService.dll"]
