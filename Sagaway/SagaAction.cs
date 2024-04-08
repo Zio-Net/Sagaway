@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using System.Text.Json.Nodes;
+using Sagaway.Telemetry;
 
 namespace Sagaway
 {
@@ -13,6 +14,7 @@ namespace Sagaway
             bool _isReminderOn;
             private int _retryCount;
 
+            // ReSharper disable once ConvertToPrimaryConstructor
             protected SagaAction(Saga<TEOperations> saga, SagaOperation sagaOperation, ILogger logger)
             {
                 _saga = saga;
@@ -38,7 +40,9 @@ namespace Sagaway
             
             private string RevertText => IsRevert ? "Revert " : string.Empty;
 
-            private string ReminderName => $"{_sagaOperation.Operation}:Retry";
+            private string ReminderName => $"{RevertText.Trim()}{_sagaOperation.Operation}:Retry";
+
+            private string OperationName => $"{RevertText}{_sagaOperation.Operation}";
             
             protected void LogAndRecord(string message)
             {
@@ -69,7 +73,7 @@ namespace Sagaway
 
                 await CancelReminderIfOnAsync();
 
-                LogAndRecord($"Registering reminder {ReminderName} for {RevertText}{_sagaOperation.Operation} with interval {retryInterval}");
+                LogAndRecord($"Registering reminder {ReminderName} for {OperationName} with interval {retryInterval}");
                 await _saga._sagaSupportOperations.SetReminderAsync(ReminderName, retryInterval);
                 _isReminderOn = true;
 
@@ -78,7 +82,9 @@ namespace Sagaway
 
             public async Task ExecuteAsync()
             {
-                LogAndRecord($"Start Executing {RevertText}");
+                
+
+                LogAndRecord($"Start Executing {OperationName}");
                 TimeSpan retryInterval = default;
 
                 try
@@ -88,12 +94,13 @@ namespace Sagaway
                 }
                 catch (Exception ex)
                 {
-                    LogAndRecord($"Error when calling {RevertText}. Error: {ex.Message}. Retry in {retryInterval} seconds");
+                    LogAndRecord($"Error when calling {OperationName}. Error: {ex.Message}. Retry in {retryInterval} seconds");
+                    _saga.RecordException(ex, $"Error when calling {OperationName}");
 
                     if (!_isReminderOn)
                     {
                         //no reminder and we failed. Take failure action right away
-                        LogAndRecord($"No reminder set for {RevertText}{_sagaOperation.Operation}. Taking failure action");
+                        LogAndRecord($"No reminder set for {OperationName}. Taking failure action");
                         await InformFailureOperationAsync(false);
                     }
                 }
@@ -103,7 +110,7 @@ namespace Sagaway
             {
                 if (_isReminderOn)
                 {
-                    _logger.LogInformation($"Canceling old reminder {RevertText}{ReminderName} for {_sagaOperation.Operation}");
+                    _logger.LogInformation($"Canceling old reminder {ReminderName} for {OperationName}");
                     _isReminderOn = false;
                     await _saga._sagaSupportOperations.CancelReminderAsync(ReminderName);
                 }
@@ -111,35 +118,50 @@ namespace Sagaway
             
             public async Task InformFailureOperationAsync(bool failFast)
             {
+                if (Succeeded || Failed)
+                {
+                    return;
+                }
+
                 if (failFast)
                 {
-                    _logger.LogWarning($"The Operation {RevertText}Failed fast, reverting Saga");
+                    _logger.LogWarning($"The Operation {OperationName} Failed fast, reverting Saga");
                 }
                 else
                 {
-                    _logger.LogInformation($"Operation {RevertText}Failed");
-
+                    _logger.LogInformation($"Operation {OperationName} Failed");
                 }
 
                 _retryCount++;
                 if (!failFast && _retryCount <= MaxRetries)
                 {
-                    LogAndRecord($"Retry {RevertText}operation. Retry count: {_retryCount}");
+                    LogAndRecord($"Retry {OperationName}. Retry count: {_retryCount}");
+                    _saga.RecordRetryAttemptTelemetry(_sagaOperation.Operation, _retryCount, IsRevert);
+
                     await ExecuteAsync();
                     return;
                 }
+
                 Failed = true;
-                LogAndRecord(failFast ? $"{RevertText}Failed Fast." : $"{RevertText}Failed. Retries exhausted.");
+                LogAndRecord(failFast ? $"{OperationName} Failed Fast." : $"{OperationName} Failed. Retries exhausted.");
+                _saga.RecordEndOperationTelemetry(_sagaOperation.Operation, 
+                    IsRevert ? OperationOutcome.RevertFailed : OperationOutcome.Failed, IsRevert);
 
                 await OnActionFailureAsync();
             }
 
             public async Task InformSuccessOperationAsync()
             {
-                LogAndRecord($"{RevertText}Success");
+                if (Succeeded || Failed)
+                {
+                    return;
+                }
+
+                LogAndRecord($"{OperationName} Success");
                 await CancelReminderIfOnAsync();
                 Succeeded = true;
                 
+                _saga.RecordEndOperationTelemetry(_sagaOperation.Operation, IsRevert ? OperationOutcome.Reverted : OperationOutcome.Succeeded, IsRevert);
                 _saga.CheckForCompletion();
             }
 
@@ -150,7 +172,7 @@ namespace Sagaway
 
                 LogAndRecord("Wake by a reminder");
 
-                if (Succeeded)
+                if (Succeeded || Failed)
                 {
                     return;
                 }
@@ -169,10 +191,10 @@ namespace Sagaway
                 }
                 catch (Exception ex)
                 {
-                    LogAndRecord($"Error when calling {RevertText}{_sagaOperation.Operation} validate. Error: {ex.Message}.");
+                    LogAndRecord($"Error when calling {OperationName} validate. Error: {ex.Message}.");
                 }
                 //the state is unknown, retry action
-                LogAndRecord($"The state is unknown in the reminder, retry {RevertText}action");
+                LogAndRecord($"The state is unknown in the reminder, retry {OperationName} action");
                 await InformFailureOperationAsync(false);
             }
             

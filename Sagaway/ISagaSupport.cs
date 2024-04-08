@@ -1,4 +1,5 @@
 ﻿using System.Text.Json.Nodes;
+using Sagaway.Telemetry;
 
 namespace Sagaway
 {
@@ -44,5 +45,13 @@ namespace Sagaway
         /// </summary>
         /// <returns>A lock implementor</returns>
         ILockWrapper CreateLock();
+
+
+        private static readonly ITelemetryAdapter NullTelemetryAdapterInstance = new NullTelemetryAdapter();
+
+        /// <summary>
+        /// Provide the telemetry adapter for the saga
+        /// </summary>
+        ITelemetryAdapter TelemetryAdapter  => NullTelemetryAdapterInstance;
     }
 }

@@ -27,12 +27,20 @@ HasRevertValidate: False
 
 OnFailCallback: Fail.
 Run Log:
-[*time*][Op1]: Start Executing 
-[*time*][Op1]: Error when calling . Error: Throwing exception on call 1. Retry in 00:00:00 seconds
+[*time*][Op1]: Start Executing Op1
+[*time*][Op1]: Error when calling Op1. Error: Throwing exception on call 1. Retry in 00:00:00 seconds
 [*time*][Op1]: No reminder set for Op1. Taking failure action
-[*time*][Op1]: Failed. Retries exhausted.
-[*time*][Op1]: Start Executing Revert 
+[*time*][Op1]: Op1 Failed. Retries exhausted.
+[*time*][Op1]: Start Executing Revert Op1
 [*time*][Op1]: No undo operation for Op1. Marking as reverted
 
 
 OnSagaCompleted: Id: test Status: Reverted
+
+*** Telemetry ***
+1: StartSaga - SagaID: test, Type: SagaOperations
+2: StartOperation - SagaID: test, Operation: Op1
+3: Exception - SagaID: test, Context: Error when calling Op1, Exception: Throwing exception on call 1
+4: EndOperation - SagaID: test, Operation: Op1, Outcome: Failed
+5: CustomEvent - SagaID: test, Event: SagaFailure, Properties: None
+6: EndSaga - SagaID: test, Outcome: Reverted

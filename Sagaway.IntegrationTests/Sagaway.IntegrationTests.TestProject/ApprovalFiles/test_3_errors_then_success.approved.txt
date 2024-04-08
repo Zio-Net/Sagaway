@@ -1,15 +1,15 @@
 ﻿Test Name: test_3_errors_then_success
 Result: True
 Saga Log:
-[*time*][CallA]: Start Executing 
+[*time*][CallA]: Start Executing CallA
 [*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:10
-[*time*][CallA]: Retry operation. Retry count: 1
-[*time*][CallA]: Start Executing 
+[*time*][CallA]: Retry CallA. Retry count: 1
+[*time*][CallA]: Start Executing CallA
 [*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:10
-[*time*][CallA]: Retry operation. Retry count: 2
-[*time*][CallA]: Start Executing 
+[*time*][CallA]: Retry CallA. Retry count: 2
+[*time*][CallA]: Start Executing CallA
 [*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:10
-[*time*][CallA]: Retry operation. Retry count: 3
-[*time*][CallA]: Start Executing 
+[*time*][CallA]: Retry CallA. Retry count: 3
+[*time*][CallA]: Start Executing CallA
 [*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:10
-[*time*][CallA]: Success
+[*time*][CallA]: CallA Success

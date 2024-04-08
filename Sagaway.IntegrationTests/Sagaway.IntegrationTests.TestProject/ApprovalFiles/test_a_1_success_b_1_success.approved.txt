@@ -1,9 +1,9 @@
 ﻿Test Name: test_a_1_success_b_1_success
 Result: True
 Saga Log:
-[*time*][CallA]: Start Executing 
+[*time*][CallA]: Start Executing CallA
 [*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:10
-[*time*][CallB]: Start Executing 
+[*time*][CallB]: Start Executing CallB
 [*time*][CallB]: Registering reminder CallB:Retry for CallB with interval 00:00:10
-[*time*][CallA]: Success
-[*time*][CallB]: Success
+[*time*][CallA]: CallA Success
+[*time*][CallB]: CallB Success

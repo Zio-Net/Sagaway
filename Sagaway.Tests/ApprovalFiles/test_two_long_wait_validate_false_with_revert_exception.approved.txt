@@ -62,30 +62,46 @@ Calling revert for Op2: Success False
 Calling revert for Op2: Success False
 OnFailedRevertedCallback: FailedReverted.
 Run Log:
-[*time*][Op1]: Start Executing 
-[*time*][Op1]: Success
-[*time*][Op2]: Start Executing 
+[*time*][Op1]: Start Executing Op1
+[*time*][Op1]: Op1 Success
+[*time*][Op2]: Start Executing Op2
 [*time*][Op2]: Registering reminder Op2:Retry for Op2 with interval 00:00:02
 [*time*][Op2]: Wake by a reminder
-[*time*][Op2]: The state is unknown in the reminder, retry action
-[*time*][Op2]: Retry operation. Retry count: 1
-[*time*][Op2]: Start Executing 
+[*time*][Op2]: The state is unknown in the reminder, retry Op2 action
+[*time*][Op2]: Retry Op2. Retry count: 1
+[*time*][Op2]: Start Executing Op2
 [*time*][Op2]: Registering reminder Op2:Retry for Op2 with interval 00:00:02
 [*time*][Op2]: Wake by a reminder
-[*time*][Op2]: The state is unknown in the reminder, retry action
-[*time*][Op2]: Failed. Retries exhausted.
-[*time*][Op1]: Start Executing Revert 
+[*time*][Op2]: The state is unknown in the reminder, retry Op2 action
+[*time*][Op2]: Op2 Failed. Retries exhausted.
+[*time*][Op1]: Start Executing Revert Op1
 [*time*][Op1]: No undo operation for Op1. Marking as reverted
-[*time*][Op2]: Start Executing Revert 
-[*time*][Op2]: Registering reminder Op2:Retry for Revert Op2 with interval 00:00:02
-[*time*][Op2]: Retry Revert operation. Retry count: 1
-[*time*][Op2]: Start Executing Revert 
-[*time*][Op2]: Registering reminder Op2:Retry for Revert Op2 with interval 00:00:02
-[*time*][Op2]: Retry Revert operation. Retry count: 2
-[*time*][Op2]: Start Executing Revert 
-[*time*][Op2]: Registering reminder Op2:Retry for Revert Op2 with interval 00:00:02
-[*time*][Op2]: Revert Failed. Retries exhausted.
+[*time*][Op2]: Start Executing Revert Op2
+[*time*][Op2]: Registering reminder RevertOp2:Retry for Revert Op2 with interval 00:00:02
+[*time*][Op2]: Retry Revert Op2. Retry count: 1
+[*time*][Op2]: Start Executing Revert Op2
+[*time*][Op2]: Registering reminder RevertOp2:Retry for Revert Op2 with interval 00:00:02
+[*time*][Op2]: Retry Revert Op2. Retry count: 2
+[*time*][Op2]: Start Executing Revert Op2
+[*time*][Op2]: Registering reminder RevertOp2:Retry for Revert Op2 with interval 00:00:02
+[*time*][Op2]: Revert Op2 Failed. Retries exhausted.
 
 
 OnSagaCompleted: Id: test Status: RevertFailed
 Calling Op2: Success False
+
+*** Telemetry ***
+1: StartSaga - SagaID: test, Type: SagaOperations
+2: StartOperation - SagaID: test, Operation: Op1
+3: EndOperation - SagaID: test, Operation: Op1, Outcome: Succeeded
+4: StartOperation - SagaID: test, Operation: Op2
+5: RetryAttempt - SagaID: test, Operation: Op2, Attempt: 1
+6: StartOperation - SagaID: test, Operation: Op2
+7: EndOperation - SagaID: test, Operation: Op2, Outcome: Failed
+8: StartOperation - SagaID: test, Operation: RevertOp2
+9: RetryAttempt - SagaID: test, Operation: RevertOp2, Attempt: 1
+10: StartOperation - SagaID: test, Operation: RevertOp2
+11: RetryAttempt - SagaID: test, Operation: RevertOp2, Attempt: 2
+12: StartOperation - SagaID: test, Operation: RevertOp2
+13: EndOperation - SagaID: test, Operation: RevertOp2, Outcome: RevertFailed
+14: EndSaga - SagaID: test, Outcome: PartiallyReverted

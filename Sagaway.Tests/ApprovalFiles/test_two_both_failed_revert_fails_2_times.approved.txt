@@ -57,18 +57,30 @@ Calling revert for Op1: Success False
 Calling revert for Op1: Success True
 OnRevertedCallback: Reverted.
 Run Log:
-[*time*][Op1]: Start Executing 
-[*time*][Op1]: Failed. Retries exhausted.
-[*time*][Op1]: Start Executing Revert 
-[*time*][Op1]: Registering reminder Op1:Retry for Revert Op1 with interval 00:00:01
-[*time*][Op1]: Retry Revert operation. Retry count: 1
-[*time*][Op1]: Start Executing Revert 
-[*time*][Op1]: Registering reminder Op1:Retry for Revert Op1 with interval 00:00:01
-[*time*][Op1]: Retry Revert operation. Retry count: 2
-[*time*][Op1]: Start Executing Revert 
-[*time*][Op1]: Registering reminder Op1:Retry for Revert Op1 with interval 00:00:01
-[*time*][Op1]: Revert Success
+[*time*][Op1]: Start Executing Op1
+[*time*][Op1]: Op1 Failed. Retries exhausted.
+[*time*][Op1]: Start Executing Revert Op1
+[*time*][Op1]: Registering reminder RevertOp1:Retry for Revert Op1 with interval 00:00:01
+[*time*][Op1]: Retry Revert Op1. Retry count: 1
+[*time*][Op1]: Start Executing Revert Op1
+[*time*][Op1]: Registering reminder RevertOp1:Retry for Revert Op1 with interval 00:00:01
+[*time*][Op1]: Retry Revert Op1. Retry count: 2
+[*time*][Op1]: Start Executing Revert Op1
+[*time*][Op1]: Registering reminder RevertOp1:Retry for Revert Op1 with interval 00:00:01
+[*time*][Op1]: Revert Op1 Success
 [*time*][Op2]: Saga test is not reverting not started operation Op2.
 
 
 OnSagaCompleted: Id: test Status: Reverted
+
+*** Telemetry ***
+1: StartSaga - SagaID: test, Type: SagaOperations
+2: StartOperation - SagaID: test, Operation: Op1
+3: EndOperation - SagaID: test, Operation: Op1, Outcome: Failed
+4: StartOperation - SagaID: test, Operation: RevertOp1
+5: RetryAttempt - SagaID: test, Operation: RevertOp1, Attempt: 1
+6: StartOperation - SagaID: test, Operation: RevertOp1
+7: RetryAttempt - SagaID: test, Operation: RevertOp1, Attempt: 2
+8: StartOperation - SagaID: test, Operation: RevertOp1
+9: EndOperation - SagaID: test, Operation: RevertOp1, Outcome: Reverted
+10: EndSaga - SagaID: test, Outcome: Reverted

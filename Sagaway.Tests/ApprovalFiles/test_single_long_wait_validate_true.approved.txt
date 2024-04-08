@@ -28,11 +28,17 @@ HasRevertValidate: False
 Op1 Validate returns True
 OnSuccessCompletionCallback: Success.
 Run Log:
-[*time*][Op1]: Start Executing 
+[*time*][Op1]: Start Executing Op1
 [*time*][Op1]: Registering reminder Op1:Retry for Op1 with interval 00:00:02
 [*time*][Op1]: Wake by a reminder
-[*time*][Op1]: Success
+[*time*][Op1]: Op1 Success
 
 
 OnSagaCompleted: Id: test Status: Succeeded
 Calling Op1: Success True
+
+*** Telemetry ***
+1: StartSaga - SagaID: test, Type: SagaOperations
+2: StartOperation - SagaID: test, Operation: Op1
+3: EndOperation - SagaID: test, Operation: Op1, Outcome: Succeeded
+4: EndSaga - SagaID: test, Outcome: Succeeded

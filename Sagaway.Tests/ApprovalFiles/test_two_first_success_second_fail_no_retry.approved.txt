@@ -55,14 +55,22 @@ Calling Op1: Success True
 Calling Op2: Success False
 OnRevertedCallback: Reverted.
 Run Log:
-[*time*][Op1]: Start Executing 
-[*time*][Op1]: Success
-[*time*][Op2]: Start Executing 
-[*time*][Op2]: Failed. Retries exhausted.
-[*time*][Op1]: Start Executing Revert 
+[*time*][Op1]: Start Executing Op1
+[*time*][Op1]: Op1 Success
+[*time*][Op2]: Start Executing Op2
+[*time*][Op2]: Op2 Failed. Retries exhausted.
+[*time*][Op1]: Start Executing Revert Op1
 [*time*][Op1]: No undo operation for Op1. Marking as reverted
-[*time*][Op2]: Start Executing Revert 
+[*time*][Op2]: Start Executing Revert Op2
 [*time*][Op2]: No undo operation for Op2. Marking as reverted
 
 
 OnSagaCompleted: Id: test Status: Reverted
+
+*** Telemetry ***
+1: StartSaga - SagaID: test, Type: SagaOperations
+2: StartOperation - SagaID: test, Operation: Op1
+3: EndOperation - SagaID: test, Operation: Op1, Outcome: Succeeded
+4: StartOperation - SagaID: test, Operation: Op2
+5: EndOperation - SagaID: test, Operation: Op2, Outcome: Failed
+6: EndSaga - SagaID: test, Outcome: Reverted

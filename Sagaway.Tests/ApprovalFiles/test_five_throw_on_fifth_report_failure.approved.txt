@@ -135,28 +135,44 @@ Calling Op3: Success True
 Calling Op4: Success True
 OnFailCallback: Fail.
 Run Log:
-[*time*][Op1]: Start Executing 
-[*time*][Op1]: Success
-[*time*][Op2]: Start Executing 
-[*time*][Op2]: Success
-[*time*][Op3]: Start Executing 
-[*time*][Op3]: Success
-[*time*][Op4]: Start Executing 
-[*time*][Op4]: Success
-[*time*][Op5]: Start Executing 
-[*time*][Op5]: Error when calling . Error: Throwing exception on call 1. Retry in 00:00:00 seconds
+[*time*][Op1]: Start Executing Op1
+[*time*][Op1]: Op1 Success
+[*time*][Op2]: Start Executing Op2
+[*time*][Op2]: Op2 Success
+[*time*][Op3]: Start Executing Op3
+[*time*][Op3]: Op3 Success
+[*time*][Op4]: Start Executing Op4
+[*time*][Op4]: Op4 Success
+[*time*][Op5]: Start Executing Op5
+[*time*][Op5]: Error when calling Op5. Error: Throwing exception on call 1. Retry in 00:00:00 seconds
 [*time*][Op5]: No reminder set for Op5. Taking failure action
-[*time*][Op5]: Failed. Retries exhausted.
-[*time*][Op1]: Start Executing Revert 
+[*time*][Op5]: Op5 Failed. Retries exhausted.
+[*time*][Op1]: Start Executing Revert Op1
 [*time*][Op1]: No undo operation for Op1. Marking as reverted
-[*time*][Op2]: Start Executing Revert 
+[*time*][Op2]: Start Executing Revert Op2
 [*time*][Op2]: No undo operation for Op2. Marking as reverted
-[*time*][Op3]: Start Executing Revert 
+[*time*][Op3]: Start Executing Revert Op3
 [*time*][Op3]: No undo operation for Op3. Marking as reverted
-[*time*][Op4]: Start Executing Revert 
+[*time*][Op4]: Start Executing Revert Op4
 [*time*][Op4]: No undo operation for Op4. Marking as reverted
-[*time*][Op5]: Start Executing Revert 
+[*time*][Op5]: Start Executing Revert Op5
 [*time*][Op5]: No undo operation for Op5. Marking as reverted
 
 
 OnSagaCompleted: Id: test Status: Reverted
+
+*** Telemetry ***
+1: StartSaga - SagaID: test, Type: SagaOperations
+2: StartOperation - SagaID: test, Operation: Op1
+3: EndOperation - SagaID: test, Operation: Op1, Outcome: Succeeded
+4: StartOperation - SagaID: test, Operation: Op2
+5: EndOperation - SagaID: test, Operation: Op2, Outcome: Succeeded
+6: StartOperation - SagaID: test, Operation: Op3
+7: EndOperation - SagaID: test, Operation: Op3, Outcome: Succeeded
+8: StartOperation - SagaID: test, Operation: Op4
+9: EndOperation - SagaID: test, Operation: Op4, Outcome: Succeeded
+10: StartOperation - SagaID: test, Operation: Op5
+11: Exception - SagaID: test, Context: Error when calling Op5, Exception: Throwing exception on call 1
+12: EndOperation - SagaID: test, Operation: Op5, Outcome: Failed
+13: CustomEvent - SagaID: test, Event: SagaFailure, Properties: None
+14: EndSaga - SagaID: test, Outcome: Reverted

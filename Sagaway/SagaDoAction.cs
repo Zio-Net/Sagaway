@@ -21,8 +21,11 @@ namespace Sagaway
 
             protected override async Task ExecuteActionAsync()
             {
-                if (SagaOperation.DoOperationAsync != null) 
+                if (SagaOperation.DoOperationAsync != null)
+                {
+                    Saga.RecordStartOperationTelemetry(SagaOperation.Operation, false);
                     await SagaOperation.DoOperationAsync();
+                }
             }
 
             protected override async Task OnActionFailureAsync()

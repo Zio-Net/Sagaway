@@ -1,29 +1,29 @@
 ﻿Test Name: test_a_success_on_3_no_callback_b_success_on_4
 Result: True
 Saga Log:
-[*time*][CallA]: Start Executing 
+[*time*][CallA]: Start Executing CallA
 [*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:08
-[*time*][CallB]: Start Executing 
+[*time*][CallB]: Start Executing CallB
 [*time*][CallB]: Registering reminder CallB:Retry for CallB with interval 00:00:08
-[*time*][CallB]: Retry operation. Retry count: 1
-[*time*][CallB]: Start Executing 
+[*time*][CallB]: Retry CallB. Retry count: 1
+[*time*][CallB]: Start Executing CallB
 [*time*][CallB]: Registering reminder CallB:Retry for CallB with interval 00:00:08
-[*time*][CallB]: Retry operation. Retry count: 2
-[*time*][CallB]: Start Executing 
+[*time*][CallB]: Retry CallB. Retry count: 2
+[*time*][CallB]: Start Executing CallB
 [*time*][CallB]: Registering reminder CallB:Retry for CallB with interval 00:00:08
-[*time*][CallB]: Retry operation. Retry count: 3
-[*time*][CallB]: Start Executing 
+[*time*][CallB]: Retry CallB. Retry count: 3
+[*time*][CallB]: Start Executing CallB
 [*time*][CallB]: Registering reminder CallB:Retry for CallB with interval 00:00:08
-[*time*][CallB]: Success
+[*time*][CallB]: CallB Success
 [*time*][CallA]: Wake by a reminder
-[*time*][CallA]: The state is unknown in the reminder, retry action
-[*time*][CallA]: Retry operation. Retry count: 1
-[*time*][CallA]: Start Executing 
-[*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:08
-[*time*][CallA]: Wake by a reminder
-[*time*][CallA]: The state is unknown in the reminder, retry action
-[*time*][CallA]: Retry operation. Retry count: 2
-[*time*][CallA]: Start Executing 
+[*time*][CallA]: The state is unknown in the reminder, retry CallA action
+[*time*][CallA]: Retry CallA. Retry count: 1
+[*time*][CallA]: Start Executing CallA
 [*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:08
 [*time*][CallA]: Wake by a reminder
-[*time*][CallA]: Success
+[*time*][CallA]: The state is unknown in the reminder, retry CallA action
+[*time*][CallA]: Retry CallA. Retry count: 2
+[*time*][CallA]: Start Executing CallA
+[*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:08
+[*time*][CallA]: Wake by a reminder
+[*time*][CallA]: CallA Success

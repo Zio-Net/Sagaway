@@ -55,24 +55,38 @@ Calling Op1: Success True
 Calling Op2: Success True
 OnSuccessCompletionCallback: Success.
 Run Log:
-[*time*][Op1]: Start Executing 
+[*time*][Op1]: Start Executing Op1
 [*time*][Op1]: Registering reminder Op1:Retry for Op1 with interval 00:00:02
-[*time*][Op1]: Error when calling . Error: Throwing exception on call 1. Retry in 00:00:02 seconds
-[*time*][Op2]: Start Executing 
+[*time*][Op1]: Error when calling Op1. Error: Throwing exception on call 1. Retry in 00:00:02 seconds
+[*time*][Op2]: Start Executing Op2
 [*time*][Op2]: Registering reminder Op2:Retry for Op2 with interval 00:00:04
-[*time*][Op2]: Error when calling . Error: Throwing exception on call 1. Retry in 00:00:04 seconds
+[*time*][Op2]: Error when calling Op2. Error: Throwing exception on call 1. Retry in 00:00:04 seconds
 [*time*][Op1]: Wake by a reminder
-[*time*][Op1]: The state is unknown in the reminder, retry action
-[*time*][Op1]: Retry operation. Retry count: 1
-[*time*][Op1]: Start Executing 
+[*time*][Op1]: The state is unknown in the reminder, retry Op1 action
+[*time*][Op1]: Retry Op1. Retry count: 1
+[*time*][Op1]: Start Executing Op1
 [*time*][Op1]: Registering reminder Op1:Retry for Op1 with interval 00:00:02
-[*time*][Op1]: Success
+[*time*][Op1]: Op1 Success
 [*time*][Op2]: Wake by a reminder
-[*time*][Op2]: The state is unknown in the reminder, retry action
-[*time*][Op2]: Retry operation. Retry count: 1
-[*time*][Op2]: Start Executing 
+[*time*][Op2]: The state is unknown in the reminder, retry Op2 action
+[*time*][Op2]: Retry Op2. Retry count: 1
+[*time*][Op2]: Start Executing Op2
 [*time*][Op2]: Registering reminder Op2:Retry for Op2 with interval 00:00:04
-[*time*][Op2]: Success
+[*time*][Op2]: Op2 Success
 
 
 OnSagaCompleted: Id: test Status: Succeeded
+
+*** Telemetry ***
+1: StartSaga - SagaID: test, Type: SagaOperations
+2: StartOperation - SagaID: test, Operation: Op1
+3: Exception - SagaID: test, Context: Error when calling Op1, Exception: Throwing exception on call 1
+4: StartOperation - SagaID: test, Operation: Op2
+5: Exception - SagaID: test, Context: Error when calling Op2, Exception: Throwing exception on call 1
+6: RetryAttempt - SagaID: test, Operation: Op1, Attempt: 1
+7: StartOperation - SagaID: test, Operation: Op1
+8: EndOperation - SagaID: test, Operation: Op1, Outcome: Succeeded
+9: RetryAttempt - SagaID: test, Operation: Op2, Attempt: 1
+10: StartOperation - SagaID: test, Operation: Op2
+11: EndOperation - SagaID: test, Operation: Op2, Outcome: Succeeded
+12: EndSaga - SagaID: test, Outcome: Succeeded

@@ -1,15 +1,15 @@
 ﻿Test Name: test_a_1_failed_no_callback_revert_failed
 Result: False
 Saga Log:
-[*time*][CallA]: Start Executing 
+[*time*][CallA]: Start Executing CallA
 [*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:05
-[*time*][CallA]: Retry operation. Retry count: 1
-[*time*][CallA]: Start Executing 
+[*time*][CallA]: Retry CallA. Retry count: 1
+[*time*][CallA]: Start Executing CallA
 [*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:05
-[*time*][CallA]: Failed. Retries exhausted.
-[*time*][CallA]: Start Executing Revert 
-[*time*][CallA]: Registering reminder CallA:Retry for Revert CallA with interval 00:00:05
-[*time*][CallA]: Retry Revert operation. Retry count: 1
-[*time*][CallA]: Start Executing Revert 
-[*time*][CallA]: Registering reminder CallA:Retry for Revert CallA with interval 00:00:05
-[*time*][CallA]: Revert Failed. Retries exhausted.
+[*time*][CallA]: CallA Failed. Retries exhausted.
+[*time*][CallA]: Start Executing Revert CallA
+[*time*][CallA]: Registering reminder RevertCallA:Retry for Revert CallA with interval 00:00:05
+[*time*][CallA]: Retry Revert CallA. Retry count: 1
+[*time*][CallA]: Start Executing Revert CallA
+[*time*][CallA]: Registering reminder RevertCallA:Retry for Revert CallA with interval 00:00:05
+[*time*][CallA]: Revert CallA Failed. Retries exhausted.

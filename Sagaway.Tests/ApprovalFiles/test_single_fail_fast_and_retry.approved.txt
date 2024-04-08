@@ -29,11 +29,17 @@ Set to fail fast
 Calling Op1: Success True
 OnRevertedCallback: Reverted.
 Run Log:
-[*time*][Op1]: Start Executing 
+[*time*][Op1]: Start Executing Op1
 [*time*][Op1]: Registering reminder Op1:Retry for Op1 with interval 00:00:10
-[*time*][Op1]: Failed Fast.
-[*time*][Op1]: Start Executing Revert 
+[*time*][Op1]: Op1 Failed Fast.
+[*time*][Op1]: Start Executing Revert Op1
 [*time*][Op1]: No undo operation for Op1. Marking as reverted
 
 
 OnSagaCompleted: Id: test Status: Reverted
+
+*** Telemetry ***
+1: StartSaga - SagaID: test, Type: SagaOperations
+2: StartOperation - SagaID: test, Operation: Op1
+3: EndOperation - SagaID: test, Operation: Op1, Outcome: Failed
+4: EndSaga - SagaID: test, Outcome: Reverted

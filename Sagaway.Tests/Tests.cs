@@ -103,7 +103,7 @@ public partial class Tests
         try
         {
             // ReSharper disable once UnusedVariable
-            var builder = Saga<Operations>.Create("test", new SagaSupportOperations(ReminderCallBack), _logger)
+            var builder = Saga<Operations>.Create("test", new SagaTestHost(ReminderCallBack), _logger)
              .WithOnSuccessCompletionCallback(_ => { })
              .WithOnRevertedCallback(_ => { })
              .WithOnFailedRevertedCallback(_ => { })
@@ -125,7 +125,7 @@ public partial class Tests
         try
         {
             // ReSharper disable once UnusedVariable
-            var builder = Saga<Operations>.Create("test", new SagaSupportOperations(ReminderCallBack), _logger)
+            var builder = Saga<Operations>.Create("test", new SagaTestHost(ReminderCallBack), _logger)
              .WithOnRevertedCallback(_ => { })
              .WithOnFailedRevertedCallback(_ => { })
              .WithOperation(Operations.Op1)
@@ -148,7 +148,7 @@ public partial class Tests
         try
         {
             // ReSharper disable once UnusedVariable
-            var builder = Saga<Operations>.Create("test", new SagaSupportOperations(ReminderCallBack), _logger)
+            var builder = Saga<Operations>.Create("test", new SagaTestHost(ReminderCallBack), _logger)
              .WithOnSuccessCompletionCallback(_ => { })
              .WithOnFailedRevertedCallback(_ => { })
              .WithOperation(Operations.Op1)
@@ -171,7 +171,7 @@ public partial class Tests
         try
         {
             // ReSharper disable once UnusedVariable
-            var builder = Saga<Operations>.Create("test", new SagaSupportOperations(ReminderCallBack), _logger)
+            var builder = Saga<Operations>.Create("test", new SagaTestHost(ReminderCallBack), _logger)
              .WithOnSuccessCompletionCallback(_ => { })
              .WithOnRevertedCallback(_ => { })
              .WithOperation(Operations.Op1)
@@ -194,7 +194,7 @@ public partial class Tests
         try
         {
             // ReSharper disable once UnusedVariable
-            var builder = Saga<Operations>.Create("test", new SagaSupportOperations(ReminderCallBack), _logger)
+            var builder = Saga<Operations>.Create("test", new SagaTestHost(ReminderCallBack), _logger)
              .WithOnSuccessCompletionCallback(_ => { })
              .WithOnRevertedCallback(_ => { })
              .WithOnFailedRevertedCallback(_ => { })
@@ -281,7 +281,9 @@ public partial class Tests
 
     private async Task TestRunAsync(string testName, params string[] operations)
     {
-        var builder = Saga<Operations>.Create("test", new SagaSupportOperations(ReminderCallBack), _logger);
+        var sagaHost = new SagaTestHost(ReminderCallBack);
+
+        var builder = Saga<Operations>.Create("test", sagaHost, _logger);
         var sb = new StringBuilder();
         sb.AppendLine($"Preparing test {testName}");
 
@@ -321,6 +323,11 @@ public partial class Tests
             }
         }
         await Task.Delay(500);
+
+        sb.AppendLine();
+        sb.AppendLine("*** Telemetry ***");
+        sb.Append(((TestTelemetryAdapter)sagaHost.TelemetryAdapter).GenerateSagaTraceResult());
+
         Approvals.RegisterDefaultNamerCreation(() => new AprovalNamer(testName));
         ApprovalVerifyWithDump.Verify(sb.ToString(), _testOutputHelper, RemoveDynamic);
     }
