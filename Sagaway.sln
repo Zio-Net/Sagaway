@@ -56,20 +56,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sagaway.ReservationDemo.Res
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sagaway.ReservationDemo.BillingManagement", "Sagaway.ReservationDemo\Sagaway.ReservationDemo.BillingManagement\Sagaway.ReservationDemo.BillingManagement.csproj", "{4C4C221E-7B30-4F2D-848E-3A0791800C11}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{430158AE-F78D-4D65-91CD-4CD95C5D1C39}"
-	ProjectSection(SolutionItems) = preProject
-		.github\README.md = .github\README.md
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{1DCBA09C-4328-41C4-B7DF-9F371201EEA1}"
-	ProjectSection(SolutionItems) = preProject
-		.github\workflows\BuildAndPushImages.yaml = .github\workflows\BuildAndPushImages.yaml
-		.github\workflows\IntegrationTest.yaml = .github\workflows\IntegrationTest.yaml
-		.github\workflows\PublishSagawayCallbackPropagatorNuGet.yaml = .github\workflows\PublishSagawayCallbackPropagatorNuGet.yaml
-		.github\workflows\PublishSagawayCallbackRouter.yaml = .github\workflows\PublishSagawayCallbackRouter.yaml
-		.github\workflows\PublishSagawayDaprActorHost.yaml = .github\workflows\PublishSagawayDaprActorHost.yaml
-		.github\workflows\PublishSagawayNuGet.yaml = .github\workflows\PublishSagawayNuGet.yaml
-	EndProjectSection
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sagaway.OpenTelemetry", "Sagaway.OpenTelemetry\Sagaway.OpenTelemetry.csproj", "{E5BAA90A-9454-434B-9F95-F7AA2E2DAA86}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -129,6 +116,10 @@ Global
 		{4C4C221E-7B30-4F2D-848E-3A0791800C11}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4C4C221E-7B30-4F2D-848E-3A0791800C11}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4C4C221E-7B30-4F2D-848E-3A0791800C11}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E5BAA90A-9454-434B-9F95-F7AA2E2DAA86}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E5BAA90A-9454-434B-9F95-F7AA2E2DAA86}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E5BAA90A-9454-434B-9F95-F7AA2E2DAA86}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E5BAA90A-9454-434B-9F95-F7AA2E2DAA86}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -138,7 +129,6 @@ Global
 		{EDCC72CE-2288-45E6-B035-1EE8F7342CDD} = {DBBB1856-3CF3-45F6-8284-627DF1BA9AB1}
 		{FADEA56C-46EC-414F-A594-503C421BF47C} = {DBBB1856-3CF3-45F6-8284-627DF1BA9AB1}
 		{568B0B6C-EBF1-4222-A51E-90CF5DA349AF} = {DBBB1856-3CF3-45F6-8284-627DF1BA9AB1}
-		{1DCBA09C-4328-41C4-B7DF-9F371201EEA1} = {430158AE-F78D-4D65-91CD-4CD95C5D1C39}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {27AF5C62-89C5-4AE2-B5DD-7DC1D1DDA605}

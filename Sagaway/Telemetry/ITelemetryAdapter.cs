@@ -9,12 +9,6 @@
 public interface ITelemetryAdapter
 {
     /// <summary>
-    /// Initializes the telemetry adapter with the data persistence mechanism.
-    /// </summary>
-    /// <param name="dataPersistence">Provide the telemetry implementation a method to persist telemetry information</param>
-    public void Initialize(ITelemetryDataPersistence dataPersistence);
-
-    /// <summary>
     /// Marks the start of a Saga, capturing the start time.
     /// </summary>
     /// <param name="sagaId">The unique identifier for the Saga.</param>
@@ -79,4 +73,12 @@ public interface ITelemetryAdapter
     /// </summary>
     /// <param name="sagaId">The unique identifier for the Saga.</param>
     Task DeactivateLongOperationAsync(string sagaId);
+}
+
+public record SagaTelemetryContext(string SagaId, string SagaType, ITelemetryDataPersistence TelemetryDataPersistence)
+{
+    public string SagaId { get; set; } = SagaId;
+    public string SagaType { get; set; } = SagaType;
+
+    public ITelemetryDataPersistence TelemetryDataPersistence { get; set; } = TelemetryDataPersistence;
 }

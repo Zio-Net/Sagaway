@@ -6,12 +6,8 @@
 /// </summary>
 public class NullTelemetryAdapter : ITelemetryAdapter
 {
-    public void Initialize(ITelemetryDataPersistence dataPersistence)
-    {
-        // No operation
-    }
 
-    public Task StartSagaAsync(string sagaId, string sagaType)
+    public Task StartSagaAsync(SagaTelemetryContext sagaTelemetryContext)
     {
         return Task.CompletedTask;
     }
