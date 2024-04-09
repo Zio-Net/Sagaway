@@ -39,7 +39,7 @@ namespace Sagaway
         {
             try
             {
-                TelemetryAdapter.StartOperation(_sagaUniqueId, (isReverting ? "Revert" : "") + sagaOperation);
+                TelemetryAdapter.StartOperationAsync(_sagaUniqueId, (isReverting ? "Revert" : "") + sagaOperation);
             }
             catch (Exception e)
             {
@@ -51,7 +51,7 @@ namespace Sagaway
         {
             try
             {
-                TelemetryAdapter.EndOperation(_sagaUniqueId, (isReverting ? "Revert" : "") + sagaOperation, operationOutcome);
+                TelemetryAdapter.EndOperationAsync(_sagaUniqueId, (isReverting ? "Revert" : "") + sagaOperation, operationOutcome);
             }
             catch (Exception e)
             {
@@ -63,7 +63,7 @@ namespace Sagaway
         {
             try
             {
-                TelemetryAdapter.RecordRetryAttempt(_sagaUniqueId, (isReverting ? "Revert" : "") + sagaOperationOperation, retryCount);
+                TelemetryAdapter.RecordRetryAttemptAsync(_sagaUniqueId, (isReverting ? "Revert" : "") + sagaOperationOperation, retryCount);
             }
             catch (Exception e)
             {
@@ -81,7 +81,7 @@ namespace Sagaway
         {
             try
             {
-                TelemetryAdapter.RecordCustomEvent(_sagaUniqueId, eventName, properties);
+                TelemetryAdapter.RecordCustomEventAsync(_sagaUniqueId, eventName, properties);
             }
             catch (Exception e)
             {
@@ -99,7 +99,7 @@ namespace Sagaway
         {
             try
             {
-                TelemetryAdapter.RecordException(_sagaUniqueId, exception, context);
+                TelemetryAdapter.RecordExceptionAsync(_sagaUniqueId, exception, context);
             }
             catch (Exception e)
             {
@@ -148,7 +148,7 @@ namespace Sagaway
             Validate();
             SetExecutableOperationDependencies();
 
-            TelemetryAdapter.StartSaga(_sagaUniqueId, $"Saga{typeof(TEOperations).Name}");
+            TelemetryAdapter.StartSagaAsync(_sagaUniqueId, $"Saga{typeof(TEOperations).Name}");
         }
 
         private void Validate()
@@ -265,6 +265,8 @@ namespace Sagaway
                     throw new InvalidOperationException("Saga is not in progress");
                 }
             });
+
+            await TelemetryAdapter.DeactivateLongOperationAsync(_sagaUniqueId);
         }
 
         /// <summary>
@@ -293,6 +295,8 @@ namespace Sagaway
                     throw;
                 }
             });
+
+            await TelemetryAdapter.ActivateLongOperationAsync(_sagaUniqueId);
         }
 
         private async Task LoadStateAsync()
@@ -446,7 +450,7 @@ namespace Sagaway
                 {
                     _hasFailedReported = true;
                     _onFailedCallback(recordedSteps);
-                    TelemetryAdapter.RecordCustomEvent(_sagaUniqueId, "SagaFailure");
+                    TelemetryAdapter.RecordCustomEventAsync(_sagaUniqueId, "SagaFailure");
                 }
 
                 if (Reverted && _onRevertedCallback != null)
@@ -479,7 +483,7 @@ namespace Sagaway
                     _logger.LogError(e, "Error calling OnSagaCompleted event");
                 }
                 var telemetryOutcome = Succeeded ? SagaOutcome.Succeeded : Reverted ? SagaOutcome.Reverted : SagaOutcome.PartiallyReverted;
-                TelemetryAdapter.EndSaga(_sagaUniqueId, telemetryOutcome);
+                TelemetryAdapter.EndSagaAsync(_sagaUniqueId, telemetryOutcome);
             }
             else
             {

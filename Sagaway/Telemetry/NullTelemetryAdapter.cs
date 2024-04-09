@@ -2,42 +2,57 @@
 
 /// <summary>
 /// A no-operation implementation of <see cref="ITelemetryAdapter"/>.
-/// Used as a default to avoid null checks, following the Null Object Design Pattern.
+/// Used as a default to aTask null checks, following the Null Object Design Pattern.
 /// </summary>
 public class NullTelemetryAdapter : ITelemetryAdapter
 {
-    public void StartSaga(string sagaId, string sagaType)
+    public void Initialize(ITelemetryDataPersistence dataPersistence)
     {
         // No operation
     }
 
-    public void EndSaga(string sagaId, SagaOutcome outcome)
+    public Task StartSagaAsync(string sagaId, string sagaType)
     {
-        // No operation
+        return Task.CompletedTask;
     }
 
-    public void StartOperation(string sagaId, string operationName)
+    public Task EndSagaAsync(string sagaId, SagaOutcome outcome)
     {
-        // No operation
+        return Task.CompletedTask;
     }
 
-    public void EndOperation(string sagaId, string operationName, OperationOutcome outcome)
+    public Task StartOperationAsync(string sagaId, string operationName)
     {
-        // No operation
+        return Task.CompletedTask;
     }
 
-    public void RecordRetryAttempt(string sagaId, string operationName, int attemptNumber)
+    public Task EndOperationAsync(string sagaId, string operationName, OperationOutcome outcome)
     {
-        // No operation
+        return Task.CompletedTask;
     }
 
-    public void RecordCustomEvent(string sagaId, string eventName, IDictionary<string, object>? properties = null)
+    public Task RecordRetryAttemptAsync(string sagaId, string operationName, int attemptNumber)
     {
-        // No operation
+        return Task.CompletedTask;
     }
 
-    public void RecordException(string sagaId, Exception exception, string? context = null)
+    public Task RecordCustomEventAsync(string sagaId, string eventName, IDictionary<string, object>? properties = null)
     {
-        // No operation
+        return Task.CompletedTask;
+    }
+
+    public Task RecordExceptionAsync(string sagaId, Exception exception, string? context = null)
+    {
+        return Task.CompletedTask;
+    }
+
+    public Task ActivateLongOperationAsync(string sagaId)
+    {
+        return Task.CompletedTask;
+    }
+
+    public Task DeactivateLongOperationAsync(string sagaId)
+    {
+        return Task.CompletedTask;
     }
 }

@@ -178,13 +178,23 @@ Calling Op5: Success True
 *** Telemetry ***
 1: StartSaga - SagaID: test, Type: SagaOperations
 2: StartOperation - SagaID: test, Operation: Op1
-3: EndOperation - SagaID: test, Operation: Op1, Outcome: Succeeded
-4: StartOperation - SagaID: test, Operation: Op2
-5: EndOperation - SagaID: test, Operation: Op2, Outcome: Succeeded
-6: StartOperation - SagaID: test, Operation: Op3
-7: EndOperation - SagaID: test, Operation: Op3, Outcome: Succeeded
-8: StartOperation - SagaID: test, Operation: Op4
-9: EndOperation - SagaID: test, Operation: Op4, Outcome: Succeeded
-10: StartOperation - SagaID: test, Operation: Op5
-11: EndOperation - SagaID: test, Operation: Op5, Outcome: Succeeded
-12: EndSaga - SagaID: test, Outcome: Succeeded
+3: ActivateLongOperation - SagaID: test
+4: DeactivateLongOperation - SagaID: test
+5: EndOperation - SagaID: test, Operation: Op1, Outcome: Succeeded
+6: StartOperation - SagaID: test, Operation: Op2
+7: ActivateLongOperation - SagaID: test
+8: DeactivateLongOperation - SagaID: test
+9: EndOperation - SagaID: test, Operation: Op2, Outcome: Succeeded
+10: StartOperation - SagaID: test, Operation: Op3
+11: ActivateLongOperation - SagaID: test
+12: DeactivateLongOperation - SagaID: test
+13: EndOperation - SagaID: test, Operation: Op3, Outcome: Succeeded
+14: StartOperation - SagaID: test, Operation: Op4
+15: ActivateLongOperation - SagaID: test
+16: DeactivateLongOperation - SagaID: test
+17: EndOperation - SagaID: test, Operation: Op4, Outcome: Succeeded
+18: StartOperation - SagaID: test, Operation: Op5
+19: ActivateLongOperation - SagaID: test
+20: DeactivateLongOperation - SagaID: test
+21: EndOperation - SagaID: test, Operation: Op5, Outcome: Succeeded
+22: EndSaga - SagaID: test, Outcome: Succeeded
