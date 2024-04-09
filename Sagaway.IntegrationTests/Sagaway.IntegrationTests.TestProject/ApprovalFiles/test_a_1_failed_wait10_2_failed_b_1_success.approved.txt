@@ -16,5 +16,5 @@ Saga Log:
 [*time*][CallA]: Start Executing Revert CallA
 [*time*][CallA]: No undo operation for CallA. Marking as reverted
 [*time*][CallB]: Start Executing Revert CallB
-[*time*][CallB]: Registering reminder RevertCallB:Retry for Revert CallB with interval 00:00:10
+[*time*][CallB]: Registering reminder CallB:Retry for Revert CallB with interval 00:00:10
 [*time*][CallB]: Revert CallB Success

@@ -11,5 +11,5 @@ Saga Log:
 [*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:30
 [*time*][CallA]: CallA Failed. Retries exhausted.
 [*time*][CallA]: Start Executing Revert CallA
-[*time*][CallA]: Registering reminder RevertCallA:Retry for Revert CallA with interval 00:00:30
+[*time*][CallA]: Registering reminder CallA:Retry for Revert CallA with interval 00:00:30
 [*time*][CallA]: Revert CallA Success

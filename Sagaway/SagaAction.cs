@@ -40,7 +40,7 @@ namespace Sagaway
             
             private string RevertText => IsRevert ? "Revert " : string.Empty;
 
-            private string ReminderName => $"{RevertText.Trim()}{_sagaOperation.Operation}:Retry";
+            private string ReminderName => $"{_sagaOperation.Operation}:Retry";
 
             private string OperationName => $"{RevertText}{_sagaOperation.Operation}";
             
@@ -64,14 +64,14 @@ namespace Sagaway
 
             private async Task<TimeSpan> ResetReminderAsync()
             {
+                await CancelReminderIfOnAsync();
+
                 var retryInterval = GetRetryInterval(_retryCount);
                 
                 if (retryInterval == default || MaxRetries == 0)
                 {
                     return default;
                 }
-
-                await CancelReminderIfOnAsync();
 
                 LogAndRecord($"Registering reminder {ReminderName} for {OperationName} with interval {retryInterval}");
                 await _saga._sagaSupportOperations.SetReminderAsync(ReminderName, retryInterval);
@@ -82,8 +82,6 @@ namespace Sagaway
 
             public async Task ExecuteAsync()
             {
-                
-
                 LogAndRecord($"Start Executing {OperationName}");
                 TimeSpan retryInterval = default;
 
@@ -152,13 +150,15 @@ namespace Sagaway
 
             public async Task InformSuccessOperationAsync()
             {
+                await CancelReminderIfOnAsync();
+
                 if (Succeeded || Failed)
                 {
                     return;
                 }
 
                 LogAndRecord($"{OperationName} Success");
-                await CancelReminderIfOnAsync();
+                
                 Succeeded = true;
                 
                 _saga.RecordEndOperationTelemetry(_sagaOperation.Operation, IsRevert ? OperationOutcome.Reverted : OperationOutcome.Succeeded, IsRevert);

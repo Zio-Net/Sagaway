@@ -77,13 +77,13 @@ Run Log:
 [*time*][Op1]: Start Executing Revert Op1
 [*time*][Op1]: No undo operation for Op1. Marking as reverted
 [*time*][Op2]: Start Executing Revert Op2
-[*time*][Op2]: Registering reminder RevertOp2:Retry for Revert Op2 with interval 00:00:02
+[*time*][Op2]: Registering reminder Op2:Retry for Revert Op2 with interval 00:00:02
 [*time*][Op2]: Retry Revert Op2. Retry count: 1
 [*time*][Op2]: Start Executing Revert Op2
-[*time*][Op2]: Registering reminder RevertOp2:Retry for Revert Op2 with interval 00:00:02
+[*time*][Op2]: Registering reminder Op2:Retry for Revert Op2 with interval 00:00:02
 [*time*][Op2]: Retry Revert Op2. Retry count: 2
 [*time*][Op2]: Start Executing Revert Op2
-[*time*][Op2]: Registering reminder RevertOp2:Retry for Revert Op2 with interval 00:00:02
+[*time*][Op2]: Registering reminder Op2:Retry for Revert Op2 with interval 00:00:02
 [*time*][Op2]: Revert Op2 Failed. Retries exhausted.
 
 
