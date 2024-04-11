@@ -7,18 +7,14 @@ namespace Sagaway.OpenTelemetry;
 public class OpenTelemetryAdapter(string activitySourceName) : ITelemetryAdapter
 {
     private readonly ActivitySource _activitySource = new(activitySourceName);
-    private ITelemetryDataPersistence? _dataPersistence;
 
-    public void Initialize(ITelemetryDataPersistence dataPersistence)
-    {
-        _dataPersistence = dataPersistence;
-    }
-
-    public async Task StartSagaAsync(string sagaId, string sagaType)
+    public async Task StartSagaAsync(SagaTelemetryContext sagaTelemetryContext)
     {
         // Start an activity for the saga with a specific name and type
         // This creates or represents a new tracing span
-        var activity = _activitySource.StartActivity($"{sagaType}-{sagaId}", ActivityKind.Server);
+        var activity = _activitySource.StartActivity($"{sagaTelemetryContext.SagaType}-{sagaTelemetryContext.SagaId}",
+            ActivityKind.Server);
+
         if (activity == null)
         {
             // If no activity is started, it could be due to sampling or configuration
@@ -27,57 +23,80 @@ public class OpenTelemetryAdapter(string activitySourceName) : ITelemetryAdapter
         }
 
         // Set initial tags for the activity, useful for querying and filtering in tracing systems
-        activity.SetTag("saga.id", sagaId);
-        activity.SetTag("saga.type", sagaType);
+        activity.SetTag("saga.id", sagaTelemetryContext.SagaId);
+        activity.SetTag("saga.type", sagaTelemetryContext.SagaType);
 
-        // Check if data persistence is configured to store trace IDs for later use
-        if (_dataPersistence != null)
+        // Persist the TraceId and SpanId associated with this saga
+        // These IDs can be used to link other spans or to retrieve the saga's trace later
+        await sagaTelemetryContext.TelemetryDataPersistence.StoreDataAsync(
+            $"Saga:{sagaTelemetryContext.SagaId}:TraceId", activity.Context.TraceId.ToString());
+        await sagaTelemetryContext.TelemetryDataPersistence.StoreDataAsync($"Saga:{sagaTelemetryContext.SagaId}:SpanId",
+            activity.Context.SpanId.ToString());
+
+    }
+
+
+    public Task EndSagaAsync(SagaTelemetryContext sagaTelemetryContext, SagaOutcome outcome)
+    {
+        throw new NotImplementedException();
+    }
+
+    public async Task StartOperationAsync(SagaTelemetryContext sagaTelemetryContext, string operationName)
+    {
+        // Retrieve the parent saga's trace and span ID if you need to create a linked or child span
+        var traceId = await sagaTelemetryContext.TelemetryDataPersistence.RetrieveDataAsync($"Saga:{sagaTelemetryContext.SagaId}:TraceId");
+        var spanId = await sagaTelemetryContext.TelemetryDataPersistence.RetrieveDataAsync($"Saga:{sagaTelemetryContext.SagaId}:SpanId");
+        
+        // Creating a new activity for the operation.
+        var parentContext = new ActivityContext(ActivityTraceId.CreateFromString(traceId), ActivitySpanId.CreateFromString(spanId), ActivityTraceFlags.Recorded);
+        var activity = _activitySource.StartActivity($"Operation-{operationName}", ActivityKind.Internal, parentContext);
+
+        if (activity == null)
         {
-            // Persist the TraceId and SpanId associated with this saga
-            // These IDs can be used to link other spans or to retrieve the saga's trace later
-            await _dataPersistence.StoreDataAsync($"Saga:{sagaId}:TraceId", activity.Context.TraceId.ToString());
-            await _dataPersistence.StoreDataAsync($"Saga:{sagaId}:SpanId", activity.Context.SpanId.ToString());
+            return;
         }
+
+        // Set initial tags or details for the activity
+        activity.SetTag("operation.name", operationName);
+        activity.SetTag("saga.id", sagaTelemetryContext.SagaId);
+
+        // Store this operation's activity ID
+        // along with the saga ID to be able to link or query them later
+        await sagaTelemetryContext.TelemetryDataPersistence.StoreDataAsync(
+            $"Saga:{sagaTelemetryContext.SagaId}:Operation:{operationName}:TraceId", activity.Context.TraceId.ToString());
+        await sagaTelemetryContext.TelemetryDataPersistence.StoreDataAsync(
+            $"Saga:{sagaTelemetryContext.SagaId}:Operation:{operationName}:SpanId", activity.Context.SpanId.ToString());
     }
 
-
-    public Task EndSagaAsync(string sagaId, SagaOutcome outcome)
+    public Task EndOperationAsync(SagaTelemetryContext sagaTelemetryContext, string operationName, OperationOutcome outcome)
     {
         throw new NotImplementedException();
     }
 
-    public Task StartOperationAsync(string sagaId, string operationName)
+    public Task RecordRetryAttemptAsync(SagaTelemetryContext sagaTelemetryContext, string operationName, int attemptNumber)
     {
         throw new NotImplementedException();
     }
 
-    public Task EndOperationAsync(string sagaId, string operationName, OperationOutcome outcome)
+    public Task RecordCustomEventAsync(SagaTelemetryContext sagaTelemetryContext, string eventName, IDictionary<string, object>? properties = null)
     {
         throw new NotImplementedException();
     }
 
-    public Task RecordRetryAttemptAsync(string sagaId, string operationName, int attemptNumber)
+    public Task RecordExceptionAsync(SagaTelemetryContext sagaTelemetryContext, Exception exception, string? context = null)
     {
         throw new NotImplementedException();
     }
 
-    public Task RecordCustomEventAsync(string sagaId, string eventName, IDictionary<string, object>? properties = null)
+    public Task ActivateLongOperationAsync(SagaTelemetryContext sagaTelemetryContext)
     {
-        throw new NotImplementedException();
+        //The saga tarted a long-running operation, we need to close all open spans (the operations and the saga)
+        //And mark them as pending. When the Saga Deactivate Long Operation, we can recreate linked spans for the Saga 
+        //And the operations
     }
 
-    public Task RecordExceptionAsync(string sagaId, Exception exception, string? context = null)
+    public Task DeactivateLongOperationAsync(SagaTelemetryContext sagaTelemetryContext)
     {
-        throw new NotImplementedException();
-    }
 
-    public Task ActivateLongOperationAsync(string sagaId)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task DeactivateLongOperationAsync(string sagaId)
-    {
-        throw new NotImplementedException();
     }
 }

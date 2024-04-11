@@ -6,48 +6,47 @@
 /// </summary>
 public class NullTelemetryAdapter : ITelemetryAdapter
 {
-
     public Task StartSagaAsync(SagaTelemetryContext sagaTelemetryContext)
     {
         return Task.CompletedTask;
     }
 
-    public Task EndSagaAsync(string sagaId, SagaOutcome outcome)
+    public Task EndSagaAsync(SagaTelemetryContext sagaTelemetryContext, SagaOutcome outcome)
     {
         return Task.CompletedTask;
     }
 
-    public Task StartOperationAsync(string sagaId, string operationName)
+    public Task StartOperationAsync(SagaTelemetryContext sagaTelemetryContext, string operationName)
     {
         return Task.CompletedTask;
     }
 
-    public Task EndOperationAsync(string sagaId, string operationName, OperationOutcome outcome)
+    public Task EndOperationAsync(SagaTelemetryContext sagaTelemetryContext, string operationName, OperationOutcome outcome)
     {
         return Task.CompletedTask;
     }
 
-    public Task RecordRetryAttemptAsync(string sagaId, string operationName, int attemptNumber)
+    public Task RecordRetryAttemptAsync(SagaTelemetryContext sagaTelemetryContext, string operationName, int attemptNumber)
     {
         return Task.CompletedTask;
     }
 
-    public Task RecordCustomEventAsync(string sagaId, string eventName, IDictionary<string, object>? properties = null)
+    public Task RecordCustomEventAsync(SagaTelemetryContext sagaTelemetryContext, string eventName, IDictionary<string, object>? properties = null)
     {
         return Task.CompletedTask;
     }
 
-    public Task RecordExceptionAsync(string sagaId, Exception exception, string? context = null)
+    public Task RecordExceptionAsync(SagaTelemetryContext sagaTelemetryContext, Exception exception, string? context = null)
     {
         return Task.CompletedTask;
     }
 
-    public Task ActivateLongOperationAsync(string sagaId)
+    public Task ActivateLongOperationAsync(SagaTelemetryContext sagaTelemetryContext)
     {
         return Task.CompletedTask;
     }
 
-    public Task DeactivateLongOperationAsync(string sagaId)
+    public Task DeactivateLongOperationAsync(SagaTelemetryContext sagaTelemetryContext)
     {
         return Task.CompletedTask;
     }

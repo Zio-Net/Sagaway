@@ -27,6 +27,7 @@ namespace Sagaway
         private bool _deactivated;
         private bool _hasFailedReported;
         private readonly ILockWrapper _lock;
+        private readonly SagaTelemetryContext _telemetryContext;
 
 
         private string SagaStateName => $"Saga_{_sagaUniqueId}";
@@ -39,7 +40,7 @@ namespace Sagaway
         {
             try
             {
-                TelemetryAdapter.StartOperationAsync(_sagaUniqueId, (isReverting ? "Revert" : "") + sagaOperation);
+                TelemetryAdapter.StartOperationAsync(_telemetryContext, (isReverting ? "Revert" : "") + sagaOperation);
             }
             catch (Exception e)
             {
@@ -51,7 +52,7 @@ namespace Sagaway
         {
             try
             {
-                TelemetryAdapter.EndOperationAsync(_sagaUniqueId, (isReverting ? "Revert" : "") + sagaOperation, operationOutcome);
+                TelemetryAdapter.EndOperationAsync(_telemetryContext, (isReverting ? "Revert" : "") + sagaOperation, operationOutcome);
             }
             catch (Exception e)
             {
@@ -63,7 +64,7 @@ namespace Sagaway
         {
             try
             {
-                TelemetryAdapter.RecordRetryAttemptAsync(_sagaUniqueId, (isReverting ? "Revert" : "") + sagaOperationOperation, retryCount);
+                TelemetryAdapter.RecordRetryAttemptAsync(_telemetryContext, (isReverting ? "Revert" : "") + sagaOperationOperation, retryCount);
             }
             catch (Exception e)
             {
@@ -81,7 +82,7 @@ namespace Sagaway
         {
             try
             {
-                TelemetryAdapter.RecordCustomEventAsync(_sagaUniqueId, eventName, properties);
+                TelemetryAdapter.RecordCustomEventAsync(_telemetryContext, eventName, properties);
             }
             catch (Exception e)
             {
@@ -99,7 +100,7 @@ namespace Sagaway
         {
             try
             {
-                TelemetryAdapter.RecordExceptionAsync(_sagaUniqueId, exception, context);
+                TelemetryAdapter.RecordExceptionAsync(_telemetryContext, exception, context);
             }
             catch (Exception e)
             {
@@ -147,8 +148,10 @@ namespace Sagaway
 
             Validate();
             SetExecutableOperationDependencies();
+            _telemetryContext = new SagaTelemetryContext(_sagaUniqueId, $"Saga{typeof(TEOperations).Name}", 
+                new TelemetryDataPersistence(this));
 
-            TelemetryAdapter.StartSagaAsync(_sagaUniqueId, $"Saga{typeof(TEOperations).Name}");
+            TelemetryAdapter.StartSagaAsync(_telemetryContext);
         }
 
         private void Validate()
@@ -266,7 +269,7 @@ namespace Sagaway
                 }
             });
 
-            await TelemetryAdapter.DeactivateLongOperationAsync(_sagaUniqueId);
+            await TelemetryAdapter.DeactivateLongOperationAsync(_telemetryContext);
         }
 
         /// <summary>
@@ -296,7 +299,7 @@ namespace Sagaway
                 }
             });
 
-            await TelemetryAdapter.ActivateLongOperationAsync(_sagaUniqueId);
+            await TelemetryAdapter.ActivateLongOperationAsync(_telemetryContext);
         }
 
         private async Task LoadStateAsync()
@@ -320,6 +323,18 @@ namespace Sagaway
             {
                 operation.LoadState(json);
             }
+
+            var telemetryStateStore = json["telemetryStateStore"]?.GetValue<string>() ?? string.Empty;
+            var telemetryStatePairs = telemetryStateStore.Split('|', StringSplitOptions.RemoveEmptyEntries);
+            foreach (var pair in telemetryStatePairs)
+            {
+                var keyValue = pair.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                if (keyValue.Length == 2)
+                {
+                    _telemetryStateStore[keyValue[0]] = keyValue[1];
+                }
+            }
+
             CheckForCompletion();
         }
 
@@ -335,6 +350,12 @@ namespace Sagaway
             json["isReverting"] = _isReverting;
             json["hasFailedReported"] = _hasFailedReported;
             json["stepRecorder"] = _stepRecorder.ToString();
+
+            var telemetryStateStore = _telemetryStateStore.Aggregate(
+                new StringBuilder(), (sb, pair) => sb.Append($"{pair.Key},{pair.Value}|"), sb=>sb.ToString());
+
+            if (!string.IsNullOrWhiteSpace(telemetryStateStore))
+                json["telemetryStateStore"] = telemetryStateStore;
 
             await _sagaSupportOperations.SaveSagaStateAsync(SagaStateName, json);
         }
@@ -450,7 +471,7 @@ namespace Sagaway
                 {
                     _hasFailedReported = true;
                     _onFailedCallback(recordedSteps);
-                    TelemetryAdapter.RecordCustomEventAsync(_sagaUniqueId, "SagaFailure");
+                    TelemetryAdapter.RecordCustomEventAsync(_telemetryContext, "SagaFailure");
                 }
 
                 if (Reverted && _onRevertedCallback != null)
@@ -483,7 +504,7 @@ namespace Sagaway
                     _logger.LogError(e, "Error calling OnSagaCompleted event");
                 }
                 var telemetryOutcome = Succeeded ? SagaOutcome.Succeeded : Reverted ? SagaOutcome.Reverted : SagaOutcome.PartiallyReverted;
-                TelemetryAdapter.EndSagaAsync(_sagaUniqueId, telemetryOutcome);
+                TelemetryAdapter.EndSagaAsync(_telemetryContext, telemetryOutcome);
             }
             else
             {

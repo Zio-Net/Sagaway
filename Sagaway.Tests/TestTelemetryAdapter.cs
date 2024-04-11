@@ -12,63 +12,68 @@ internal class TestTelemetryAdapter : ITelemetryAdapter
     // Atomically increments the counter and returns the new value.
     private int NextCounter() => Interlocked.Increment(ref _eventCounter);
 
-    public void Initialize(ITelemetryDataPersistence dataPersistence)
-    {
-        // No operation
-    }
 
-    public Task StartSagaAsync(string sagaId, string sagaType)
+    public Task StartSagaAsync(SagaTelemetryContext sagaTelemetryContext)
     {
-        TelemetryEvents.Add(new TelemetryEvent(NextCounter(), "StartSaga", $"SagaID: {sagaId}, Type: {sagaType}"));
+        TelemetryEvents.Add(new TelemetryEvent(NextCounter(),
+            "StartSaga", $"SagaID: {sagaTelemetryContext.SagaId}, Type: {sagaTelemetryContext.SagaType}"));
         return Task.CompletedTask;
     }
 
-    public Task EndSagaAsync(string sagaId, SagaOutcome outcome)
+    public Task EndSagaAsync(SagaTelemetryContext sagaTelemetryContext, SagaOutcome outcome)
     {
-        TelemetryEvents.Add(new TelemetryEvent(NextCounter(), "EndSaga", $"SagaID: {sagaId}, Outcome: {outcome}"));
+        TelemetryEvents.Add(new TelemetryEvent(NextCounter(),
+            "EndSaga", $"SagaID: {sagaTelemetryContext.SagaId}, Outcome: {outcome}"));
         return Task.CompletedTask;
     }
 
-    public Task StartOperationAsync(string sagaId, string operationName)
+    public Task StartOperationAsync(SagaTelemetryContext sagaTelemetryContext, string operationName)
     {
-        TelemetryEvents.Add(new TelemetryEvent(NextCounter(), "StartOperation", $"SagaID: {sagaId}, Operation: {operationName}"));
+        TelemetryEvents.Add(new TelemetryEvent(NextCounter(), 
+            "StartOperation", $"SagaID: {sagaTelemetryContext.SagaId}, Operation: {operationName}"));
         return Task.CompletedTask;
     }
 
-    public Task EndOperationAsync(string sagaId, string operationName, OperationOutcome outcome)
+    public Task EndOperationAsync(SagaTelemetryContext sagaTelemetryContext, string operationName, OperationOutcome outcome)
     {
-        TelemetryEvents.Add(new TelemetryEvent(NextCounter(), "EndOperation", $"SagaID: {sagaId}, Operation: {operationName}, Outcome: {outcome}"));
+        TelemetryEvents.Add(new TelemetryEvent(NextCounter(),
+            "EndOperation", $"SagaID: {sagaTelemetryContext.SagaId}, Operation: {operationName}, Outcome: {outcome}"));
         return Task.CompletedTask;
     }
 
-    public Task RecordRetryAttemptAsync(string sagaId, string operationName, int attemptNumber)
+    public Task RecordRetryAttemptAsync(SagaTelemetryContext sagaTelemetryContext, string operationName, int attemptNumber)
     {
-        TelemetryEvents.Add(new TelemetryEvent(NextCounter(), "RetryAttempt", $"SagaID: {sagaId}, Operation: {operationName}, Attempt: {attemptNumber}"));
+        TelemetryEvents.Add(new TelemetryEvent(NextCounter(),
+            "RetryAttempt", $"SagaID: {sagaTelemetryContext.SagaId}, Operation: {operationName}, Attempt: {attemptNumber}"));
         return Task.CompletedTask;
     }
 
-    public Task RecordCustomEventAsync(string sagaId, string eventName, IDictionary<string, object>? properties = null)
+    public Task RecordCustomEventAsync(SagaTelemetryContext sagaTelemetryContext, string eventName, IDictionary<string, object>? properties = null)
     {
         var props = properties != null ? string.Join(", ", properties.Select(p => $"{p.Key}: {p.Value}")) : "None";
-        TelemetryEvents.Add(new TelemetryEvent(NextCounter(), "CustomEvent", $"SagaID: {sagaId}, Event: {eventName}, Properties: {props}"));
+        TelemetryEvents.Add(new TelemetryEvent(NextCounter(),
+            "CustomEvent", $"SagaID: {sagaTelemetryContext.SagaId}, Event: {eventName}, Properties: {props}"));
         return Task.CompletedTask;
     }
 
-    public Task RecordExceptionAsync(string sagaId, Exception exception, string? context = null)
+    public Task RecordExceptionAsync(SagaTelemetryContext sagaTelemetryContext, Exception exception, string? context = null)
     {
-        TelemetryEvents.Add(new TelemetryEvent(NextCounter(), "Exception", $"SagaID: {sagaId}, Context: {context}, Exception: {exception.Message}"));
+        TelemetryEvents.Add(new TelemetryEvent(NextCounter(),
+            "Exception", $"SagaID: {sagaTelemetryContext.SagaId}, Context: {context}, Exception: {exception.Message}"));
         return Task.CompletedTask;
     }
 
-    public Task ActivateLongOperationAsync(string sagaId)
+    public Task ActivateLongOperationAsync(SagaTelemetryContext sagaTelemetryContext)
     {
-        TelemetryEvents.Add(new TelemetryEvent(NextCounter(), "ActivateLongOperation", $"SagaID: {sagaId}"));
+        TelemetryEvents.Add(new TelemetryEvent(NextCounter(),
+            "ActivateLongOperation", $"SagaID: {sagaTelemetryContext.SagaId}"));
         return Task.CompletedTask;
     }
 
-    public Task DeactivateLongOperationAsync(string sagaId)
+    public Task DeactivateLongOperationAsync(SagaTelemetryContext sagaTelemetryContext)
     {
-        TelemetryEvents.Add(new TelemetryEvent(NextCounter(), "DeactivateLongOperation", $"SagaID: {sagaId}"));
+        TelemetryEvents.Add(new TelemetryEvent(NextCounter(),
+            "DeactivateLongOperation", $"SagaID: {sagaTelemetryContext.SagaId}"));
         return Task.CompletedTask;
     }
 
