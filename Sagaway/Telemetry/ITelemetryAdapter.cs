@@ -12,7 +12,8 @@ public interface ITelemetryAdapter
     /// Marks the start of a Saga, capturing the start time.
     /// </summary>
     /// <param name="sagaTelemetryContext">The saga context with the saga id, type, and persistence storage</param>
-    Task StartSagaAsync(SagaTelemetryContext sagaTelemetryContext);
+    /// <param name="isNew">The saga is new and not restarted after deactivation</param>
+    Task StartSagaAsync(SagaTelemetryContext sagaTelemetryContext, bool isNew);
 
     /// <summary>
     /// Marks the completion of a Saga, capturing the end time and outcome.
@@ -65,11 +66,4 @@ public interface ITelemetryAdapter
     /// </summary>
     /// <param name="sagaTelemetryContext">The saga context with the saga id, type, and persistence storage</param>
     Task ActivateLongOperationAsync(SagaTelemetryContext sagaTelemetryContext);
-
-    /// <summary>
-    /// Signals the end of a potentially long-running operation within the Saga,
-    /// allowing the telemetry adapter to finalize any pending telemetry data.
-    /// </summary>
-    /// <param name="sagaTelemetryContext">The saga context with the saga id, type, and persistence storage</param>
-    Task DeactivateLongOperationAsync(SagaTelemetryContext sagaTelemetryContext);
 }

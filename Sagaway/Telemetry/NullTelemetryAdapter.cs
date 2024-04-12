@@ -45,9 +45,4 @@ public class NullTelemetryAdapter : ITelemetryAdapter
     {
         return Task.CompletedTask;
     }
-
-    public Task DeactivateLongOperationAsync(SagaTelemetryContext sagaTelemetryContext)
-    {
-        return Task.CompletedTask;
-    }
 }

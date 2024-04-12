@@ -150,8 +150,6 @@ namespace Sagaway
             SetExecutableOperationDependencies();
             _telemetryContext = new SagaTelemetryContext(_sagaUniqueId, $"Saga{typeof(TEOperations).Name}", 
                 new TelemetryDataPersistence(this));
-
-            TelemetryAdapter.StartSagaAsync(_telemetryContext);
         }
 
         private void Validate()
@@ -250,12 +248,14 @@ namespace Sagaway
         /// <returns>Async operation</returns>
         public async Task InformActivatedAsync()
         {
+            bool isNew = false; 
+
             await _lock.LockAsync(async () =>
             {
                 _deactivated = false;
                 try
                 {
-                    await LoadStateAsync();
+                    isNew = await LoadStateAsync();
                 }
                 catch (Exception ex)
                 {
@@ -269,7 +269,7 @@ namespace Sagaway
                 }
             });
 
-            await TelemetryAdapter.DeactivateLongOperationAsync(_telemetryContext);
+            await TelemetryAdapter.StartSagaAsync(_telemetryContext, isNew);
         }
 
         /// <summary>
@@ -302,13 +302,14 @@ namespace Sagaway
             await TelemetryAdapter.ActivateLongOperationAsync(_telemetryContext);
         }
 
-        private async Task LoadStateAsync()
+        //load the state of the saga, if there is no state, it is a new saga
+        private async Task<bool> LoadStateAsync()
         {
             var json = await _sagaSupportOperations.LoadSagaAsync(SagaStateName);
             if (json is null)
             {
                 _logger.LogInformation($"State {SagaStateName} is not found in persistence store, Assuming first run.");
-                return;
+                return true;
             }
 
             var uniqueId = json["sagaUniqueId"]?.GetValue<string>();
@@ -336,6 +337,7 @@ namespace Sagaway
             }
 
             CheckForCompletion();
+            return false; //new saga
         }
 
         private async Task StoreStateAsync()
