@@ -92,229 +92,307 @@ public class OpenTelemetryAdapter(string activitySourceName) : ITelemetryAdapter
         }
     }
 
+    private string GetSagaActivityName(SagaTelemetryContext stc) => $"{stc.SagaType}-{stc.SagaId}";
+
+    private string GetOperationActivityName(SagaTelemetryContext stc, string operationName) =>
+        $"{stc.SagaType}-{stc.SagaId}-{operationName}";
+
     public async Task StartSagaAsync(SagaTelemetryContext stc, bool isNew)
     {
-        ActivityContext activityContext = default;
-        if (!isNew)
+        try
         {
-            // Check if we are resuming a deactivated saga
-            var (parentTraceId, parentSpanId) = await GetParentTraceContextIfDeactivated(stc);
+            var sagaActivityName = GetSagaActivityName(stc);
 
-            // Use parentTraceId and parentSpanId to link to the original trace if saga was previously deactivated
-            activityContext = parentTraceId != default && parentSpanId != default
-                ? new ActivityContext(parentTraceId, parentSpanId, ActivityTraceFlags.Recorded)
-                : default;
+            ActivityContext activityContext = default;
 
-            await ReadDeactivatedOperations(stc);
+            if (!isNew)
+            {
+                // Check if we are resuming a deactivated saga
+                var (parentTraceId, parentSpanId) = await GetParentTraceContextIfDeactivated(stc);
 
-            stc.Logger.LogInformation("Reactivated saga {SagaId} with traceId {TraceId} and spanId {SpanId}",
-                               stc.SagaId, parentTraceId, parentSpanId);
+                // Use parentTraceId and parentSpanId to link to the original trace if saga was previously deactivated
+                activityContext = parentTraceId != default && parentSpanId != default
+                    ? new ActivityContext(parentTraceId, parentSpanId, ActivityTraceFlags.Recorded)
+                    : default;
+
+                await ReadDeactivatedOperations(stc);
+
+                stc.Logger.LogInformation("Reactivated saga {SagaId} with traceId {TraceId} and spanId {SpanId}",
+                    stc.SagaId, parentTraceId, parentSpanId);
+            }
+            else
+            {
+                // Extract the context from the incoming HTTP request's headers
+                if (Activity.Current != null)
+                {
+                    // Use the current activity (which is automatically created for incoming requests by ASP.NET Core)
+                    activityContext = Activity.Current.Context;
+                }
+            }
+
+            // Start an activity for the saga with a specific name and type
+            // This creates or represents a new tracing span
+            // Start a new activity with the specified or default context
+            var activity =
+                _activitySource.StartActivity(sagaActivityName, ActivityKind.Server, activityContext);
+
+            if (activity == null)
+            {
+                // If no activity is started, it could be due to sampling or configuration
+                // In this case, there's nothing more to do
+                stc.Logger.LogWarning("Failed to start activity for saga {SagaId}", stc.SagaId);
+                return;
+            }
+
+            // Set initial tags for the activity, useful for querying and filtering in tracing systems
+            activity.SetTag("saga.id", stc.SagaId);
+            activity.SetTag("saga.type", stc.SagaType);
+
+            _sagaActivities[sagaActivityName] = activity;
+
+            stc.Logger.LogInformation("Started activity for saga {SagaId}", stc.SagaId);
         }
-
-
-        // Start an activity for the saga with a specific name and type
-        // This creates or represents a new tracing span
-        // Start a new activity with the specified or default context
-        var activity = _activitySource.StartActivity($"{stc.SagaType}-{stc.SagaId}",
-            ActivityKind.Server, activityContext);
-
-        if (activity == null)
+        catch (Exception ex)
         {
-            // If no activity is started, it could be due to sampling or configuration
-            // In this case, there's nothing more to do
-            stc.Logger.LogWarning("Failed to start activity for saga {SagaId}", stc.SagaId);
-            return;
+            stc.Logger.LogError(ex, "Failed to start activity for saga {SagaId}", stc.SagaId);
         }
-
-        // Set initial tags for the activity, useful for querying and filtering in tracing systems
-        activity.SetTag("saga.id", stc.SagaId);
-        activity.SetTag("saga.type", stc.SagaType);
-
-        _sagaActivities[stc.SagaId] = activity;
-
-        stc.Logger.LogInformation("Started activity for saga {SagaId}", stc.SagaId);
     }
 
 
     public async Task EndSagaAsync(SagaTelemetryContext stc, SagaOutcome outcome)
     {
-        if (_sagaActivities.TryRemove(stc.SagaId, out var sagaActivity))
+        try
         {
-            sagaActivity.SetTag("saga.outcome", outcome.ToString());
-            sagaActivity.Stop();
+            if (_sagaActivities.TryRemove(GetSagaActivityName(stc), out var sagaActivity))
+            {
+                sagaActivity.SetTag("saga.outcome", outcome.ToString());
+                sagaActivity.Stop();
 
-            // delete persisted saga trace context if no longer needed
-            await stc.TelemetryDataPersistence.DeleteDataAsync(
-                $"Saga:{stc.SagaId}:TraceId");
-            await stc.TelemetryDataPersistence.DeleteDataAsync(
-                $"Saga:{stc.SagaId}:SpanId");
+                // delete persisted saga trace context if no longer needed
+                await stc.TelemetryDataPersistence.DeleteDataAsync(
+                    $"Saga:{stc.SagaId}:TraceId");
+                await stc.TelemetryDataPersistence.DeleteDataAsync(
+                    $"Saga:{stc.SagaId}:SpanId");
 
-            stc.Logger.LogInformation("Ended activity for saga {SagaId} with outcome {Outcome}",
-                               stc.SagaId, outcome);
+                stc.Logger.LogInformation("Ended activity for saga {SagaId} with outcome {Outcome}",
+                    stc.SagaId, outcome);
+            }
+            else
+            {
+                stc.Logger.LogWarning("Ending Saga Activity: No activity found for saga {SagaId}", stc.SagaId);
+            }
         }
-        else
+        catch (Exception ex)
         {
-            stc.Logger.LogWarning("Ending Saga Activity: No activity found for saga {SagaId}", stc.SagaId);
+            stc.Logger.LogError(ex, "Failed to end activity for saga {SagaId}", stc.SagaId);
         }
     }
 
     public async Task StartOperationAsync(SagaTelemetryContext stc, string operationName)
     {
-        Activity? operationActivity;
-
-        //check if the operation has been deactivated
-        if (_deactivatedOperationActivities.TryGetValue($"{stc.SagaId}-{operationName}",
-                out var operationEntry))
+        try
         {
-            // Create a linked span for this operation
-            operationActivity = _activitySource.StartActivity($"ReactivatedOperation-{operationName}",
-                ActivityKind.Internal,
-                new ActivityContext(ActivityTraceId.CreateFromString(operationEntry.TraceId.AsSpan()),
-                    ActivitySpanId.CreateFromString(operationEntry.SpanId.AsSpan()), ActivityTraceFlags.Recorded));
-
-            if (operationActivity != null)
+            Activity? operationActivity;
+            var operationActivityName = GetOperationActivityName(stc, operationName);
+            //check if the operation has been deactivated
+            if (_deactivatedOperationActivities.TryGetValue(operationActivityName,
+                    out var operationEntry))
             {
-                // Restore operation activity in your tracking structure if needed
-                _operationActivities[$"{stc.SagaId}-{operationName}"] = operationActivity;
-                stc.Logger.LogInformation("Reactivated activity for operation {OperationName}", operationName);
+                // Create a linked span for this operation
+                operationActivity = _activitySource.StartActivity($"ReactivatedOperation-{operationName}",
+                    ActivityKind.Internal,
+                    new ActivityContext(ActivityTraceId.CreateFromString(operationEntry.TraceId.AsSpan()),
+                        ActivitySpanId.CreateFromString(operationEntry.SpanId.AsSpan()), ActivityTraceFlags.Recorded));
+
+                if (operationActivity != null)
+                {
+                    // Restore operation activity in your tracking structure if needed
+                    _operationActivities[operationActivityName] = operationActivity;
+                    stc.Logger.LogInformation("Reactivated activity for operation {OperationName}", operationName);
+                }
             }
+            else //no previous activity found, use the saga activity as parent
+            {
+                _sagaActivities.TryGetValue(GetSagaActivityName(stc), out var parentActivity);
+
+                //if parent activity is not found, use the current activity
+                parentActivity ??= Activity.Current;
+
+                // Start or link operation activity
+                operationActivity = _activitySource.StartActivity($"Operation-{operationName}", ActivityKind.Internal,
+                    parentActivity?.Context ?? default);
+
+                stc.Logger.LogInformation("Started activity for operation {OperationName}", operationName);
+            }
+
+            if (operationActivity == null)
+            {
+                stc.Logger.LogWarning("Failed to start activity for operation {OperationName}", operationName);
+                return;
+            }
+
+            // Set initial tags or details for the activity
+            operationActivity.SetTag("operation.name", operationName);
+            operationActivity.SetTag("saga.id", stc.SagaId);
+
+            //add the activity to the tracking structure
+            _operationActivities[operationActivityName] = operationActivity;
+
+            await PersistActiveOperationStateAsync(stc);
         }
-        else //no previous activity found, use the saga activity as parent
+        catch (Exception ex)
         {
-            _sagaActivities.TryGetValue(stc.SagaId, out var parentActivity);
-                    
-            // Start or link operation activity
-            operationActivity = _activitySource.StartActivity($"Operation-{operationName}", ActivityKind.Internal,
-                parentActivity?.Context ?? default);
-
-            stc.Logger.LogInformation("Started activity for operation {OperationName}", operationName);
+            stc.Logger.LogError(ex, "Failed to start activity for operation {OperationName}", operationName);
         }
-
-        if (operationActivity == null)
-        {
-            stc.Logger.LogWarning("Failed to start activity for operation {OperationName}", operationName);
-            return;
-        }
-
-        // Set initial tags or details for the activity
-        operationActivity.SetTag("operation.name", operationName);
-        operationActivity.SetTag("saga.id", stc.SagaId);
-
-        //add the activity to the tracking structure
-        _operationActivities[$"{stc.SagaId}-{operationName}"] = operationActivity;
-
-        await PersistActiveOperationStateAsync(stc);
     }
 
     public async Task EndOperationAsync(SagaTelemetryContext stc, string operationName,
         OperationOutcome outcome)
     {
-        var operationKey = $"{stc.SagaId}-{operationName}";
-        if (_operationActivities.TryRemove(operationKey, out var operationActivity))
+        try
         {
-            operationActivity.SetTag("operation.outcome", outcome.ToString());
-            operationActivity.Stop();
-            await PersistActiveOperationStateAsync(stc);
+            var operationKey = GetOperationActivityName(stc, operationName);
+            if (_operationActivities.TryRemove(operationKey, out var operationActivity))
+            {
+                operationActivity.SetTag("operation.outcome", outcome.ToString());
+                operationActivity.Stop();
+                await PersistActiveOperationStateAsync(stc);
 
-            stc.Logger.LogInformation("Ended activity for operation {OperationName} with outcome {Outcome}",
-                                              operationName, outcome);
+                stc.Logger.LogInformation("Ended activity for operation {OperationName} with outcome {Outcome}",
+                    operationName, outcome);
+            }
+            else
+            {
+                stc.Logger.LogWarning("Ending Operation Activity: No activity found for operation {OperationName}",
+                    operationName);
+            }
         }
-        else
+        catch (Exception ex)
         {
-            stc.Logger.LogWarning("Ending Operation Activity: No activity found for operation {OperationName}",
-                               operationName);
+            stc.Logger.LogError(ex, "Failed to end activity for operation {OperationName}", operationName);
         }
     }
 
     public async Task RecordRetryAttemptAsync(SagaTelemetryContext stc, string operationName,
         int attemptNumber)
     {
-        var operationKey = $"{stc.SagaId}-{operationName}";
-        if (_operationActivities.TryGetValue(operationKey, out var operationActivity))
+        try
         {
-            operationActivity.AddEvent(new ActivityEvent($"RetryAttempt-{attemptNumber}"));
-            stc.Logger.LogInformation("Recorded retry attempt {AttemptNumber} for operation {OperationName}",
-                                              attemptNumber, operationName);
-        }
-        else
-        {
-            stc.Logger.LogWarning("Recording Retry Attempt: No activity found for operation {OperationName}",
-                                              operationName);
-        }
+            var operationKey = GetOperationActivityName(stc, operationName);
+            if (_operationActivities.TryGetValue(operationKey, out var operationActivity))
+            {
+                operationActivity.AddEvent(new ActivityEvent($"RetryAttempt-{attemptNumber}"));
+                stc.Logger.LogInformation("Recorded retry attempt {AttemptNumber} for operation {OperationName}",
+                    attemptNumber, operationName);
+            }
+            else
+            {
+                stc.Logger.LogWarning("Recording Retry Attempt: No activity found for operation {OperationName}",
+                    operationName);
+            }
 
-        await Task.CompletedTask;
+            await Task.CompletedTask;
+        }
+        catch (Exception ex)
+        {
+            stc.Logger.LogError(ex, "Failed to record retry attempt {AttemptNumber} for operation {OperationName}",
+                               attemptNumber, operationName);
+        }
     }
 
     public async Task RecordCustomEventAsync(SagaTelemetryContext stc, string eventName,
         IDictionary<string, object>? properties = null)
     {
-        if (_sagaActivities.TryGetValue(stc.SagaId, out var sagaActivity))
+        try
         {
-            stc.Logger.LogInformation("Recording custom event {EventName} for saga {SagaId}", eventName, stc.SagaId);
-
-            if (properties == null)
+            if (_sagaActivities.TryGetValue(GetSagaActivityName(stc), out var sagaActivity))
             {
-                sagaActivity.AddEvent(new ActivityEvent(eventName));
-                return;
+                stc.Logger.LogInformation("Recording custom event {EventName} for saga {SagaId}", eventName,
+                    stc.SagaId);
+
+                if (properties == null)
+                {
+                    sagaActivity.AddEvent(new ActivityEvent(eventName));
+                    return;
+                }
+                //else
+
+                var tagsCollection = new ActivityTagsCollection(properties!);
+                sagaActivity.AddEvent(new ActivityEvent(eventName, tags: tagsCollection));
             }
-            //else
+            else
+            {
+                stc.Logger.LogWarning("Recording Custom Event: No activity found for saga {SagaId}", stc.SagaId);
+            }
 
-            var tagsCollection = new ActivityTagsCollection(properties!);
-            sagaActivity.AddEvent(new ActivityEvent(eventName, tags: tagsCollection));
+            await Task.CompletedTask;
         }
-        else
+        catch (Exception ex)
         {
-            stc.Logger.LogWarning("Recording Custom Event: No activity found for saga {SagaId}", stc.SagaId);
+            stc.Logger.LogError(ex, "Failed to record custom event {EventName} for saga {SagaId}", eventName, stc.SagaId);
         }
-
-        await Task.CompletedTask;
     }
 
     public async Task RecordExceptionAsync(SagaTelemetryContext stc, Exception exception,
         string? context = null)
     {
-        if (_sagaActivities.TryGetValue(stc.SagaId, out var sagaActivity))
+        try
         {
-            sagaActivity.RecordException(exception);
-            if (context != null)
+            if (_sagaActivities.TryGetValue(GetSagaActivityName(stc), out var sagaActivity))
             {
-                sagaActivity.SetTag("exception.context", context);
-            }
-            stc.Logger.LogInformation(exception, "Recorded exception for saga {SagaId}", stc.SagaId);
-        }
-        else
-        {
-            stc.Logger.LogWarning("Recording Exception: No activity found for saga {SagaId}", stc.SagaId);
-        }
+                sagaActivity.RecordException(exception);
+                if (context != null)
+                {
+                    sagaActivity.SetTag("exception.context", context);
+                }
 
-        await Task.CompletedTask;
+                stc.Logger.LogInformation(exception, "Recorded exception for saga {SagaId}", stc.SagaId);
+            }
+            else
+            {
+                stc.Logger.LogWarning("Recording Exception: No activity found for saga {SagaId}", stc.SagaId);
+            }
+
+            await Task.CompletedTask;
+        }
+        catch (Exception ex)
+        {
+            stc.Logger.LogError(ex, "Failed to record exception for saga {SagaId}", stc.SagaId);
+        }
     }
 
     public async Task ActivateLongOperationAsync(SagaTelemetryContext stc)
     {
-        // Deactivate the main saga activity
-        if (_sagaActivities.TryRemove(stc.SagaId, out var sagaActivity))
+        try
         {
-            sagaActivity.Stop();
-            await PersistSagaTraceContext(stc, sagaActivity.Context.TraceId,
-                sagaActivity.Context.SpanId);
-            _sagaActivities[stc.SagaId] = sagaActivity;
+            // Deactivate the main saga activity
+            if (_sagaActivities.TryRemove(GetSagaActivityName(stc), out var sagaActivity))
+            {
+                sagaActivity.Stop();
+                await PersistSagaTraceContext(stc, sagaActivity.Context.TraceId,
+                    sagaActivity.Context.SpanId);
+                _sagaActivities[stc.SagaId] = sagaActivity;
 
-            stc.Logger.LogInformation("Deactivated saga activity {SagaId}", stc.SagaId);
+                stc.Logger.LogInformation("Deactivated saga activity {SagaId}", stc.SagaId);
+            }
+            else
+            {
+                stc.Logger.LogWarning("Deactivating Saga Activity: No activity found for saga {SagaId}", stc.SagaId);
+            }
+
+            // Stop all operation activities and mark them as inactive
+            foreach (var (_, activity) in _operationActivities)
+            {
+                activity.Stop();
+                stc.Logger.LogInformation("Deactivated operation activity {OperationName}", activity.DisplayName);
+            }
+
+            _operationActivities.Clear();
         }
-        else
+        catch (Exception ex)
         {
-            stc.Logger.LogWarning("Deactivating Saga Activity: No activity found for saga {SagaId}", stc.SagaId);
+            stc.Logger.LogError(ex, "Failed to deactivate saga activity {SagaId}", stc.SagaId);
         }
-
-        // Stop all operation activities and mark them as inactive
-        foreach (var (_, activity) in _operationActivities)
-        {
-            activity.Stop();
-            stc.Logger.LogInformation("Deactivated operation activity {OperationName}", activity.DisplayName);
-        }
-
-        _operationActivities.Clear();
     }
 }
 

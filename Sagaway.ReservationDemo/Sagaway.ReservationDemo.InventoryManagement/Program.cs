@@ -6,6 +6,7 @@ using Sagaway.Callback.Propagator;
 using Sagaway.ReservationDemo.InventoryManagement;
 using System.Globalization;
 using System.Net;
+using OpenTelemetry.Trace;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,6 +28,15 @@ builder.Services.AddSagawayContextPropagator();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddOpenTelemetry().WithTracing(tracing =>
+{
+    tracing.AddAspNetCoreInstrumentation();
+    tracing.AddHttpClientInstrumentation();
+    tracing.AddZipkinExporter(options =>
+    {
+        options.Endpoint = new Uri("http://localhost:9411/api/v2/spans");
+    });
+});
 
 var app = builder.Build();
 

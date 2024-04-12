@@ -54,11 +54,15 @@ builder.Services.AddActors(options =>
 });
 
 //add and configure open telemetry to trace all
-builder.Services.AddSagaOpenTelemetry(configureTracerProvider =>
+builder.Services.AddSagawayOpenTelemetry(configureTracerProvider =>
 {
     configureTracerProvider
         .AddAspNetCoreInstrumentation() // Instruments incoming requests
         .AddHttpClientInstrumentation() // Instrument outgoing HTTP requests
+        .AddZipkinExporter(options =>
+        {
+            options.Endpoint = new Uri("http://localhost:9411/api/v2/spans");
+        })
         .SetSampler(new AlwaysOnSampler()); // Collect all samples. Adjust as necessary for production.
 }, "OrchestrationService");
 
@@ -92,6 +96,7 @@ app.MapHealthChecks("/healthz");
 app.UseSagawayCallbackRouter("test-response-queue");
 
 app.MapPost("/run-test", async (
+        HttpContext context,
         [FromServices] IActorProxyFactory actorProxyFactory,
         [FromServices] ILogger < Program > logger,
         [FromServices] DaprClient daprClient,

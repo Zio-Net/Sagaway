@@ -47,6 +47,10 @@ public class IntegrationTestSupportFixture : IDisposable
         _tracerProvider = Sdk.CreateTracerProviderBuilder()
             .AddHttpClientInstrumentation() // Instrument outgoing HTTP requests
             .AddAspNetCoreInstrumentation() // Optionally instrument incoming request to mock servers or in-tests controllers
+            .AddZipkinExporter(options =>
+            {
+                options.Endpoint = new Uri("http://localhost:9411/api/v2/spans");
+            })
             .SetSampler(new AlwaysOnSampler())
             .AddProcessor(new SimpleActivityExportProcessor(_openTelemetryInMemoryExporter))
             .Build();

@@ -248,12 +248,14 @@ namespace Sagaway
         /// <returns>Async operation</returns>
         public async Task InformActivatedAsync()
         {
+            bool isNew = false; 
+
             await _lock.LockAsync(async () =>
             {
                 _deactivated = false;
                 try
                 {
-                    await LoadStateAsync();
+                    isNew = await LoadStateAsync();
                 }
                 catch (Exception ex)
                 {
@@ -267,7 +269,7 @@ namespace Sagaway
                 }
             });
 
-            await TelemetryAdapter.StartSagaAsync(_telemetryContext, false);
+            await TelemetryAdapter.StartSagaAsync(_telemetryContext, isNew);
         }
 
         /// <summary>
@@ -301,13 +303,13 @@ namespace Sagaway
         }
 
         //load the state of the saga, if there is no state, it is a new saga
-        private async Task LoadStateAsync()
+        private async Task<bool> LoadStateAsync()
         {
             var json = await _sagaSupportOperations.LoadSagaAsync(SagaStateName);
             if (json is null)
             {
                 _logger.LogInformation($"State {SagaStateName} is not found in persistence store, Assuming first run.");
-                return;
+                return true;
             }
 
             var uniqueId = json["sagaUniqueId"]?.GetValue<string>();
@@ -335,6 +337,7 @@ namespace Sagaway
             }
 
             CheckForCompletion();
+            return false; //new saga
         }
 
         private async Task StoreStateAsync()
@@ -364,8 +367,11 @@ namespace Sagaway
         /// </summary>
         public event EventHandler<SagaCompletionEventArgs>? OnSagaCompleted;
 
-
-        private async Task ContinueExecutionAsync()
+        /// <summary>
+        /// Execute the saga
+        /// </summary>
+        /// <returns>Async method</returns>
+        public async Task RunAsync()
         {
             await _lock.LockAsync(async () =>
             {
@@ -384,16 +390,6 @@ namespace Sagaway
                     }
                 }
             });
-        }
-        /// <summary>
-        /// Execute the saga dor the first time
-        /// </summary>
-        /// <returns>Async method</returns>
-        public async Task RunAsync()
-        {
-            await TelemetryAdapter.StartSagaAsync(_telemetryContext, true);
-            await ContinueExecutionAsync();
-            
         }
 
         /// <summary>
@@ -424,7 +420,7 @@ namespace Sagaway
                 }
                 finally
                 {
-                    await ContinueExecutionAsync();
+                    await RunAsync();
                 }
             });
         }

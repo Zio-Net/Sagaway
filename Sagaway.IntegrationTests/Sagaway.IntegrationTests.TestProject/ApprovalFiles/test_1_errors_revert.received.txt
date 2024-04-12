@@ -1,2 +1,53 @@
-﻿test_1_errors_revert
-An error occurred while sending the request.
+﻿Test Name: test_1_errors_revert
+Result: False
+Saga Log:
+[*time*][CallA]: Start Executing CallA
+[*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:10
+[*time*][CallA]: Retry CallA. Retry count: 1
+[*time*][CallA]: Start Executing CallA
+[*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:10
+[*time*][CallA]: CallA Failed. Retries exhausted.
+[*time*][CallA]: Start Executing Revert CallA
+[*time*][CallA]: Registering reminder CallA:Retry for Revert CallA with interval 00:00:10
+[*time*][CallA]: Revert CallA Success
+Open Telemetry:
+Activity: POST
+Sequence: 0
+Id: 00-88f35b32a962c7d9f02cbf81adf25b6d-1f1feae3d7ff063c-01
+ParentId: 
+Tags:
+  http.request.method=POST
+  server.address=localhost
+  url.full=http://localhost:6969/negotiate?negotiateVersion=1
+  network.protocol.version=1.1
+---
+Activity: POST
+Sequence: 1
+Id: 00-01a21d9119ffbe14e55e62661c8f98e3-ff5d19e7825efdec-01
+ParentId: 
+Tags:
+  http.request.method=POST
+  server.address=localhost
+  url.full=http://localhost:8888/client/negotiate?hub=testcallback&negotiateVersion=1
+  network.protocol.version=1.1
+---
+Activity: GET
+Sequence: 2
+Id: 00-14e8ad414781c77007406583a3f4cc4b-c3cca24f1d0b34c6-01
+ParentId: 
+Tags:
+  http.request.method=GET
+  server.address=localhost
+  url.full=ws://localhost:8888/client/?hub=testcallback&id=1jpsDmA7K4bdIYsjtvDMyA
+  network.protocol.version=1.1
+---
+Activity: POST
+Sequence: 3
+Id: 00-b43332997e3c3e558c8b87b290a1a6ef-fc2b092e8c02cea6-01
+ParentId: 
+Tags:
+  http.request.method=POST
+  server.address=localhost
+  url.full=http://localhost:6969/run-test
+  network.protocol.version=1.1
+---

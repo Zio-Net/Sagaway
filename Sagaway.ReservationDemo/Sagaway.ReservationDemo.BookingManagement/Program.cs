@@ -6,6 +6,7 @@ using Sagaway.Callback.Propagator;
 using Sagaway.ReservationDemo.BookingManagement;
 using System.Globalization;
 using System.Net;
+using OpenTelemetry.Trace;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,6 +22,16 @@ builder.Services.AddControllers().AddDaprWithSagawayContextPropagator().AddJsonO
     options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
 });
 
+builder.Services.AddOpenTelemetry().WithTracing(tracing =>
+{
+    tracing.AddAspNetCoreInstrumentation();
+    tracing.AddHttpClientInstrumentation();
+    tracing.AddZipkinExporter(options =>
+    {
+        options.Endpoint = new Uri("http://localhost:9411/api/v2/spans");
+    });
+});
+
 builder.Services.AddHealthChecks();
 builder.Services.AddSagawayContextPropagator();
 builder.Services.AddEndpointsApiExplorer();
@@ -34,6 +45,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+
 
 Dictionary<string, string> jsonMetadata = new() { { "contentType", "application/json" } };
 
