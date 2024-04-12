@@ -6,7 +6,7 @@
 /// </summary>
 public class NullTelemetryAdapter : ITelemetryAdapter
 {
-    public Task StartSagaAsync(SagaTelemetryContext sagaTelemetryContext)
+    public Task StartSagaAsync(SagaTelemetryContext sagaTelemetryContext, bool isNew)
     {
         return Task.CompletedTask;
     }

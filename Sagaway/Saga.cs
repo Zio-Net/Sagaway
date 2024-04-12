@@ -149,7 +149,7 @@ namespace Sagaway
             Validate();
             SetExecutableOperationDependencies();
             _telemetryContext = new SagaTelemetryContext(_sagaUniqueId, $"Saga{typeof(TEOperations).Name}", 
-                new TelemetryDataPersistence(this));
+                logger, new TelemetryDataPersistence(this));
         }
 
         private void Validate()

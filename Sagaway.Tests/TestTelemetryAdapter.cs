@@ -13,10 +13,18 @@ internal class TestTelemetryAdapter : ITelemetryAdapter
     private int NextCounter() => Interlocked.Increment(ref _eventCounter);
 
 
-    public Task StartSagaAsync(SagaTelemetryContext sagaTelemetryContext)
+    public Task StartSagaAsync(SagaTelemetryContext sagaTelemetryContext, bool isNew)
     {
-        TelemetryEvents.Add(new TelemetryEvent(NextCounter(),
-            "StartSaga", $"SagaID: {sagaTelemetryContext.SagaId}, Type: {sagaTelemetryContext.SagaType}"));
+        if (isNew)
+        {
+            TelemetryEvents.Add(new TelemetryEvent(NextCounter(),
+                "StartSaga", $"SagaID: {sagaTelemetryContext.SagaId}, Type: {sagaTelemetryContext.SagaType}"));
+        }
+        else
+        {
+            DeactivateLongOperationAsync(sagaTelemetryContext);
+        }
+
         return Task.CompletedTask;
     }
 
