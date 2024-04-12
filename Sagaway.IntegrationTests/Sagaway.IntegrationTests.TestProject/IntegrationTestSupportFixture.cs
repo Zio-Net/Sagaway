@@ -1,6 +1,8 @@
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using OpenTelemetry;
+using OpenTelemetry.Trace;
 using Polly;
 using Polly.Extensions.Http;
 using Xunit.Abstractions;
@@ -15,6 +17,8 @@ public class IntegrationTestSupportFixture : IDisposable
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly Random _jitterer = new();
     private bool _isDisposed;
+    private readonly OpenTelemetryInMemoryExporter _openTelemetryInMemoryExporter;
+    private readonly TracerProvider _tracerProvider;
 
     public IntegrationTestSupportFixture()
     {
@@ -36,13 +40,25 @@ public class IntegrationTestSupportFixture : IDisposable
 
         AddRobustHttpClient<IntegrationTestSupportFixture>(services, baseUrl: testServiceUrl);
 
+        // Setup OpenTelemetry
+        _openTelemetryInMemoryExporter = new OpenTelemetryInMemoryExporter();
+
+
+        _tracerProvider = Sdk.CreateTracerProviderBuilder()
+            .AddHttpClientInstrumentation() // Instrument outgoing HTTP requests
+            .AddAspNetCoreInstrumentation() // Optionally instrument incoming request to mock servers or in-tests controllers
+            .SetSampler(new AlwaysOnSampler())
+            .AddProcessor(new SimpleActivityExportProcessor(_openTelemetryInMemoryExporter))
+            .Build();
+
+
         var serviceProvider = services.BuildServiceProvider();
         _httpClientFactory = serviceProvider.GetRequiredService<IHttpClientFactory>();
 
         _testHttpClient = _httpClientFactory.CreateClient("IntegrationTestSupportFixture");
     }
 
-
+    public string GetOpenTelemetrySerializedActivities() => _openTelemetryInMemoryExporter.GetSerializedActivities();
 
     // ReSharper disable once MemberCanBePrivate.Global
     public ITestOutputHelper TestOutputHelper { get; private set; } = null!; //must be set by each test class
@@ -131,7 +147,7 @@ public class IntegrationTestSupportFixture : IDisposable
     {
         if (_isDisposed)
             return;
-   
+        _tracerProvider.Dispose();
         _testHttpClient.Dispose();
         _isDisposed = true;
     }

@@ -7,6 +7,8 @@ using Dapr.Client;
 using Sagaway.Callback.Router;
 using Sagaway.IntegrationTests.OrchestrationService;
 using Sagaway.IntegrationTests.OrchestrationService.Actors;
+using Sagaway.OpenTelemetry;
+using OpenTelemetry.Trace;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -50,6 +52,15 @@ builder.Services.AddActors(options =>
         PropertyNameCaseInsensitive = true
     };
 });
+
+//add and configure open telemetry to trace all
+builder.Services.AddSagaOpenTelemetry(configureTracerProvider =>
+{
+    configureTracerProvider
+        .AddAspNetCoreInstrumentation() // Instruments incoming requests
+        .AddHttpClientInstrumentation() // Instrument outgoing HTTP requests
+        .SetSampler(new AlwaysOnSampler()); // Collect all samples. Adjust as necessary for production.
+}, "OrchestrationService");
 
 builder.Services.AddCors(options =>
 {

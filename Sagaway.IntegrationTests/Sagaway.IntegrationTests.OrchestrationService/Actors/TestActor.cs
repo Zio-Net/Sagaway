@@ -14,9 +14,8 @@ public class TestActor : DaprActorHost<TestActorOperations>, ITestActor
     private TestInfo? _testInfo;
 
     // ReSharper disable once ConvertToPrimaryConstructor
-    public TestActor(ActorHost host, 
-        ILogger<TestActor> logger)
-        : base(host, logger)
+    public TestActor(ActorHost host, ILogger<TestActor> logger, IServiceProvider? serviceProvider)
+        : base(host, logger, serviceProvider)
     {
         _actorHost = host;
         _logger = logger;

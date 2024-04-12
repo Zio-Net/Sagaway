@@ -24,7 +24,6 @@ public class IntegrationTests
     private ITestOutputHelper TestOutputHelper => _testServiceHelper.TestOutputHelper;
     private HttpClient HttpClient => _testServiceHelper.HttpClient;
     private JsonSerializerOptions SerializeOptions => _testServiceHelper.SerializeOptions;
-
     private ISignalRWrapper SignalR => _testServiceHelper.SignalR;
 
     [Theory]
@@ -156,9 +155,12 @@ public class IntegrationTests
 
             var testResult = _testServiceHelper.GetTestResultFromSignalR(testInfo.Id);
 
+            var openTelemetryResults = _testServiceHelper.GetOpenTelemetrySerializedActivities();
+
             var resultText = "Test Name: " + testName + Environment.NewLine +
                              "Result: " + testResult.IsSuccess + Environment.NewLine +
-                             "Saga Log:" + Environment.NewLine +  testResult.SagaLog;
+                             "Saga Log:" + Environment.NewLine +  testResult.SagaLog +
+                             "Open Telemetry:" + Environment.NewLine + openTelemetryResults;
 
             ApprovalVerifyWithDump.Verify(resultText, TestOutputHelper, RemoveDynamic);
         }
