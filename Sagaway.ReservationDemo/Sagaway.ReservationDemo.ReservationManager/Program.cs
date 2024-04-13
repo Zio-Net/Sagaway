@@ -54,10 +54,10 @@ builder.Services.AddSagawayOpenTelemetry(configureTracerProvider =>
         .AddConsoleExporter()
         .AddZipkinExporter(options =>
         {
-            options.Endpoint = new Uri("http://localhost:9411/api/v2/spans");
+            options.Endpoint = new Uri("http://zipkin:9411/api/v2/spans");
         })
         .SetSampler(new AlwaysOnSampler()); // Collect all samples. Adjust as necessary for production.
-}, "ReservationManager");
+}, "ReservationManagerService");
 
 builder.Services.AddHealthChecks();
 builder.Services.AddEndpointsApiExplorer();

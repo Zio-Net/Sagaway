@@ -7,6 +7,7 @@ using Sagaway.ReservationDemo.InventoryManagement;
 using System.Globalization;
 using System.Net;
 using OpenTelemetry.Trace;
+using OpenTelemetry.Resources;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -34,8 +35,9 @@ builder.Services.AddOpenTelemetry().WithTracing(tracing =>
     tracing.AddHttpClientInstrumentation();
     tracing.AddZipkinExporter(options =>
     {
-        options.Endpoint = new Uri("http://localhost:9411/api/v2/spans");
-    });
+        options.Endpoint = new Uri("http://zipkin:9411/api/v2/spans");
+    }).SetResourceBuilder(
+        ResourceBuilder.CreateDefault().AddService("InventoryManagementService"));
 });
 
 var app = builder.Build();

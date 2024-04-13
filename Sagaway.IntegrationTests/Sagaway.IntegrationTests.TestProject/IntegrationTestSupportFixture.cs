@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OpenTelemetry;
+using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Polly;
 using Polly.Extensions.Http;
@@ -52,6 +53,8 @@ public class IntegrationTestSupportFixture : IDisposable
                 options.Endpoint = new Uri("http://localhost:9411/api/v2/spans");
             })
             .SetSampler(new AlwaysOnSampler())
+            .SetResourceBuilder(
+                ResourceBuilder.CreateDefault().AddService("TestProject"))
             .AddProcessor(new SimpleActivityExportProcessor(_openTelemetryInMemoryExporter))
             .Build();
 

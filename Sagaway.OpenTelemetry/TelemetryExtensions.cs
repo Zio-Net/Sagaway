@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using OpenTelemetry;
+using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Sagaway.Telemetry;
 
@@ -22,7 +23,8 @@ public static class TelemetryExtensions
 
         var tracerProviderBuilder = Sdk.CreateTracerProviderBuilder();
         configureTracerProvider(tracerProviderBuilder);
-        tracerProviderBuilder.AddSource(activitySourceName);
+        tracerProviderBuilder.AddSource(activitySourceName).SetResourceBuilder(
+            ResourceBuilder.CreateDefault().AddService(activitySourceName));
         var tracerProvider = tracerProviderBuilder.Build();
 
         services.AddSingleton(tracerProvider);
