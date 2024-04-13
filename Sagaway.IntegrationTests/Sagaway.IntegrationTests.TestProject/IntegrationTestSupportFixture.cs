@@ -18,7 +18,6 @@ public class IntegrationTestSupportFixture : IDisposable
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly Random _jitterer = new();
     private bool _isDisposed;
-    private readonly OpenTelemetryInMemoryExporter _openTelemetryInMemoryExporter;
     private readonly TracerProvider _tracerProvider;
 
     public IntegrationTestSupportFixture()
@@ -42,7 +41,6 @@ public class IntegrationTestSupportFixture : IDisposable
         AddRobustHttpClient<IntegrationTestSupportFixture>(services, baseUrl: testServiceUrl);
 
         // Setup OpenTelemetry
-        _openTelemetryInMemoryExporter = new OpenTelemetryInMemoryExporter();
 
 
         _tracerProvider = Sdk.CreateTracerProviderBuilder()
@@ -55,7 +53,6 @@ public class IntegrationTestSupportFixture : IDisposable
             .SetSampler(new AlwaysOnSampler())
             .SetResourceBuilder(
                 ResourceBuilder.CreateDefault().AddService("TestProject"))
-            .AddProcessor(new SimpleActivityExportProcessor(_openTelemetryInMemoryExporter))
             .Build();
 
 
@@ -64,8 +61,6 @@ public class IntegrationTestSupportFixture : IDisposable
 
         _testHttpClient = _httpClientFactory.CreateClient("IntegrationTestSupportFixture");
     }
-
-    public string GetOpenTelemetrySerializedActivities() => _openTelemetryInMemoryExporter.GetSerializedActivities();
 
     // ReSharper disable once MemberCanBePrivate.Global
     public ITestOutputHelper TestOutputHelper { get; private set; } = null!; //must be set by each test class
