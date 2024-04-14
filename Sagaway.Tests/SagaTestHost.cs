@@ -30,7 +30,7 @@ class SagaTestHost : ISagaSupport
     public async Task<JsonObject?> LoadSagaAsync(string sagaId)
     {
         _state.TryGetValue(sagaId, out JsonObject? state);
-        return await Task.FromResult(state ?? new JsonObject());
+        return await Task.FromResult(state);
     }
 
     public async Task SaveSagaStateAsync(string sagaId, JsonObject state)

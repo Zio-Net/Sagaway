@@ -307,7 +307,8 @@ public partial class Tests
         }
         _saga = builder.Build();
         _saga.OnSagaCompleted += (_, args) => sb.AppendLine($"OnSagaCompleted: Id: {args.SagaId} Status: {args.Status}");
-        
+
+        await _saga.InformActivatedAsync();
         await _saga!.RunAsync();
 
         var stopWatch = new Stopwatch();
