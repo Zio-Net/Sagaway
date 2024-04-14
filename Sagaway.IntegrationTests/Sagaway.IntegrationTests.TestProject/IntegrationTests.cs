@@ -144,8 +144,6 @@ public class IntegrationTests
 
             long startTs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
-            await Task.Delay(2000);
-
             var response = await HttpClient.PostAsync("run-test", body);
 
             var responseContent = await response.Content.ReadAsStringAsync();
@@ -161,11 +159,7 @@ public class IntegrationTests
 
             await Task.Delay(10000);
 
-            long endTs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-
-            long lookBack = endTs - startTs;
-
-            string openTelemetryResults = await GetTracesFromZipkinAsync(endTs, lookBack);
+            string openTelemetryResults = await GetTracesFromZipkinAsync(startTs);
             
             var resultText = "Test Name: " + testName + Environment.NewLine +
                              "Result: " + testResult.IsSuccess + Environment.NewLine +
@@ -188,14 +182,27 @@ public class IntegrationTests
         }
     }
 
-    private async Task<string> GetTracesFromZipkinAsync(long endTs, long lookBack)
+    private async Task<string> GetTracesFromZipkinAsync(long startTs)
     {
-        string url = $"http://localhost:9411/api/v2/traces?endTs={endTs}&lookback={lookBack}&limit=200";
+        string traces = "[]";
 
-        HttpResponseMessage response = await HttpClient.GetAsync(url);
-        Assert.True(response.IsSuccessStatusCode, "Failed to fetch traces");
+        for (int i = 0; i < 10; i++)
+        {
+            long endTs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            long lookBack = endTs - startTs;
 
-        string traces = await response.Content.ReadAsStringAsync();
+            string url = $"http://localhost:9411/api/v2/traces?endTs={endTs}&lookback={lookBack}&limit=200";
+
+            HttpResponseMessage response = await HttpClient.GetAsync(url);
+            Assert.True(response.IsSuccessStatusCode, "Failed to fetch traces");
+
+            traces = await response.Content.ReadAsStringAsync();
+
+            if (traces.Contains("saga.outcome"))
+                break;
+
+            await Task.Delay(1000);
+        }
 
         var options = new JsonSerializerOptions
         {
@@ -219,7 +226,8 @@ public class IntegrationTests
         Dictionary<string, string> nameMap = new ();
 
         var processedTraces = spans
-            .Where(span => span.Tags != null && span.Tags.ContainsKey("saga.id"))  // Filter out traces without saga.id
+            .Where(span => span.Tags != null 
+                           && span.Tags.ContainsKey("saga.id"))  // Filter out traces without saga.id
             .Select(s =>
             {
                 // Map traceId, parentId, and saga.id to constant values

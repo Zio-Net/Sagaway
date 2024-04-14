@@ -281,7 +281,11 @@ public class OpenTelemetryAdapter(string activitySourceName) : ITelemetryAdapter
             var operationKey = GetOperationActivityName(stc, operationName);
             if (_operationActivities.TryGetValue(operationKey, out var operationActivity))
             {
-                operationActivity.AddEvent(new ActivityEvent($"RetryAttempt-{attemptNumber}"));
+                operationActivity.AddEvent(new ActivityEvent($"RetryAttempt-{attemptNumber}",
+                    tags: new()
+                    { { "retry.attemptNumber", attemptNumber }
+                    }));
+
                 stc.Logger.LogInformation("Recorded retry attempt {AttemptNumber} for operation {OperationName}",
                     attemptNumber, operationName);
             }
