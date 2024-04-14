@@ -214,7 +214,8 @@ public class IntegrationTests
 
         List<Span> spans = jsonTraces?.SelectMany(list => list).ToList() ?? new List<Span>();
 
-        var result = ProcessAndFilterTraces(spans);
+        var sortedSpans = spans.OrderBy(span => span.Timestamp).ToList();
+        var result = ProcessAndFilterTraces(sortedSpans);
 
         return result;
     }

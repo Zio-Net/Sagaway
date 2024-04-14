@@ -19,8 +19,24 @@ Open Telemetry:
   {
     "TraceId": "id-1",
     "ParentId": "id-2",
-    "Kind": null,
+    "Kind": "SERVER",
     "Name": "name-4",
+    "LocalEndpoint": {
+      "ServiceName": "orchestrationservice.sagaway"
+    },
+    "Tags": {
+      "otel.library.name": "OrchestrationService.Sagaway",
+      "otel.scope.name": "OrchestrationService.Sagaway",
+      "saga.id": "id-3",
+      "saga.outcome": "PartiallyReverted",
+      "saga.type": "SagaTestActorOperations"
+    }
+  },
+  {
+    "TraceId": "id-1",
+    "ParentId": "id-5",
+    "Kind": null,
+    "Name": "name-6",
     "LocalEndpoint": {
       "ServiceName": "orchestrationservice.sagaway"
     },
@@ -34,9 +50,9 @@ Open Telemetry:
   },
   {
     "TraceId": "id-1",
-    "ParentId": "id-2",
+    "ParentId": "id-5",
     "Kind": null,
-    "Name": "name-5",
+    "Name": "name-7",
     "LocalEndpoint": {
       "ServiceName": "orchestrationservice.sagaway"
     },
@@ -46,22 +62,6 @@ Open Telemetry:
       "otel.library.name": "OrchestrationService.Sagaway",
       "otel.scope.name": "OrchestrationService.Sagaway",
       "saga.id": "id-3"
-    }
-  },
-  {
-    "TraceId": "id-1",
-    "ParentId": "id-6",
-    "Kind": "SERVER",
-    "Name": "name-7",
-    "LocalEndpoint": {
-      "ServiceName": "orchestrationservice.sagaway"
-    },
-    "Tags": {
-      "otel.library.name": "OrchestrationService.Sagaway",
-      "otel.scope.name": "OrchestrationService.Sagaway",
-      "saga.id": "id-3",
-      "saga.outcome": "PartiallyReverted",
-      "saga.type": "SagaTestActorOperations"
     }
   }
 ]

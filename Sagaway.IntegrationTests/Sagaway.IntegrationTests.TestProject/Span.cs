@@ -11,4 +11,5 @@ public class Span
     public long Duration { get; set; }
     public Endpoint? LocalEndpoint { get; set; }
     public Dictionary<string, string>? Tags { get; set; }
+    public ulong Timestamp { get; set; }
 }
