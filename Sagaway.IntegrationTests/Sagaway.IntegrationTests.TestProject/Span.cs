@@ -8,7 +8,6 @@ public class Span
     public string? Id { get; set; }
     public string? Kind { get; set; }
     public string? Name { get; set; }
-    public long Timestamp { get; set; }
     public long Duration { get; set; }
     public Endpoint? LocalEndpoint { get; set; }
     public Dictionary<string, string>? Tags { get; set; }

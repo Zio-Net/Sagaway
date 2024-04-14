@@ -7,3 +7,39 @@ Saga Log:
 [*time*][CallA]: Start Executing CallA
 [*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:05
 [*time*][CallA]: CallA Success
+
+Open Telemetry:
+[
+  {
+    "TraceId": "id-1",
+    "ParentId": "id-2",
+    "Kind": null,
+    "Name": "name-4",
+    "LocalEndpoint": {
+      "ServiceName": "orchestrationservice.sagaway"
+    },
+    "Tags": {
+      "operation.name": "CallA",
+      "operation.outcome": "Succeeded",
+      "otel.library.name": "OrchestrationService.Sagaway",
+      "otel.scope.name": "OrchestrationService.Sagaway",
+      "saga.id": "id-3"
+    }
+  },
+  {
+    "TraceId": "id-1",
+    "ParentId": "id-5",
+    "Kind": "SERVER",
+    "Name": "name-6",
+    "LocalEndpoint": {
+      "ServiceName": "orchestrationservice.sagaway"
+    },
+    "Tags": {
+      "otel.library.name": "OrchestrationService.Sagaway",
+      "otel.scope.name": "OrchestrationService.Sagaway",
+      "saga.id": "id-3",
+      "saga.outcome": "Succeeded",
+      "saga.type": "SagaTestActorOperations"
+    }
+  }
+]

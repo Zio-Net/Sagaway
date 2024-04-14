@@ -144,6 +144,8 @@ public class IntegrationTests
 
             long startTs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
+            await Task.Delay(2000);
+
             var response = await HttpClient.PostAsync("run-test", body);
 
             var responseContent = await response.Content.ReadAsStringAsync();
@@ -157,7 +159,7 @@ public class IntegrationTests
 
             var testResult = _testServiceHelper.GetTestResultFromSignalR(testInfo.Id);
 
-            await Task.Delay(1000);
+            await Task.Delay(10000);
 
             long endTs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
@@ -188,7 +190,7 @@ public class IntegrationTests
 
     private async Task<string> GetTracesFromZipkinAsync(long endTs, long lookBack)
     {
-        string url = $"http://localhost:9411/api/v2/traces?endTs={endTs}&lookback={lookBack}";
+        string url = $"http://localhost:9411/api/v2/traces?endTs={endTs}&lookback={lookBack}&limit=200";
 
         HttpResponseMessage response = await HttpClient.GetAsync(url);
         Assert.True(response.IsSuccessStatusCode, "Failed to fetch traces");
@@ -203,7 +205,7 @@ public class IntegrationTests
         // Use these options when deserializing
         var jsonTraces = JsonSerializer.Deserialize<List<List<Span>>>(traces, options);
 
-        List<Span> spans = jsonTraces?.FirstOrDefault() ?? new List<Span>();
+        List<Span> spans = jsonTraces?.SelectMany(list => list).ToList() ?? new List<Span>();
 
         var result = ProcessAndFilterTraces(spans);
 
@@ -213,7 +215,8 @@ public class IntegrationTests
     private string ProcessAndFilterTraces(List<Span> spans)
     {
         int idCounter = 1;
-        Dictionary<string, string> idMap = new Dictionary<string, string>();
+        Dictionary<string, string> idMap = new ();
+        Dictionary<string, string> nameMap = new ();
 
         var processedTraces = spans
             .Where(span => span.Tags != null && span.Tags.ContainsKey("saga.id"))  // Filter out traces without saga.id
@@ -225,6 +228,8 @@ public class IntegrationTests
                 string originalSagaId = s.Tags!["saga.id"];
                 string mappedSagaId = GetOrAddMappedId(idMap, originalSagaId, ref idCounter);
 
+                string mappedName = GetOrAddMappedName(nameMap, s.Name, ref idCounter);
+
                 // Replace the saga.id with the mapped constant value
                 var newTags = new Dictionary<string, string>(s.Tags)
                 {
@@ -235,10 +240,8 @@ public class IntegrationTests
                 {
                     TraceId = mappedTraceId,
                     ParentId = mappedParentId,
-                    s.Id,
                     s.Kind,
-                    s.Name,
-                    s.Duration,
+                    Name = mappedName,
                     s.LocalEndpoint,
                     Tags = newTags
                 };
@@ -266,6 +269,19 @@ public class IntegrationTests
         return idMap[originalId];
     }
 
+    private string GetOrAddMappedName(Dictionary<string, string> nameMap, string? originalName, ref int counter)
+    {
+        if (originalName == null)
+        {
+            return "Unnamed"; // Provide a default name for unnamed entries
+        }
+
+        if (!nameMap.ContainsKey(originalName))
+        {
+            nameMap[originalName] = "name-" + counter++; // Unique name mapping
+        }
+        return nameMap[originalName];
+    }
 
     private string ExpandStringArray(string inValue, string defaultValue , int amount)
     {
