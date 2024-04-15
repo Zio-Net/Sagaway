@@ -2,7 +2,8 @@
 
 public class CarInventoryRequest
 {
+    // ReSharper disable UnusedAutoPropertyAccessor.Global
     public CarInventoryRequestActionType ActionType { get; set; }
-    public string CarClass { get; set; } = string.Empty;
+    public required string CarClass { get; set; }
     public Guid OrderId { get; set; }
 }

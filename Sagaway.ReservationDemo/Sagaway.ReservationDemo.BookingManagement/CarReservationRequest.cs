@@ -5,7 +5,7 @@ public record CarReservationRequest
 {
     // ReSharper disable UnusedAutoPropertyAccessor.Global
     public ActionType ActionType { get; set; }
-    public string CarClass { get; set; } = string.Empty;
-    public string CustomerName { get; set; } = string.Empty;
+    public required string CarClass { get; set; } 
+    public required string CustomerName { get; set; }
     public Guid ReservationId { get; set; }
 }

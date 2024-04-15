@@ -2,8 +2,8 @@ namespace Sagaway.ReservationDemo.BookingManagement;
 
 public record ReservationState 
 {
-    public string CustomerName { get; set; } = string.Empty;
+    public required string CustomerName { get; set; }
     public bool IsReserved { get; set; }
     public Guid Id { get; set; }
-    public DateTime ReservationStatusUpdateTime { get; set; }
+    public DateTime ReservationStatusUpdateTime { get; init; }
 }
