@@ -140,41 +140,61 @@ Calling Op4: Success True
 Op5 Validate returns True
 OnSuccessCompletionCallback: Success.
 Run Log:
-[*time*][Op1]: Start Executing 
+[*time*][Op1]: Start Executing Op1
 [*time*][Op1]: Registering reminder Op1:Retry for Op1 with interval 00:00:02
 Saga_test is deactivated.
 Saga_test is activated.
 [*time*][Op1]: Wake by a reminder
-[*time*][Op1]: Success
-[*time*][Op1]: Success
-[*time*][Op2]: Start Executing 
+[*time*][Op1]: Op1 Success
+[*time*][Op2]: Start Executing Op2
 [*time*][Op2]: Registering reminder Op2:Retry for Op2 with interval 00:00:02
 Saga_test is deactivated.
 Saga_test is activated.
 [*time*][Op2]: Wake by a reminder
-[*time*][Op2]: Success
-[*time*][Op2]: Success
-[*time*][Op3]: Start Executing 
+[*time*][Op2]: Op2 Success
+[*time*][Op3]: Start Executing Op3
 [*time*][Op3]: Registering reminder Op3:Retry for Op3 with interval 00:00:02
 Saga_test is deactivated.
 Saga_test is activated.
 [*time*][Op3]: Wake by a reminder
-[*time*][Op3]: Success
-[*time*][Op3]: Success
-[*time*][Op4]: Start Executing 
+[*time*][Op3]: Op3 Success
+[*time*][Op4]: Start Executing Op4
 [*time*][Op4]: Registering reminder Op4:Retry for Op4 with interval 00:00:02
 Saga_test is deactivated.
 Saga_test is activated.
 [*time*][Op4]: Wake by a reminder
-[*time*][Op4]: Success
-[*time*][Op4]: Success
-[*time*][Op5]: Start Executing 
+[*time*][Op4]: Op4 Success
+[*time*][Op5]: Start Executing Op5
 [*time*][Op5]: Registering reminder Op5:Retry for Op5 with interval 00:00:02
 Saga_test is deactivated.
 Saga_test is activated.
 [*time*][Op5]: Wake by a reminder
-[*time*][Op5]: Success
+[*time*][Op5]: Op5 Success
 
 
 OnSagaCompleted: Id: test Status: Succeeded
 Calling Op5: Success True
+
+*** Telemetry ***
+1: StartSaga - SagaID: test, Type: SagaOperations
+2: StartOperation - SagaID: test, Operation: Op1
+3: ActivateLongOperation - SagaID: test
+4: DeactivateLongOperation - SagaID: test
+5: EndOperation - SagaID: test, Operation: Op1, Outcome: Succeeded
+6: StartOperation - SagaID: test, Operation: Op2
+7: ActivateLongOperation - SagaID: test
+8: DeactivateLongOperation - SagaID: test
+9: EndOperation - SagaID: test, Operation: Op2, Outcome: Succeeded
+10: StartOperation - SagaID: test, Operation: Op3
+11: ActivateLongOperation - SagaID: test
+12: DeactivateLongOperation - SagaID: test
+13: EndOperation - SagaID: test, Operation: Op3, Outcome: Succeeded
+14: StartOperation - SagaID: test, Operation: Op4
+15: ActivateLongOperation - SagaID: test
+16: DeactivateLongOperation - SagaID: test
+17: EndOperation - SagaID: test, Operation: Op4, Outcome: Succeeded
+18: StartOperation - SagaID: test, Operation: Op5
+19: ActivateLongOperation - SagaID: test
+20: DeactivateLongOperation - SagaID: test
+21: EndOperation - SagaID: test, Operation: Op5, Outcome: Succeeded
+22: EndSaga - SagaID: test, Outcome: Succeeded

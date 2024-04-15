@@ -4,7 +4,9 @@ using Dapr.Actors;
 using Microsoft.AspNetCore.Mvc;
 using Dapr.Actors.Client;
 using Dapr.Client;
+using OpenTelemetry.Trace;
 using Sagaway.Callback.Router;
+using Sagaway.OpenTelemetry;
 using Sagaway.ReservationDemo.ReservationManager.Actors;
 using Sagaway.ReservationDemo.ReservationManager.Actors.CarReservation;
 using Sagaway.ReservationDemo.ReservationManager.Actors.CarReservationCancellation;
@@ -43,6 +45,19 @@ builder.Services.AddActors(options =>
         PropertyNameCaseInsensitive = true
     };
 });
+
+builder.Services.AddSagawayOpenTelemetry(configureTracerProvider =>
+{
+    configureTracerProvider
+        .AddAspNetCoreInstrumentation() // Instruments incoming requests
+        .AddHttpClientInstrumentation() // Instrument outgoing HTTP requests
+        .AddConsoleExporter()
+        .AddZipkinExporter(options =>
+        {
+            options.Endpoint = new Uri("http://zipkin:9411/api/v2/spans");
+        })
+        .SetSampler(new AlwaysOnSampler()); // Collect all samples. Adjust as necessary for production.
+}, "ReservationManagerService");
 
 builder.Services.AddHealthChecks();
 builder.Services.AddEndpointsApiExplorer();

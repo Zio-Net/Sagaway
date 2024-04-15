@@ -4,9 +4,12 @@ using Dapr.Actors;
 using Microsoft.AspNetCore.Mvc;
 using Dapr.Actors.Client;
 using Dapr.Client;
+using OpenTelemetry.Resources;
 using Sagaway.Callback.Router;
 using Sagaway.IntegrationTests.OrchestrationService;
 using Sagaway.IntegrationTests.OrchestrationService.Actors;
+using Sagaway.OpenTelemetry;
+using OpenTelemetry.Trace;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -51,6 +54,20 @@ builder.Services.AddActors(options =>
     };
 });
 
+//add and configure open telemetry to trace all
+builder.Services.AddSagawayOpenTelemetry(configureTracerProvider =>
+{
+    configureTracerProvider
+        .AddAspNetCoreInstrumentation() // Instruments incoming requests
+        .AddHttpClientInstrumentation() // Instrument outgoing HTTP requests
+        .AddZipkinExporter(options =>
+        {
+            options.Endpoint = new Uri("http://zipkin:9411/api/v2/spans");
+        }).SetResourceBuilder(
+            ResourceBuilder.CreateDefault().AddService("IntegrationTests"))
+        .SetSampler(new AlwaysOnSampler()); // Collect all samples. Adjust as necessary for production.
+}, "OrchestrationService");
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
@@ -81,6 +98,7 @@ app.MapHealthChecks("/healthz");
 app.UseSagawayCallbackRouter("test-response-queue");
 
 app.MapPost("/run-test", async (
+        HttpContext context,
         [FromServices] IActorProxyFactory actorProxyFactory,
         [FromServices] ILogger < Program > logger,
         [FromServices] DaprClient daprClient,

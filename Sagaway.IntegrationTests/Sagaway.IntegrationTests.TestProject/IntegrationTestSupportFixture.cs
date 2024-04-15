@@ -1,6 +1,9 @@
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using OpenTelemetry;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using Polly;
 using Polly.Extensions.Http;
 using Xunit.Abstractions;
@@ -15,6 +18,7 @@ public class IntegrationTestSupportFixture : IDisposable
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly Random _jitterer = new();
     private bool _isDisposed;
+    private readonly TracerProvider _tracerProvider;
 
     public IntegrationTestSupportFixture()
     {
@@ -36,13 +40,27 @@ public class IntegrationTestSupportFixture : IDisposable
 
         AddRobustHttpClient<IntegrationTestSupportFixture>(services, baseUrl: testServiceUrl);
 
+        // Setup OpenTelemetry
+
+
+        _tracerProvider = Sdk.CreateTracerProviderBuilder()
+            .AddHttpClientInstrumentation() // Instrument outgoing HTTP requests
+            .AddAspNetCoreInstrumentation() // Optionally instrument incoming request to mock servers or in-tests controllers
+            .AddZipkinExporter(options =>
+            {
+                options.Endpoint = new Uri("http://localhost:9411/api/v2/spans");
+            })
+            .SetSampler(new AlwaysOnSampler())
+            .SetResourceBuilder(
+                ResourceBuilder.CreateDefault().AddService("TestProject"))
+            .Build();
+
+
         var serviceProvider = services.BuildServiceProvider();
         _httpClientFactory = serviceProvider.GetRequiredService<IHttpClientFactory>();
 
         _testHttpClient = _httpClientFactory.CreateClient("IntegrationTestSupportFixture");
     }
-
-
 
     // ReSharper disable once MemberCanBePrivate.Global
     public ITestOutputHelper TestOutputHelper { get; private set; } = null!; //must be set by each test class
@@ -131,7 +149,7 @@ public class IntegrationTestSupportFixture : IDisposable
     {
         if (_isDisposed)
             return;
-   
+        _tracerProvider.Dispose();
         _testHttpClient.Dispose();
         _isDisposed = true;
     }

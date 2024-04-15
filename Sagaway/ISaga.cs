@@ -1,4 +1,6 @@
-﻿namespace Sagaway
+﻿using Sagaway.Telemetry;
+
+namespace Sagaway
 {
     public interface ISaga<in TEOperations> where TEOperations : Enum
     {
@@ -49,7 +51,7 @@
         Task InformActivatedAsync();
 
         /// <summary>
-        /// Implementer should call this method to inform an deactivated event
+        /// Implementer should call this method to inform a deactivated event
         /// </summary>
         /// <returns>Async operation</returns>
         Task InformDeactivatedAsync();

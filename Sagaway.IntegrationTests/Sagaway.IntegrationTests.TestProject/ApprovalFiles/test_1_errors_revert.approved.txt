@@ -1,12 +1,64 @@
 ﻿Test Name: test_1_errors_revert
 Result: False
 Saga Log:
-[*time*][CallA]: Start Executing 
+[*time*][CallA]: Start Executing CallA
 [*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:10
-[*time*][CallA]: Retry operation. Retry count: 1
-[*time*][CallA]: Start Executing 
+[*time*][CallA]: Retry CallA. Retry count: 1
+[*time*][CallA]: Start Executing CallA
 [*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:10
-[*time*][CallA]: Failed. Retries exhausted.
-[*time*][CallA]: Start Executing Revert 
+[*time*][CallA]: CallA Failed. Retries exhausted.
+[*time*][CallA]: Start Executing Revert CallA
 [*time*][CallA]: Registering reminder CallA:Retry for Revert CallA with interval 00:00:10
-[*time*][CallA]: Revert Success
+[*time*][CallA]: Revert CallA Success
+
+Open Telemetry:
+[
+  {
+    "TraceId": "id-1",
+    "ParentId": "id-2",
+    "Kind": "SERVER",
+    "Name": "name-4",
+    "LocalEndpoint": {
+      "ServiceName": "orchestrationservice.sagaway"
+    },
+    "Tags": {
+      "otel.library.name": "OrchestrationService.Sagaway",
+      "otel.scope.name": "OrchestrationService.Sagaway",
+      "saga.id": "id-3",
+      "saga.outcome": "Reverted",
+      "saga.type": "SagaTestActorOperations"
+    }
+  },
+  {
+    "TraceId": "id-1",
+    "ParentId": "id-5",
+    "Kind": null,
+    "Name": "name-6",
+    "LocalEndpoint": {
+      "ServiceName": "orchestrationservice.sagaway"
+    },
+    "Tags": {
+      "operation.name": "CallA",
+      "operation.outcome": "Failed",
+      "otel.library.name": "OrchestrationService.Sagaway",
+      "otel.scope.name": "OrchestrationService.Sagaway",
+      "saga.id": "id-3"
+    }
+  },
+  {
+    "TraceId": "id-1",
+    "ParentId": "id-5",
+    "Kind": null,
+    "Name": "name-7",
+    "LocalEndpoint": {
+      "ServiceName": "orchestrationservice.sagaway"
+    },
+    "Tags": {
+      "operation.name": "RevertCallA",
+      "operation.outcome": "Reverted",
+      "otel.library.name": "OrchestrationService.Sagaway",
+      "otel.scope.name": "OrchestrationService.Sagaway",
+      "saga.id": "id-3"
+    }
+  }
+]

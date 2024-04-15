@@ -24,7 +24,6 @@ public class IntegrationTests
     private ITestOutputHelper TestOutputHelper => _testServiceHelper.TestOutputHelper;
     private HttpClient HttpClient => _testServiceHelper.HttpClient;
     private JsonSerializerOptions SerializeOptions => _testServiceHelper.SerializeOptions;
-
     private ISignalRWrapper SignalR => _testServiceHelper.SignalR;
 
     [Theory]
@@ -143,6 +142,8 @@ public class IntegrationTests
             var body = new StringContent(JsonSerializer.Serialize(testInfo, SerializeOptions), Encoding.UTF8,
                 "application/json");
 
+            long startTs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
             var response = await HttpClient.PostAsync("run-test", body);
 
             var responseContent = await response.Content.ReadAsStringAsync();
@@ -156,9 +157,14 @@ public class IntegrationTests
 
             var testResult = _testServiceHelper.GetTestResultFromSignalR(testInfo.Id);
 
+            await Task.Delay(10000);
+
+            string openTelemetryResults = await GetTracesFromZipkinAsync(startTs);
+            
             var resultText = "Test Name: " + testName + Environment.NewLine +
                              "Result: " + testResult.IsSuccess + Environment.NewLine +
-                             "Saga Log:" + Environment.NewLine +  testResult.SagaLog;
+                             "Saga Log:" + Environment.NewLine +  testResult.SagaLog +
+                             Environment.NewLine + "Open Telemetry:" + Environment.NewLine + openTelemetryResults;
 
             ApprovalVerifyWithDump.Verify(resultText, TestOutputHelper, RemoveDynamic);
         }
@@ -174,6 +180,116 @@ public class IntegrationTests
         {
             ApprovalVerifyWithDump.Verify(testName + Environment.NewLine + ex.Message, TestOutputHelper);
         }
+    }
+
+    private async Task<string> GetTracesFromZipkinAsync(long startTs)
+    {
+        string traces = "[]";
+
+        for (int i = 0; i < 10; i++)
+        {
+            long endTs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            long lookBack = endTs - startTs;
+
+            string url = $"http://localhost:9411/api/v2/traces?endTs={endTs}&lookback={lookBack}&limit=200";
+
+            HttpResponseMessage response = await HttpClient.GetAsync(url);
+            Assert.True(response.IsSuccessStatusCode, "Failed to fetch traces");
+
+            traces = await response.Content.ReadAsStringAsync();
+
+            if (traces.Contains("saga.outcome"))
+                break;
+
+            await Task.Delay(1000);
+        }
+
+        var options = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        };
+
+        // Use these options when deserializing
+        var jsonTraces = JsonSerializer.Deserialize<List<List<Span>>>(traces, options);
+
+        List<Span> spans = jsonTraces?.SelectMany(list => list).ToList() ?? new List<Span>();
+
+        var sortedSpans = spans.OrderBy(span => span.Timestamp).ToList();
+        var result = ProcessAndFilterTraces(sortedSpans);
+
+        return result;
+    }
+
+    private string ProcessAndFilterTraces(List<Span> spans)
+    {
+        int idCounter = 1;
+        Dictionary<string, string> idMap = new ();
+        Dictionary<string, string> nameMap = new ();
+
+        var processedTraces = spans
+            .Where(span => span.Tags != null 
+                           && span.Tags.ContainsKey("saga.id"))  // Filter out traces without saga.id
+            .Select(s =>
+            {
+                // Map traceId, parentId, and saga.id to constant values
+                string mappedTraceId = GetOrAddMappedId(idMap, s.TraceId, ref idCounter);
+                string mappedParentId = GetOrAddMappedId(idMap, s.ParentId, ref idCounter);
+                string originalSagaId = s.Tags!["saga.id"];
+                string mappedSagaId = GetOrAddMappedId(idMap, originalSagaId, ref idCounter);
+
+                string mappedName = GetOrAddMappedName(nameMap, s.Name, ref idCounter);
+
+                // Replace the saga.id with the mapped constant value
+                var newTags = new Dictionary<string, string>(s.Tags)
+                {
+                    ["saga.id"] = mappedSagaId
+                };
+
+                return new
+                {
+                    TraceId = mappedTraceId,
+                    ParentId = mappedParentId,
+                    s.Kind,
+                    Name = mappedName,
+                    s.LocalEndpoint,
+                    Tags = newTags
+                };
+            }).ToList();
+
+        var options = new JsonSerializerOptions
+        {
+            WriteIndented = true
+        };
+
+        return JsonSerializer.Serialize(processedTraces, options);
+    }
+
+    private string GetOrAddMappedId(Dictionary<string, string> idMap, string? originalId, ref int counter)
+    {
+        if (originalId == null)
+        {
+            return string.Empty;
+        }
+
+        if (!idMap.ContainsKey(originalId))
+        {
+            idMap[originalId] = "id-" + counter++;
+        }
+        return idMap[originalId];
+    }
+
+    private string GetOrAddMappedName(Dictionary<string, string> nameMap, string? originalName, ref int counter)
+    {
+        if (originalName == null)
+        {
+            return "Unnamed"; // Provide a default name for unnamed entries
+        }
+
+        if (!nameMap.ContainsKey(originalName))
+        {
+            nameMap[originalName] = "name-" + counter++; // Unique name mapping
+        }
+        return nameMap[originalName];
     }
 
     private string ExpandStringArray(string inValue, string defaultValue , int amount)

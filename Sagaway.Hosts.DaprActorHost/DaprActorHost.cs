@@ -6,6 +6,8 @@ using System.Text.Json.Nodes;
 using Grpc.Net.Client;
 using Sagaway.Callback.Router;
 using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
+using Sagaway.Telemetry;
 
 // ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable once CheckNamespace
@@ -20,17 +22,21 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
 {
     private readonly ILogger _logger;
     private DaprClient? _daprClient;
+    private readonly ITelemetryAdapter _telemetryAdapter;
 
     /// <summary>
     /// Create a Dapr Actor host for the saga
     /// </summary>
     /// <param name="host">The Dapr actor host</param>
     /// <param name="logger">The injected logger</param>
-    protected DaprActorHost(ActorHost host, ILogger logger)
+    /// <param name="serviceProvider">Enable advanced features injections such as open telemetry.
+    /// It is an optional parameter for backward compatibility support</param>
+    protected DaprActorHost(ActorHost host, ILogger logger, IServiceProvider? serviceProvider = null)
         : base(host)
     {
         ActorHost = host;
         _logger = logger;
+        _telemetryAdapter = serviceProvider?.GetService<ITelemetryAdapter>() ?? new NullTelemetryAdapter();
     }
 
     /// <summary>
@@ -180,6 +186,12 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     {
         await UnregisterReminderAsync(reminderName);
     }
+
+    /// <summary>
+    /// Provide the telemetry adapter for the saga
+    /// </summary>
+    ITelemetryAdapter ISagaSupport.TelemetryAdapter => _telemetryAdapter;
+
 
     /// <summary>
     /// Call by the Dapr Actor Host to remind about registered reminder

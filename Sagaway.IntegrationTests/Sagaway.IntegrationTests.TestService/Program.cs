@@ -7,7 +7,10 @@ using Sagaway.IntegrationTests.TestService;
 using System.Globalization;
 using System.Net;
 using Dapr;
+using OpenTelemetry.Resources;
 using Polly;
+using OpenTelemetry.Trace;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,6 +24,18 @@ builder.Services.AddControllers().AddDaprWithSagawayContextPropagator().AddJsonO
     options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: false));
     options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+});
+
+
+builder.Services.AddOpenTelemetry().WithTracing(tracing =>
+{
+    tracing.AddAspNetCoreInstrumentation();
+    tracing.AddHttpClientInstrumentation();
+    tracing.AddZipkinExporter(options =>
+    {
+        options.Endpoint = new Uri("http://zipkin:9411/api/v2/spans");
+    }).SetResourceBuilder(
+        ResourceBuilder.CreateDefault().AddService("TestService"));
 });
 
 builder.Services.AddHealthChecks();

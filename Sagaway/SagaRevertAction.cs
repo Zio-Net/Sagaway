@@ -23,6 +23,7 @@ namespace Sagaway
                     return;
                 }
                 //else
+                Saga.RecordStartOperationTelemetry(SagaOperation.Operation, true);
                 await SagaOperation.RevertOperationAsync();
             }
 
@@ -40,13 +41,6 @@ namespace Sagaway
             protected override async Task<bool> ValidateAsync()
             {
                 return await (SagaOperation.RevertValidateAsync?.Invoke() ?? Task.FromResult(false));
-            }
-
-            // ReSharper disable once UnusedMember.Global
-            public async Task RevertAsync()
-            {
-                LogAndRecord($"Reverting {SagaOperation.Operation}");
-                await ExecuteAsync();
             }
         }
     }

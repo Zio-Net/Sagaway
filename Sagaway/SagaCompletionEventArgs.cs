@@ -1,16 +1,9 @@
 ﻿namespace Sagaway
 {
-    public class SagaCompletionEventArgs : EventArgs
+    public class SagaCompletionEventArgs(string sagaId, SagaCompletionStatus status, string log) : EventArgs
     {
-        public SagaCompletionEventArgs(string sagaId, SagaCompletionStatus status, string log)
-        {
-            SagaId = sagaId;
-            Status = status;
-            Log = log;
-        }
-
-        public string SagaId { get; }
-        public SagaCompletionStatus Status { get; }
-        public string Log { get; }
+        public string SagaId { get; } = sagaId;
+        public SagaCompletionStatus Status { get; } = status;
+        public string Log { get; } = log;
     }
 }

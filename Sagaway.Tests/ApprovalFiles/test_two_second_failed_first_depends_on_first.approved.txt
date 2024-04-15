@@ -54,11 +54,17 @@ HasRevertValidate: False
 Calling Op2: Success False
 OnRevertedCallback: Reverted.
 Run Log:
-[*time*][Op2]: Start Executing 
-[*time*][Op2]: Failed. Retries exhausted.
-[*time*][Op2]: Start Executing Revert 
+[*time*][Op2]: Start Executing Op2
+[*time*][Op2]: Op2 Failed. Retries exhausted.
+[*time*][Op2]: Start Executing Revert Op2
 [*time*][Op2]: No undo operation for Op2. Marking as reverted
 [*time*][Op1]: Saga test is not reverting not started operation Op1.
 
 
 OnSagaCompleted: Id: test Status: Reverted
+
+*** Telemetry ***
+1: StartSaga - SagaID: test, Type: SagaOperations
+2: StartOperation - SagaID: test, Operation: Op2
+3: EndOperation - SagaID: test, Operation: Op2, Outcome: Failed
+4: EndSaga - SagaID: test, Outcome: Reverted

@@ -1,8 +1,9 @@
-﻿using System.Text.Json.Nodes;
+﻿using Sagaway.Telemetry;
+using System.Text.Json.Nodes;
 
 namespace Sagaway.Tests;
 
-class SagaSupportOperations : ISagaSupport
+class SagaTestHost : ISagaSupport
 {
     private readonly Dictionary<string, Timer> _reminders = new();
     private readonly Dictionary<string, JsonObject> _state = new();
@@ -10,7 +11,7 @@ class SagaSupportOperations : ISagaSupport
 
 
     // ReSharper disable once ConvertToPrimaryConstructor
-    public SagaSupportOperations(Func<string, Task> reminderCallback)
+    public SagaTestHost(Func<string, Task> reminderCallback)
     {
         _reminderCallback = reminderCallback;
     }
@@ -29,7 +30,7 @@ class SagaSupportOperations : ISagaSupport
     public async Task<JsonObject?> LoadSagaAsync(string sagaId)
     {
         _state.TryGetValue(sagaId, out JsonObject? state);
-        return await Task.FromResult(state ?? new JsonObject());
+        return await Task.FromResult(state);
     }
 
     public async Task SaveSagaStateAsync(string sagaId, JsonObject state)
@@ -44,4 +45,6 @@ class SagaSupportOperations : ISagaSupport
         _reminders[reminderName] = timer;
         await Task.CompletedTask;
     }
+
+    public ITelemetryAdapter TelemetryAdapter { get; } = new TestTelemetryAdapter();
 }

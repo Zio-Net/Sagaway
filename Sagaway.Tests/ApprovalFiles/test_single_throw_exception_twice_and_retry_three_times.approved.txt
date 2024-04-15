@@ -29,21 +29,33 @@ HasRevertValidate: False
 Calling Op1: Success True
 OnSuccessCompletionCallback: Success.
 Run Log:
-[*time*][Op1]: Start Executing 
+[*time*][Op1]: Start Executing Op1
 [*time*][Op1]: Registering reminder Op1:Retry for Op1 with interval 00:00:02
-[*time*][Op1]: Error when calling . Error: Throwing exception on call 1. Retry in 00:00:02 seconds
+[*time*][Op1]: Error when calling Op1. Error: Throwing exception on call 1. Retry in 00:00:02 seconds
 [*time*][Op1]: Wake by a reminder
-[*time*][Op1]: The state is unknown in the reminder, retry action
-[*time*][Op1]: Retry operation. Retry count: 1
-[*time*][Op1]: Start Executing 
+[*time*][Op1]: The state is unknown in the reminder, retry Op1 action
+[*time*][Op1]: Retry Op1. Retry count: 1
+[*time*][Op1]: Start Executing Op1
 [*time*][Op1]: Registering reminder Op1:Retry for Op1 with interval 00:00:02
-[*time*][Op1]: Error when calling . Error: Throwing exception on call 2. Retry in 00:00:02 seconds
+[*time*][Op1]: Error when calling Op1. Error: Throwing exception on call 2. Retry in 00:00:02 seconds
 [*time*][Op1]: Wake by a reminder
-[*time*][Op1]: The state is unknown in the reminder, retry action
-[*time*][Op1]: Retry operation. Retry count: 2
-[*time*][Op1]: Start Executing 
+[*time*][Op1]: The state is unknown in the reminder, retry Op1 action
+[*time*][Op1]: Retry Op1. Retry count: 2
+[*time*][Op1]: Start Executing Op1
 [*time*][Op1]: Registering reminder Op1:Retry for Op1 with interval 00:00:02
-[*time*][Op1]: Success
+[*time*][Op1]: Op1 Success
 
 
 OnSagaCompleted: Id: test Status: Succeeded
+
+*** Telemetry ***
+1: StartSaga - SagaID: test, Type: SagaOperations
+2: StartOperation - SagaID: test, Operation: Op1
+3: Exception - SagaID: test, Context: Error when calling Op1, Exception: Throwing exception on call 1
+4: RetryAttempt - SagaID: test, Operation: Op1, Attempt: 1
+5: StartOperation - SagaID: test, Operation: Op1
+6: Exception - SagaID: test, Context: Error when calling Op1, Exception: Throwing exception on call 2
+7: RetryAttempt - SagaID: test, Operation: Op1, Attempt: 2
+8: StartOperation - SagaID: test, Operation: Op1
+9: EndOperation - SagaID: test, Operation: Op1, Outcome: Succeeded
+10: EndSaga - SagaID: test, Outcome: Succeeded

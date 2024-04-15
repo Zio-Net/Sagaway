@@ -1,6 +1,42 @@
 ﻿Test Name: test_ok_on_1
 Result: True
 Saga Log:
-[*time*][CallA]: Start Executing 
+[*time*][CallA]: Start Executing CallA
 [*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:30
-[*time*][CallA]: Success
+[*time*][CallA]: CallA Success
+
+Open Telemetry:
+[
+  {
+    "TraceId": "id-1",
+    "ParentId": "id-2",
+    "Kind": "SERVER",
+    "Name": "name-4",
+    "LocalEndpoint": {
+      "ServiceName": "orchestrationservice.sagaway"
+    },
+    "Tags": {
+      "otel.library.name": "OrchestrationService.Sagaway",
+      "otel.scope.name": "OrchestrationService.Sagaway",
+      "saga.id": "id-3",
+      "saga.outcome": "Succeeded",
+      "saga.type": "SagaTestActorOperations"
+    }
+  },
+  {
+    "TraceId": "id-1",
+    "ParentId": "id-5",
+    "Kind": null,
+    "Name": "name-6",
+    "LocalEndpoint": {
+      "ServiceName": "orchestrationservice.sagaway"
+    },
+    "Tags": {
+      "operation.name": "CallA",
+      "operation.outcome": "Succeeded",
+      "otel.library.name": "OrchestrationService.Sagaway",
+      "otel.scope.name": "OrchestrationService.Sagaway",
+      "saga.id": "id-3"
+    }
+  }
+]

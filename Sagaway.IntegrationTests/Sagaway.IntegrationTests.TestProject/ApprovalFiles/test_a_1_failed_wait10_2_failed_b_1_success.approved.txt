@@ -1,20 +1,88 @@
 ﻿Test Name: test_a_1_failed_wait10_2_failed_b_1_success
 Result: False
 Saga Log:
-[*time*][CallA]: Start Executing 
+[*time*][CallA]: Start Executing CallA
 [*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:30
-[*time*][CallB]: Start Executing 
+[*time*][CallB]: Start Executing CallB
 [*time*][CallB]: Registering reminder CallB:Retry for CallB with interval 00:00:30
-[*time*][CallA]: Retry operation. Retry count: 1
-[*time*][CallA]: Start Executing 
+[*time*][CallA]: Retry CallA. Retry count: 1
+[*time*][CallA]: Start Executing CallA
 [*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:30
-[*time*][CallB]: Success
-[*time*][CallA]: Retry operation. Retry count: 2
-[*time*][CallA]: Start Executing 
+[*time*][CallB]: CallB Success
+[*time*][CallA]: Retry CallA. Retry count: 2
+[*time*][CallA]: Start Executing CallA
 [*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:30
-[*time*][CallA]: Failed. Retries exhausted.
-[*time*][CallA]: Start Executing Revert 
+[*time*][CallA]: CallA Failed. Retries exhausted.
+[*time*][CallA]: Start Executing Revert CallA
 [*time*][CallA]: No undo operation for CallA. Marking as reverted
-[*time*][CallB]: Start Executing Revert 
+[*time*][CallB]: Start Executing Revert CallB
 [*time*][CallB]: Registering reminder CallB:Retry for Revert CallB with interval 00:00:10
-[*time*][CallB]: Revert Success
+[*time*][CallB]: Revert CallB Success
+
+Open Telemetry:
+[
+  {
+    "TraceId": "id-1",
+    "ParentId": "id-2",
+    "Kind": "SERVER",
+    "Name": "name-4",
+    "LocalEndpoint": {
+      "ServiceName": "orchestrationservice.sagaway"
+    },
+    "Tags": {
+      "otel.library.name": "OrchestrationService.Sagaway",
+      "otel.scope.name": "OrchestrationService.Sagaway",
+      "saga.id": "id-3",
+      "saga.outcome": "Reverted",
+      "saga.type": "SagaTestActorOperations"
+    }
+  },
+  {
+    "TraceId": "id-1",
+    "ParentId": "id-5",
+    "Kind": null,
+    "Name": "name-6",
+    "LocalEndpoint": {
+      "ServiceName": "orchestrationservice.sagaway"
+    },
+    "Tags": {
+      "operation.name": "CallB",
+      "operation.outcome": "Succeeded",
+      "otel.library.name": "OrchestrationService.Sagaway",
+      "otel.scope.name": "OrchestrationService.Sagaway",
+      "saga.id": "id-3"
+    }
+  },
+  {
+    "TraceId": "id-1",
+    "ParentId": "id-5",
+    "Kind": null,
+    "Name": "name-7",
+    "LocalEndpoint": {
+      "ServiceName": "orchestrationservice.sagaway"
+    },
+    "Tags": {
+      "operation.name": "CallA",
+      "operation.outcome": "Failed",
+      "otel.library.name": "OrchestrationService.Sagaway",
+      "otel.scope.name": "OrchestrationService.Sagaway",
+      "saga.id": "id-3"
+    }
+  },
+  {
+    "TraceId": "id-1",
+    "ParentId": "id-5",
+    "Kind": null,
+    "Name": "name-8",
+    "LocalEndpoint": {
+      "ServiceName": "orchestrationservice.sagaway"
+    },
+    "Tags": {
+      "operation.name": "RevertCallB",
+      "operation.outcome": "Reverted",
+      "otel.library.name": "OrchestrationService.Sagaway",
+      "otel.scope.name": "OrchestrationService.Sagaway",
+      "saga.id": "id-3"
+    }
+  }
+]

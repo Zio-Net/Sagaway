@@ -2,7 +2,9 @@ using System.Text.Json.Serialization;
 using System.Text.Json;
 using Dapr.Client;
 using Microsoft.AspNetCore.Mvc;
+using OpenTelemetry.Resources;
 using Sagaway.ReservationDemo.BillingManagement;
+using OpenTelemetry.Trace;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +20,17 @@ builder.Services.AddControllers().AddDapr().AddJsonOptions(options =>
     options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: false));
     options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+});
+
+builder.Services.AddOpenTelemetry().WithTracing(tracing =>
+{
+    tracing.AddAspNetCoreInstrumentation();
+    tracing.AddHttpClientInstrumentation();
+    tracing.AddZipkinExporter(options =>
+    {
+        options.Endpoint = new Uri("http://zipkin:9411/api/v2/spans");
+    }).SetResourceBuilder(
+        ResourceBuilder.CreateDefault().AddService("BillingManagementService"));
 });
 
 builder.Services.AddHealthChecks();

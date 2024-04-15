@@ -82,12 +82,22 @@ Calling Op3: Success True
 Calling Op1: Success True
 OnSuccessCompletionCallback: Success.
 Run Log:
-[*time*][Op2]: Start Executing 
-[*time*][Op2]: Success
-[*time*][Op3]: Start Executing 
-[*time*][Op3]: Success
-[*time*][Op1]: Start Executing 
-[*time*][Op1]: Success
+[*time*][Op2]: Start Executing Op2
+[*time*][Op2]: Op2 Success
+[*time*][Op3]: Start Executing Op3
+[*time*][Op3]: Op3 Success
+[*time*][Op1]: Start Executing Op1
+[*time*][Op1]: Op1 Success
 
 
 OnSagaCompleted: Id: test Status: Succeeded
+
+*** Telemetry ***
+1: StartSaga - SagaID: test, Type: SagaOperations
+2: StartOperation - SagaID: test, Operation: Op2
+3: EndOperation - SagaID: test, Operation: Op2, Outcome: Succeeded
+4: StartOperation - SagaID: test, Operation: Op3
+5: EndOperation - SagaID: test, Operation: Op3, Outcome: Succeeded
+6: StartOperation - SagaID: test, Operation: Op1
+7: EndOperation - SagaID: test, Operation: Op1, Outcome: Succeeded
+8: EndSaga - SagaID: test, Outcome: Succeeded

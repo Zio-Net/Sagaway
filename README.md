@@ -65,6 +65,21 @@ Follow these steps to implement Saga with Sagaway, Dapr, and ASP.NET Minimal API
 For the service that hosts the Dapr Actor:
 
 - Create a minimal API project
+- Add Sagaway NuGet packages. For the service that host the Dapr Actors add:
+  - Dapr.Client
+  - Dapr.AspNetCore
+  - Dapr.Actors
+  - Sagaway.Hosts.DaprActorHost
+  - If you want to have Open Telemetry, then add:
+    - OpenTelemetry NuGet packages, according to the kinf of instrumentations and exporters, for example:
+      - OpenTelemetry
+      - OpenTelemetry.Api.ProviderBuilderExtensions
+      - OpenTelemetry.Exporter.Console
+      - OpenTelemetry.Extensions.Hosting
+      - OpenTelemetry.Instrumentation.AspNetCore
+      - OpenTelemetry.Instrumentation.Http
+      - OpenTelemetry.Exporter.Zipkin
+      - Sagaway.OpenTelemetry
 - Register the Dapr client. You can also add Json options for the default serialization:
 
 ```csharp
@@ -98,6 +113,23 @@ builder.Services.AddActors(options =>
         PropertyNameCaseInsensitive = true
     };
 });
+```
+
+- Add the Open Telemetry support:
+
+```csharp
+builder.Services.AddSagawayOpenTelemetry(configureTracerProvider =>
+{
+    configureTracerProvider
+        .AddAspNetCoreInstrumentation() // Instruments incoming requests
+        .AddHttpClientInstrumentation() // Instrument outgoing HTTP requests
+        .AddConsoleExporter()
+        .AddZipkinExporter(options =>
+        {
+            options.Endpoint = new Uri("http://zipkin:9411/api/v2/spans");
+        })
+        .SetSampler(new AlwaysOnSampler()); // Collect all samples. Adjust as necessary for production.
+}, "ReservationManagerService");
 ```
 
 - Dapr sidecar uses the ASP.NET built-in health API, so add also:
@@ -259,8 +291,34 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     where TEOperations : Enum
 {
 ...
+
 }
 ```
+
+For example, this is the CarReservationActor:
+
+```csharp
+[Actor(TypeName = "CarReservationActor")]
+public class CarReservationActor : DaprActorHost<CarReservationActorOperations>, ICarReservationActor
+{
+    private readonly ILogger<CarReservationActor> _logger;
+    private readonly ActorHost _actorHost;
+    private ReservationInfo? _reservationInfo;
+
+    public CarReservationActor(ActorHost host, ILogger<CarReservationActor> logger, IServiceProvider? serviceProvider)
+        : base(host, logger, serviceProvider)
+    {
+        _actorHost = host;
+        _logger = logger;
+    }
+
+    protected override string GetCallbackBindingName()
+    {
+        return "reservation-response-queue";
+    }
+```
+
+The `GetCallbackBindingName` is needed to enable auto dispatching of callback calls using Dapr binding.
 
 ## The Saga Builder
 
@@ -277,46 +335,47 @@ The static state is the Saga configuration. Sagaway uses the Builder pattern to 
 protected override ISaga<CarReservationActorOperations> ReBuildSaga()
  {
      var saga = Saga<CarReservationActorOperations>.Create(_actorHost.Id.ToString(), this, _logger)
-         .WithOnSuccessCompletionCallback(OnSuccessCompletionCallbackAsync)
-         .WithOnRevertedCallback(OnRevertedCallbackAsync)
-         .WithOnFailedRevertedCallback(OnFailedRevertedCallbackAsync)
-         .WithOnFailedCallback(OnFailedCallbackAsync)
+        .WithOnSuccessCompletionCallback(OnSuccessCompletionCallbackAsync)
+        .WithOnRevertedCallback(OnRevertedCallbackAsync)
+        .WithOnFailedRevertedCallback(OnFailedRevertedCallbackAsync)
+        .WithOnFailedCallback(OnFailedCallbackAsync)
 
-         .WithOperation(CarReservationActorOperations.CarBooking)
-         .WithDoOperation(BookCarReservationAsync)
-         .WithMaxRetries(3)
-         .WithRetryIntervalTime(TimeSpan.FromMinutes(2))
-         .WithValidateFunction(ValidateBookCarReservationAsync)
-         .WithUndoOperation(RevertBookCarReservationAsync)
-         .WithMaxRetries(3)
-         .WithUndoRetryInterval(TimeSpan.FromMinutes(10))
-         .WithValidateFunction(ValidateRevertBookCarReservationAsync)
+        .WithOperation(CarReservationActorOperations.CarBooking)
+        .WithDoOperation(BookCarReservationAsync)
+        .WithMaxRetries(3)
+        .WithRetryIntervalTime(TimeSpan.FromMinutes(2)) //an example of a fixed interval
+        .WithValidateFunction(ValidateBookCarReservationAsync)
+        .WithUndoOperation(RevertBookCarReservationAsync)
+        .WithMaxRetries(3)
+        .WithUndoRetryInterval(TimeSpan.FromMinutes(10))
+        .WithValidateFunction(ValidateRevertBookCarReservationAsync)
 
-         .WithOperation(CarReservationActorOperations.InventoryReserving)
-         .WithDoOperation(ReserveInventoryAsync)
-         .WithMaxRetries(3)
-         .WithRetryIntervalTime(TimeSpan.FromMinutes(2))
-         .WithValidateFunction(ValidateReserveInventoryAsync)
-         .WithUndoOperation(RevertReserveInventoryAsync)
-         .WithMaxRetries(3)
-         .WithUndoRetryInterval(TimeSpan.FromMinutes(10))
-         .WithValidateFunction(ValidateRevertReserveInventoryAsync)
+        .WithOperation(CarReservationActorOperations.InventoryReserving)
+        .WithDoOperation(ReserveInventoryAsync)
+        .WithMaxRetries(3)
+        .WithRetryIntervalTime(ExponentialBackoff.InMinutes()) //An example of an exponential backoff in minutes
+        .WithValidateFunction(ValidateReserveInventoryAsync)
+        .WithUndoOperation(RevertReserveInventoryAsync)
+        .WithMaxRetries(3)
+        .WithUndoRetryInterval(ExponentialBackoff.InMinutes())
+        .WithValidateFunction(ValidateRevertReserveInventoryAsync)
 
-         .WithOperation(CarReservationActorOperations.Billing)
-         .WithDoOperation(BillReservationAsync)
-         .WithMaxRetries(3)
-         .WithRetryIntervalTime(TimeSpan.FromSeconds(10))
-         .WithValidateFunction(ValidateBillReservationAsync)
-         .WithPreconditions(CarReservationActorOperations.CarBooking | CarReservationActorOperations.InventoryReserving)
-         .WithUndoOperation(RevertBillReservationAsync)
-         .WithMaxRetries(3)
-         .WithUndoRetryInterval(TimeSpan.FromSeconds(10))
-         .WithValidateFunction(ValidateRevertBillReservationAsync)
-         .Build();
+        .WithOperation(CarReservationActorOperations.Billing)
+        .WithDoOperation(BillReservationAsync)
+        .WithMaxRetries(3)
+        .WithRetryIntervalTime(ExponentialBackoff.InSeconds()) //An example of an exponential backoff in seconds
+        .WithValidateFunction(ValidateBillReservationAsync)
+        .WithPreconditions(CarReservationActorOperations.CarBooking | CarReservationActorOperations.InventoryReserving)
+        .WithUndoOperation(RevertBillReservationAsync)
+        .WithMaxRetries(3)
+        .WithUndoRetryInterval(ExponentialBackoff.InSeconds())
+        .WithValidateFunction(ValidateRevertBillReservationAsync)
 
-     saga.OnSagaCompleted += async (s, e) => await OnSagaCompletedAsync(s, e);
+        .Build();
 
-     return saga;
+    saga.OnSagaCompleted += async (s, e) => await OnSagaCompletedAsync(s, e);
+
+    return saga;
  }
 ```
 
@@ -402,7 +461,13 @@ private async Task OnCarBookingResultAsync(ReservationOperationResult reservatio
 .WithRetryIntervalTime(TimeSpan.FromMinutes(2))
 ```
 
-The number of retries before the Saga switches to the compensation state and the time to set the reminder to wake the Saga to retry the call. The current interval is constant, although a future overload might accept a function to provide dynamic retries, such as exponential backoffs in the future.
+The number of retries before the Saga switches to the compensation state and the time to set the reminder to wake the Saga to retry the call. The interval can be constant, or a function returning the interval according to the retry attempt. You can use it to create an exponential backoff wait. Look at the `ExponentialBackoff` utility class for predefined functions:
+
+```csharp
+WithRetryIntervalTime(ExponentialBackoff.InMinutes())
+ //or
+WithRetryIntervalTime(ExponentialBackoff.InSeconds())
+```
 
 - The optional: `WithValidateFunction(ValidateBookCarReservationAsync)` sets a function that the Saga can call to validate an outcome of an operation. If the operation has not informed a result, and the retry timeout has elapsed, the Saga issues a call to get the success or failure result. If the remote service does not provide a callback mechanism, use this function for polling for the outcome. 
 
@@ -471,6 +536,7 @@ Look at the [complete Actor implementation]( https://github.com/alonf/Sagaway/bl
 The Saga can call any service, utilizing any means of communication. However, to enable auto-routing, the Sagaway framework provides a mechanism that propagates the actor identity and the callback function name so the callback message can be dispatched to the correct function. If you decide not to use the Sagaway auto-routing, you must inform the Saga of each call outcome or rely on the Saga polling mechanism. If you want a more straightforward implementation, follow these instructions:
 
 - Create an ASP.NET Minimal API project
+- Add NuGet packages for Dapr, for Open Telemetry and the `Sagaway.Callback.Propagator` to support auto callback dispatch
 - Add the following services:
 
 ```csharp

@@ -6,6 +6,9 @@ using Sagaway.Callback.Propagator;
 using Sagaway.ReservationDemo.BookingManagement;
 using System.Globalization;
 using System.Net;
+using OpenTelemetry.Trace;
+using OpenTelemetry.Resources;
+using Dapr;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,6 +24,17 @@ builder.Services.AddControllers().AddDaprWithSagawayContextPropagator().AddJsonO
     options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
 });
 
+builder.Services.AddOpenTelemetry().WithTracing(tracing =>
+{
+    tracing.AddAspNetCoreInstrumentation();
+    tracing.AddHttpClientInstrumentation();
+    tracing.AddZipkinExporter(options =>
+    {
+        options.Endpoint = new Uri("http://zipkin:9411/api/v2/spans");
+    }).SetResourceBuilder(
+        ResourceBuilder.CreateDefault().AddService("BookingManagementService"));
+});
+
 builder.Services.AddHealthChecks();
 builder.Services.AddSagawayContextPropagator();
 builder.Services.AddEndpointsApiExplorer();
@@ -34,6 +48,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+
 
 Dictionary<string, string> jsonMetadata = new() { { "contentType", "application/json" } };
 
@@ -69,7 +85,27 @@ app.MapPost("/booking-queue", async (
             ReservationId = request.ReservationId
         };
 
-        var (reservationState, etag) = await daprClient.GetStateAndETagAsync<ReservationState>("statestore", reservationId);
+        ReservationState? reservationState = null;
+        string etag = string.Empty;
+
+        try
+        {
+            (reservationState, etag) = await daprClient.GetStateAndETagAsync<ReservationState>("statestore", reservationId, metadata: jsonMetadata);
+
+        }
+        catch (DaprException ex) when (ex.InnerException is Grpc.Core.RpcException { Status.StatusCode: Grpc.Core.StatusCode.Internal } grpcEx)
+        {
+            // Check specific RPC error message details if necessary
+            if (grpcEx.Status.Detail.Contains("redis: nil"))
+            {
+                logger.LogWarning("Reservation state not found for reservation id {reservationId}. Detail: {Detail}", reservationId, grpcEx.Status.Detail);
+            }
+            else
+            {
+                logger.LogError("An internal error occurred when accessing the state store: {Detail}", grpcEx.Status.Detail);
+                throw;
+            }
+        }
 
         //supporting out-of-order message
         if (reservationState != null && messageDispatchTime < reservationState.ReservationStatusUpdateTime)
@@ -188,11 +224,21 @@ app.MapGet("/reservations/{reservationId}", async ([FromRoute] Guid reservationI
 
             return Results.Ok(reservationState);
         }
+        catch (DaprException ex) when (ex.InnerException is Grpc.Core.RpcException { Status.StatusCode: Grpc.Core.StatusCode.Internal } grpcEx)
+        {
+            if (grpcEx.Status.Detail.Contains("redis: nil"))
+            {
+                logger.LogWarning("Reservation state not found for reservation id {reservationId}. Detail: {Detail}", reservationId, grpcEx.Status.Detail);
+                return Results.NotFound(new { Message = $"Reservation with ID: {reservationId} not found." });
+            }
+
+            logger.LogError("An internal error occurred when accessing the state store: {Detail}", grpcEx.Status.Detail);
+        }
         catch (Exception ex)
         {
             logger.LogError(ex, $"Error fetching reservation status for reservation ID: {reservationId}");
-            return Results.Problem("An error occurred while fetching the reservation status. Please try again later.");
         }
+        return Results.Problem("An error occurred while fetching the reservation status. Please try again later.");
     })
     .WithName("GetReservationStatus")
     .WithOpenApi(); // This adds the endpoint to OpenAPI/Swagger documentation if enabled

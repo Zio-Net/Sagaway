@@ -31,23 +31,35 @@ Calling revert for Op1: Success False
 Calling revert for Op1: Success False
 OnFailedRevertedCallback: FailedReverted.
 Run Log:
-[*time*][Op1]: Start Executing 
+[*time*][Op1]: Start Executing Op1
 [*time*][Op1]: Registering reminder Op1:Retry for Op1 with interval 00:00:02
 [*time*][Op1]: Wake by a reminder
-[*time*][Op1]: The state is unknown in the reminder, retry action
-[*time*][Op1]: Retry operation. Retry count: 1
-[*time*][Op1]: Start Executing 
+[*time*][Op1]: The state is unknown in the reminder, retry Op1 action
+[*time*][Op1]: Retry Op1. Retry count: 1
+[*time*][Op1]: Start Executing Op1
 [*time*][Op1]: Registering reminder Op1:Retry for Op1 with interval 00:00:02
 [*time*][Op1]: Wake by a reminder
-[*time*][Op1]: The state is unknown in the reminder, retry action
-[*time*][Op1]: Failed. Retries exhausted.
-[*time*][Op1]: Start Executing Revert 
+[*time*][Op1]: The state is unknown in the reminder, retry Op1 action
+[*time*][Op1]: Op1 Failed. Retries exhausted.
+[*time*][Op1]: Start Executing Revert Op1
 [*time*][Op1]: Registering reminder Op1:Retry for Revert Op1 with interval 00:00:02
-[*time*][Op1]: Retry Revert operation. Retry count: 1
-[*time*][Op1]: Start Executing Revert 
+[*time*][Op1]: Retry Revert Op1. Retry count: 1
+[*time*][Op1]: Start Executing Revert Op1
 [*time*][Op1]: Registering reminder Op1:Retry for Revert Op1 with interval 00:00:02
-[*time*][Op1]: Revert Failed. Retries exhausted.
+[*time*][Op1]: Revert Op1 Failed. Retries exhausted.
 
 
 OnSagaCompleted: Id: test Status: RevertFailed
 Calling Op1: Success False
+
+*** Telemetry ***
+1: StartSaga - SagaID: test, Type: SagaOperations
+2: StartOperation - SagaID: test, Operation: Op1
+3: RetryAttempt - SagaID: test, Operation: Op1, Attempt: 1
+4: StartOperation - SagaID: test, Operation: Op1
+5: EndOperation - SagaID: test, Operation: Op1, Outcome: Failed
+6: StartOperation - SagaID: test, Operation: RevertOp1
+7: RetryAttempt - SagaID: test, Operation: RevertOp1, Attempt: 1
+8: StartOperation - SagaID: test, Operation: RevertOp1
+9: EndOperation - SagaID: test, Operation: RevertOp1, Outcome: RevertFailed
+10: EndSaga - SagaID: test, Outcome: PartiallyReverted
