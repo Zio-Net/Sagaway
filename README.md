@@ -660,12 +660,26 @@ The [`DaprActorHost`](https://github.com/alonf/Sagaway/tree/master/Sagaway.Hosts
 
 ### The [`DaprActorHost`](https://github.com/alonf/Sagaway/tree/master/Sagaway.Hosts.DaprActorHost) class
 
+```csharp
+public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSupport, ISagawayActor
+    where TEOperations : Enum
+{
+   ...
+   
+}
+```
+
+The `DaprActorHost` class derived from the Dapr [`Actor`](https://github.com/dapr/dotnet-sdk/blob/master/src/Dapr.Actors/Runtime/Actor.cs) class and implements the Dapr Actor [`IRemindable`](https://github.com/dapr/dotnet-sdk/blob/master/src/Dapr.Actors/Runtime/IRemindable.cs) to set and invoke by a reminder callback. The next two interfaces are the `ISagaSupport` that we have discussed and the [`ISagawayActor](https://github.com/alonf/Sagaway/blob/master/Sagaway.Callback.Router/ISagawayActor.cs) which enables the auto-routing of callback asynchronous results from external services when needed.
+
+Most of the code of the `DaprActorHost` is a delegation either to the underline Sagaway [`Saga`](https://github.com/alonf/Sagaway/blob/master/Sagaway/Saga.cs) class or for the Dapr [`Actor`](https://github.com/dapr/dotnet-sdk/blob/master/src/Dapr.Actors/Runtime/Actor.cs) class. The only exception is the `DispatchCallbackAsync` that has the implementation using reflection to call back to complete the asynchronous Saga step.
+
+
 
 ### The Saga Core
 
 #### The Saga class
 
-##### Thread Safty
+##### Thread Safety
 
 #### The SagaOperation and SagaAction classes
 
