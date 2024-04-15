@@ -22,7 +22,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.2.0" />
     <PackageReference Include="Dapr.AspNetCore" Version="1.13.0" />
     <PackageReference Include="Dapr.Client" Version="1.13.0" />
   </ItemGroup>

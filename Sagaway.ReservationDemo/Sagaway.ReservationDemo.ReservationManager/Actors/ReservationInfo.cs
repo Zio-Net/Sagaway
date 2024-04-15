@@ -4,7 +4,7 @@
 public record ReservationInfo
 {
     // ReSharper disable PropertyCanBeMadeInitOnly.Global
-    public string CarClass { get; set; } = string.Empty;
+    public required string CarClass { get; set; }
     public Guid ReservationId { get; set; }
-    public string CustomerName { get; set; } = string.Empty;
+    public required string CustomerName { get; set; }
 }
