@@ -1,0 +1,27 @@
+name: Build and Publish the Sagaway Open Telemetry NuGet Package
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+  
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup .NET 8
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 8.0.x
+    - name: Create Nuget Package
+      run: dotnet pack -c Release -p:PackageVersion=${{ github.event.release.tag_name}} /p:PackageReleaseNotes="See https://raw.githubusercontent.com/alonf/Sagaway/master/README.md" Sagaway.OpenTelemetry/Sagaway.OpenTelemetry.csproj
+    - name: Archive Nuget Package for Sagaway
+      uses: actions/upload-artifact@v4
+      with:
+        name: packages
+        path: "Sagaway/bin/Release/Sagaway.OpenTelemetry.${{github.event.release.tag_name}}.nupkg"
+    - name: Publish Nuget Package
+      run: dotnet nuget push **/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --no-service-endpoint --source https://api.nuget.org/v3/index.json
