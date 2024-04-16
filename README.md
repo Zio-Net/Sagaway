@@ -121,7 +121,10 @@ builder.Services.AddActors(options =>
 builder.Services.AddSagawayOpenTelemetry(configureTracerProvider =>
 {
     configureTracerProvider
-        .AddAspNetCoreInstrumentation() // Instruments incoming requests
+        tracing.AddAspNetCoreInstrumentation(options =>
+        {
+            options.Filter = (httpContext) => httpContext.Request.Path != "/healthz";
+        })                              // Instruments incoming requests
         .AddHttpClientInstrumentation() // Instrument outgoing HTTP requests
         .AddConsoleExporter()
         .AddZipkinExporter(options =>
@@ -648,24 +651,46 @@ namespace Sagaway
         /// </summary>
         /// <returns>A lock implementor</returns>
         ILockWrapper CreateLock();
+
+        private static readonly ITelemetryAdapter NullTelemetryAdapterInstance = new NullTelemetryAdapter();
+
+        /// <summary>
+        /// Provide the telemetry adapter for the saga
+        /// </summary>
+        ITelemetryAdapter TelemetryAdapter  => NullTelemetryAdapterInstance;
     }
 }
 ```
 
-The saga requirements from the host are straightforward. The `SetReminderAsync` and the `CancelReminderAsync` allow the saga to set or cancel a reminder from the host or cancel it. For a simple host, the remainder is just a callback function that must be triggered after a due period. For more complex hosts such as Dapr Actor, the reminder may also reactivate the Actor and the saga, bringing it back to life on one of the hosted services. When the saga wakes up, the `ReBuildSaga` method is called to create the Saga object graph, i.e., the Saga operations. After that, the saga is loaded from the state by calling the `LoadSagaState` methods of the `ISagaSupport`. The `LoadSagaState` returns a Json representing the last state of the saga, i.e., the result of the already executed operations. The saga uses the `SaveSagaStateAsync` to store the information when it is called by the host in case the host is deactivated. 
-The last method in the interface is the `CreateLock`, which should provide an `ILockWrapper` instance. The saga uses this interface to obtain an async lock mechanism. If the host is a single-threaded host that allows only a single call to run concurrently, as the Dapr Actor does, then the host uses the [`NonLockAsync`]( https://github.com/alonf/Sagaway/blob/master/Sagaway/NonLockAsync.cs) class, otherwise it uses the [`ReentrantAsyncLock`]( https://github.com/alonf/Sagaway/blob/master/Sagaway/ReentrantAsyncLock.cs) class
+The saga requirements from the host are straightforward. The `SetReminderAsync` and the `CancelReminderAsync` allow the saga to set or cancel a reminder from the host or cancel it. For a simple host, the remainder is just a callback function that must be triggered after a due period. For more complex hosts such as Dapr Actor, the reminder may also reactivate the Actor and the saga, bringing it back to life on one of the hosted services. When the saga wakes up, the `ReBuildSaga` method is called to create the Saga object graph, i.e., the Saga operations. After that, the saga is loaded from the state by calling the `LoadSagaState` methods of the `ISagaSupport`. The `LoadSagaState` returns a Json representing the last state of the saga, i.e., the result of the already executed operations. The saga uses the `SaveSagaStateAsync` to store the information when it is called by the host in case the host is deactivated.
+The next method in the interface is the `CreateLock`, which should provide an `ILockWrapper` instance. The saga uses this interface to obtain an async lock mechanism. If the host is a single-threaded host that allows only a single call to run concurrently, as the Dapr Actor does, then the host uses the [`NonLockAsync`]( https://github.com/alonf/Sagaway/blob/master/Sagaway/NonLockAsync.cs) class, otherwise it uses the [`ReentrantAsyncLock`]( https://github.com/alonf/Sagaway/blob/master/Sagaway/ReentrantAsyncLock.cs) class. The last property in the interface is the `TelemetryAdapter`. The host can leave the defualt `NullTelemetryAdapterInstance` or provide an implementation for the [`ITelemetryAdapter`](https://github.com/alonf/Sagaway/blob/master/Sagaway/Telemetry/ITelemetryAdapter.cs). For OpenTelemetry, there is a predefined implementation [`OpenTelemetryAdapter`](https://github.com/alonf/Sagaway/blob/master/Sagaway.OpenTelemetry/OpenTelemetryAdapter.cs) that can be injected using the [`AddSagawayOpenTelemetry`](https://github.com/alonf/Sagaway/blob/master/Sagaway.OpenTelemetry/TelemetryExtensions.cs) extension method.
+
 The host uses the [`ISaga`](https://github.com/alonf/Sagaway/blob/master/Sagaway/ISaga.cs) interface methods to inform that saga about deactivation ` InformDeactivatedAsync `, activation: ` InformActivatedAsync `  and about a reminder that goes off `ReportReminderAsync`. The host can also use the interface to know the Saga status: ` InProgress `,` Succeeded `,` Failed `,` Reverted `, and `RevertFailed` and can know that the saga is done with the `OnSagaCompleted` event. The host can execute the saga with `RunAsync` and inform Saga operation results with `ReportOperationOutcomeAsync` and `ReportUndoOperationOutcomeAsync`.
 
 The [`DaprActorHost`](https://github.com/alonf/Sagaway/tree/master/Sagaway.Hosts.DaprActorHost)implements the required functionality and hides the complexity from the developer that uses it. If you need to create your host, see the `DaprActorHost` implementation.
 
 ### The [`DaprActorHost`](https://github.com/alonf/Sagaway/tree/master/Sagaway.Hosts.DaprActorHost) class
 
+```csharp
+public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSupport, ISagawayActor
+    where TEOperations : Enum
+{
+   ...
+   
+}
+```
+
+The `DaprActorHost` class derived from the Dapr [`Actor`](https://github.com/dapr/dotnet-sdk/blob/master/src/Dapr.Actors/Runtime/Actor.cs) class and implements the Dapr Actor [`IRemindable`](https://github.com/dapr/dotnet-sdk/blob/master/src/Dapr.Actors/Runtime/IRemindable.cs) to set and invoke by a reminder callback. The next two interfaces are the `ISagaSupport` that we have discussed and the [`ISagawayActor](https://github.com/alonf/Sagaway/blob/master/Sagaway.Callback.Router/ISagawayActor.cs) which enables the auto-routing of callback asynchronous results from external services when needed.
+
+Most of the code of the `DaprActorHost` is a delegation either to the underline Sagaway [`Saga`](https://github.com/alonf/Sagaway/blob/master/Sagaway/Saga.cs) class or for the Dapr [`Actor`](https://github.com/dapr/dotnet-sdk/blob/master/src/Dapr.Actors/Runtime/Actor.cs) class. The only exception is the `DispatchCallbackAsync` that has the implementation using reflection to call back to complete the asynchronous Saga step.
+
+
 
 ### The Saga Core
 
 #### The Saga class
 
-##### Thread Safty
+##### Thread Safety
 
 #### The SagaOperation and SagaAction classes
 
@@ -676,5 +701,3 @@ The [`DaprActorHost`](https://github.com/alonf/Sagaway/tree/master/Sagaway.Hosts
 ### The Dapr Host
 
 #### The Auto-Dispatcher Mechanism
-
-

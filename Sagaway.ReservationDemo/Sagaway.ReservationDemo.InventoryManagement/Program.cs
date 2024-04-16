@@ -31,7 +31,10 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddOpenTelemetry().WithTracing(tracing =>
 {
-    tracing.AddAspNetCoreInstrumentation();
+    tracing.AddAspNetCoreInstrumentation(options =>
+    {
+        options.Filter = (httpContext) => httpContext.Request.Path != "/healthz";
+    });
     tracing.AddHttpClientInstrumentation();
     tracing.AddZipkinExporter(options =>
     {
