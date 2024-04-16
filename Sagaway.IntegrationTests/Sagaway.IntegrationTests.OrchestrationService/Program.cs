@@ -58,7 +58,8 @@ builder.Services.AddActors(options =>
 builder.Services.AddSagawayOpenTelemetry(configureTracerProvider =>
 {
     configureTracerProvider
-        .AddAspNetCoreInstrumentation() // Instruments incoming requests
+        .AddAspNetCoreInstrumentation(options => 
+            { options.Filter = (httpContext) => httpContext.Request.Path != "/healthz"; }) // Instruments incoming requests
         .AddHttpClientInstrumentation() // Instrument outgoing HTTP requests
         .AddZipkinExporter(options =>
         {
@@ -98,7 +99,6 @@ app.MapHealthChecks("/healthz");
 app.UseSagawayCallbackRouter("test-response-queue");
 
 app.MapPost("/run-test", async (
-        HttpContext context,
         [FromServices] IActorProxyFactory actorProxyFactory,
         [FromServices] ILogger < Program > logger,
         [FromServices] DaprClient daprClient,
