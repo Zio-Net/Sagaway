@@ -4,6 +4,9 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\$(AssemblyName).xml</DocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
     <Title>Sagaway Main Package</Title>
     <Authors>Alon Fliess</Authors>
     <Company>ZioNet</Company>
@@ -25,5 +28,4 @@
     <PackageReference Include="Dapr.AspNetCore" Version="1.13.0" />
     <PackageReference Include="Dapr.Client" Version="1.13.0" />
   </ItemGroup>
-
 </Project>

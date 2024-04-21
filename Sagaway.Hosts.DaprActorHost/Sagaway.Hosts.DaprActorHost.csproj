@@ -4,6 +4,9 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\$(AssemblyName).xml</DocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
     <Title>Sagaway Main Package</Title>
     <Authors>Alon Fliess</Authors>
     <Company>ZioNet</Company>
@@ -12,6 +15,10 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/alonf/Sagaway</RepositoryUrl>
     <EnableNETAnalyzers>True</EnableNETAnalyzers>
+    <PackageVersion>1.0.0</PackageVersion>
+    <!-- Default version if not overridden -->
+    <UsePackages>false</UsePackages>
+    <!-- Default to false; override in CI/CD or command line -->
   </PropertyGroup>
 
   <ItemGroup>
@@ -21,15 +28,20 @@
     </None>
   </ItemGroup>
 
-
   <ItemGroup>
     <PackageReference Include="Dapr.Actors.AspNetCore" Version="1.13.0" />
   </ItemGroup>
 
-
-  <ItemGroup>
+  <!-- Conditionally include Project References -->
+  <ItemGroup Condition="'$(UsePackages)' == 'false'">
     <ProjectReference Include="..\Sagaway.Callback.Router\Sagaway.Callback.Router.csproj" />
     <ProjectReference Include="..\Sagaway\Sagaway.csproj" />
+  </ItemGroup>
+
+  <!-- Conditionally include NuGet Package References -->
+  <ItemGroup Condition="'$(UsePackages)' == 'true'">
+    <PackageReference Include="Sagaway.Callback.Router" Version="$(PackageVersion)" />
+    <PackageReference Include="Sagaway" Version="$(PackageVersion)" />
   </ItemGroup>
 
 </Project>

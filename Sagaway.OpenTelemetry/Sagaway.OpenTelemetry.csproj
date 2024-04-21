@@ -4,13 +4,24 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\$(AssemblyName).xml</DocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+    <PackageVersion>1.0.0</PackageVersion>
+    <!-- Default version if not overridden -->
+    <UsePackages>false</UsePackages>
+    <!-- Default to false; override in CI/CD or command line -->
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="OpenTelemetry" Version="1.8.0" />
   </ItemGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition="'$(UsePackages)' == 'true'">
+    <PackageReference Include="Sagaway" Version="$(PackageVersion)" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(UsePackages)' == 'false'">
     <ProjectReference Include="..\Sagaway\Sagaway.csproj" />
   </ItemGroup>
 
