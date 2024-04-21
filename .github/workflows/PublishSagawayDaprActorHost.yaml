@@ -16,6 +16,9 @@ jobs:
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 8.0.x
+        
+    - name: Wait for NuGet packages to be available
+      run: sleep 180 # Delays for 180 seconds, or 3 minutes
 
     - name: Create Nuget Package
       run: dotnet pack -c Release -p:UsePackages=true -p:PackageVersion=${{ github.event.release.tag_name }} -p:PackageReleaseNotes="See https://raw.githubusercontent.com/alonf/Sagaway/master/README.md" Sagaway.Hosts.DaprActorHost/Sagaway.Hosts.DaprActorHost.csproj
