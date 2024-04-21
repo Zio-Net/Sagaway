@@ -26,6 +26,7 @@ R# => max retries
 UR# => max revert retries
 F# => The number of times the operation fails
 FF => The operation marked to fail fast
+FS => The operation marked to succeed fast
 RF => Report Failure (even if it before undo)
 W#.# => The Time the operation waits for each call before returning a failure or success. (W Call.Wait)
 UF# => The number of times the revert operation fails
@@ -62,10 +63,10 @@ public partial class Tests
             await _saga.ReportReminderAsync(reminder);
     }
 
-    private async Task InformOpFinished(Operations op, bool isSuccess, bool failFast = false)
+    private async Task InformOpFinished(Operations op, bool isSuccess, bool failFast = false, bool fastSuccess = false)
     {
         if (_saga != null)
-            await _saga.ReportOperationOutcomeAsync(op, isSuccess, failFast);
+            await _saga.ReportOperationOutcomeAsync(op, isSuccess, failFast, fastSuccess);
     }
 
     private async Task InformRevertOpFinished(Operations op, bool isSuccess)
@@ -253,6 +254,7 @@ public partial class Tests
     [InlineData("test_two_second_failed_first_depends_on_first", "O2|F1", "O1|D2")]
     [InlineData("test_two_second_failed_first_fast_second", "O2|FF", "O1|D2")]
     [InlineData("test_two_first_failed_fast_after_running_second", "O2", "O1|D2|FF")]
+    [InlineData("test_tow_first_fast_succeeded_second_not_run", "O1|FS", "O2|D1")]
     [InlineData("test_two_both_failed_revert_fails_2_times", "O1|F1|RRW1|UR3|UF2", "O2|F1|RRW1|UR3|UF2")]
     [InlineData("test_two_first_deactivate_saga", "O1|S1|R2|RW1|W1.4|V1.S", "O2|W1.6")]
     [InlineData("test_two_ops_throw_exception_on_first", "O1|T1", "O2")]
@@ -274,6 +276,8 @@ public partial class Tests
     [InlineData("test_five_throw_on_fifth", "O1", "O2", "O3", "O4", "O5|T1")]
     [InlineData("test_five_throw_on_fifth_report_failure", "O1|RF", "O2|W1.1", "O3|W1.2", "O4|W1.3", "O5|W1.4|T1")]
     [InlineData("test_five_failfast_on_third", "O1", "O2|W1.1", "O3|W1.2|FF", "O4|W1.3", "O5|W1.4")]
+    [InlineData("test_five_fast_success_on_third", "O1", "O2|W1.1", "O3|W1.2|D1|D2|FS", "O4|W1.3|D3", "O5|W1.4|D3")]
+    [InlineData("test_five_fast_success_on_third_with_second_done", "O1", "O2", "O3|W1.2|D1|FS", "O4|W1.3|D3", "O5|W1.4|D3")]
     public async Task TestFiveAsync(string testName, string op1, string op2 = "", string op3 = "", string op4 = "", string op5 = "")
     {
         await TestRunAsync(testName, op1, op2, op3, op4, op5);
@@ -398,7 +402,7 @@ public partial class Tests
         {
             testOperation.CallCounter++;
         }
-        await InformOpFinished(testOperation.OperationNumber, isSuccess && !testOperation.HasFailFast, testOperation.HasFailFast);
+        await InformOpFinished(testOperation.OperationNumber, isSuccess && !testOperation.HasFailFast, testOperation.HasFailFast, testOperation.HasFastSuccess);
     }
     private static async Task<bool> Validate(StringBuilder sb, TestOperationInput testOperation)
     {
@@ -473,6 +477,7 @@ public partial class Tests
             var maxRetries = NumberOfElements("R");
             var numberOfFailures = NumberOfElements("F");
             var failFast = entries.Any(e=> e == "FF");
+            var fastSuccess = entries.Any(e=> e == "FS");
             var delays = ExtractDelayByIteration("W");
             var retryDelay = NumberOfElements("RW");
             bool useExponentialBackoff = UseExponentialBackoff("RW");
@@ -534,7 +539,8 @@ public partial class Tests
                 RevertThrowException = revertThrowException,
                 RevertValidateThrowException = revertValidateThrowException,
                 HasReportFail = hasReportFail,
-                HasFailFast = failFast
+                HasFailFast = failFast,
+                HasFastSuccess = fastSuccess
             };
             yield return testOperation;
         }

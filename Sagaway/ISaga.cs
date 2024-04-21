@@ -62,8 +62,9 @@ namespace Sagaway
         /// <param name="operation">The operation</param>
         /// <param name="success">Success or failure</param>
         /// <param name="failFast">If true, fail the Saga, stop retries and start revert</param>
+        /// <param name="fastSuccess">Inform a success of the operation, complete the saga. Not started operations marked as successful</param>
         /// <returns>Async operation</returns>
-        Task ReportOperationOutcomeAsync(TEOperations operation, bool success, bool failFast = false);
+        Task ReportOperationOutcomeAsync(TEOperations operation, bool success, bool failFast = false, bool fastSuccess = false);
 
         /// <summary>
         ///  Implementer should call this method to inform the outcome of an undo operation

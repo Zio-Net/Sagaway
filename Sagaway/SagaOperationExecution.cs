@@ -112,6 +112,11 @@ namespace Sagaway
                 }
             }
 
+            public void MarkSucceeded()
+            {
+                _sagaDoAction.MarkSucceeded();
+            }
+
             public void MarkReverted()
             {
                 _sagaRevertAction.MarkSucceeded();

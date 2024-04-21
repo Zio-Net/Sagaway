@@ -398,9 +398,20 @@ namespace Sagaway
         /// <param name="operation">The operation</param>
         /// <param name="success">Success or failure</param>
         /// <param name="failFast">If true, fail the Saga, stop retries and start revert</param>
+        /// <param name="fastSuccess">Inform a success of the operation, complete the saga. Not started operations marked as successful</param>
         /// <returns>Async operation</returns>
-        public async Task ReportOperationOutcomeAsync(TEOperations operation, bool success, bool failFast)
+        public async Task ReportOperationOutcomeAsync(TEOperations operation, bool success, bool failFast,
+            bool fastSuccess)
         {
+            if (success && failFast)
+                throw new InvalidOperationException("Cannot have success and fail fast at the same time");
+
+            if (fastSuccess && !success)
+                throw new InvalidOperationException("Cannot have fast success without success");
+
+            if (failFast && fastSuccess)
+                throw new InvalidOperationException("Cannot have fail fast and fast success at the same time");
+
             await _lock.LockAsync(async () =>
             {
                 if (!InProgress)
@@ -408,6 +419,17 @@ namespace Sagaway
 
                 try
                 {
+                    if (fastSuccess)
+                    {
+
+                        var allNotStartedOperations = _operations.Where(o => o.NotStarted);
+
+                        foreach (var op in allNotStartedOperations)
+                        {
+                            op.MarkSucceeded();
+                        }
+                    }
+
                     var operationExecution = _operations.Single(o => o.Operation.Operation.Equals(operation));
                     if (success)
                     {
