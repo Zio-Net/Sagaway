@@ -461,19 +461,20 @@ The `ReportCompleteOperationOutcomeAsync` informs the Saga about the operation o
 There are two optional arguments in the `ReportCompleteOperationOutcomeAsync` function, the `failFast` and the `fastSuccess`:
 
 ```csharp
-/// <summary>
-        /// Implementer should call this method to inform the outcome of an operation
-        /// </summary>
-        /// <param name="operation">The operation</param>
-        /// <param name="success">Success or failure</param>
-        /// <param name="failFast">If true, fail the Saga, stop retries and start revert</param>
-        /// <param name="fastSuccess">Inform a success of the operation, complete the saga. Not started operations marked as successful</param>
-        /// <returns>Async operation</returns>
-        Task ReportOperationOutcomeAsync(TEOperations operation, bool success, bool failFast = false, bool fastSuccess = false);
+    /// <summary>
+    /// Implementer should call this method to inform the outcome of an operation
+    /// </summary>
+    /// <param name="operation">The operation</param>
+    /// <param name="success">Success or failure</param>
+    /// <param name="sagaFastOutcome">Inform a fast outcome for the Saga from a single operation, either fast fail or success
+    /// <remarks><see cref="SagaFastOutcome.Failure"/> fails the saga and start the compensation process</remarks>
+    /// <remarks><see cref="SagaFastOutcome.Success"/> Finish the saga successfully, marked all non-started operations as succeeded</remarks></param>
+    /// <returns>Async operation</returns>
+    Task ReportOperationOutcomeAsync(TEOperations operation, bool success, SagaFastOutcome sagaFastOutcome = SagaFastOutcome.None);
 ```
 
-Pass `true` value to the `failFast` argument to fail the saga and start the compensassion process.
-Pass `true` value to the `fastSuccess` argument to inform the Saga that the operation succeeded and to complete the Saga. The Saga will mark all the operations that have not started as successful.
+Pass `SagaFastOutcome.Failure` value to the `sagaFastOutcome` argument to fail the saga and start the compensassion process.
+Pass `SagaFastOutcome.Success` value to the `sagaFastOutcome` argument to inform the Saga that the operation succeeded and to complete the Saga. The Saga will mark all the operations that have not started as successful.
 
 - The following optional functions configure the retry behavior:
 

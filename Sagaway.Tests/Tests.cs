@@ -63,10 +63,10 @@ public partial class Tests
             await _saga.ReportReminderAsync(reminder);
     }
 
-    private async Task InformOpFinished(Operations op, bool isSuccess, bool failFast = false, bool fastSuccess = false)
+    private async Task InformOpFinished(Operations op, bool isSuccess, SagaFastOutcome sagaFastOutcome)
     {
         if (_saga != null)
-            await _saga.ReportOperationOutcomeAsync(op, isSuccess, failFast, fastSuccess);
+            await _saga.ReportOperationOutcomeAsync(op, isSuccess, sagaFastOutcome);
     }
 
     private async Task InformRevertOpFinished(Operations op, bool isSuccess)
@@ -402,7 +402,9 @@ public partial class Tests
         {
             testOperation.CallCounter++;
         }
-        await InformOpFinished(testOperation.OperationNumber, isSuccess && !testOperation.HasFailFast, testOperation.HasFailFast, testOperation.HasFastSuccess);
+
+        var sagaFastOutput = testOperation.HasFailFast ? SagaFastOutcome.Failure : testOperation.HasFastSuccess ? SagaFastOutcome.Success : SagaFastOutcome.None;
+        await InformOpFinished(testOperation.OperationNumber, isSuccess && !testOperation.HasFailFast, sagaFastOutput);
     }
     private static async Task<bool> Validate(StringBuilder sb, TestOperationInput testOperation)
     {

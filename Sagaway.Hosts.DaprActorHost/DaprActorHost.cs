@@ -252,12 +252,28 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     /// <param name="isSuccessful">Success or failure</param>
     /// <param name="failFast">If true, fail the Saga, stop retries and start revert</param>
     /// <returns>Async operation</returns>
+    [Obsolete("Use ReportOperationOutcomeAsync with the FastOutcome enum instead")]
     protected async Task ReportCompleteOperationOutcomeAsync(TEOperations operation, bool isSuccessful,
-        bool failFast = false)
+        bool failFast)
     {
         await Saga!.ReportOperationOutcomeAsync(operation, isSuccessful, failFast);
     }
 
+    /// <summary>
+    /// Implementer should call this method to inform the outcome of an operation
+    /// </summary>
+    /// <param name="operation">The operation</param>
+    /// <param name="isSuccessful">Success or failure</param>
+    /// <param name="sagaFastOutcome">Inform a fast outcome for the Saga from a single operation, either fast fail or success
+    /// <remarks><see cref="SagaFastOutcome.Failure"/> fails the saga and start the compensation process</remarks>
+    /// <remarks><see cref="SagaFastOutcome.Success"/> Finish the saga successfully, marked all non-started operations as succeeded</remarks></param>
+    /// <returns>Async operation</returns>
+    protected async Task ReportCompleteOperationOutcomeAsync(TEOperations operation, bool isSuccessful,
+        SagaFastOutcome sagaFastOutcome = SagaFastOutcome.None)
+    {
+        await Saga!.ReportOperationOutcomeAsync(operation, isSuccessful, sagaFastOutcome);
+    }
+    
     /// <summary>
     /// Inform the outcome of an undo operation
     /// </summary>
