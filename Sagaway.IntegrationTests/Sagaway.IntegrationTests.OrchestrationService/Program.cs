@@ -137,29 +137,6 @@ app.MapPost("/run-test", async (
 .WithName("run-test")
 .WithOpenApi();
 
-app.MapPost("/demo1", async () =>
-{
-    await Task.Delay(100);
-    return Results.Ok("Post");
-});
-
-app.MapPut("/demo2", async () =>
-{
-    await Task.Delay(100);
-    return Results.Ok("Put");
-});
-
-app.MapDelete("/demo3", async () =>
-{
-    await Task.Delay(100);
-    return Results.Ok("Delete");
-});
-
-app.MapGet("/demo4", async () =>
-{
-    await Task.Delay(100);
-    return Results.Ok("Get");
-});
 
 app.MapPost("/negotiate", async (
     [FromServices] IHubContextStore store,
