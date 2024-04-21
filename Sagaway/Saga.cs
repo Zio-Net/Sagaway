@@ -399,8 +399,29 @@ namespace Sagaway
         /// <param name="success">Success or failure</param>
         /// <param name="failFast">If true, fail the Saga, stop retries and start revert</param>
         /// <returns>Async operation</returns>
+        [Obsolete("Use ReportOperationOutcomeAsync with the FastOutcome enum instead")]
         public async Task ReportOperationOutcomeAsync(TEOperations operation, bool success, bool failFast)
         {
+            await ReportOperationOutcomeAsync(operation, success, failFast ? SagaFastOutcome.Failure : SagaFastOutcome.None);
+        }
+
+        /// <summary>
+        /// Implementer should call this method to inform the outcome of an operation
+        /// </summary>
+        /// <param name="operation">The operation</param>
+        /// <param name="success">Success or failure</param>
+        /// <param name="sagaFastOutcome">Inform a fast outcome for the Saga from a single operation, either fast fail or success
+        /// <remarks><see cref="SagaFastOutcome.Failure"/> fails the saga and start the compensation process</remarks>
+        /// <remarks><see cref="SagaFastOutcome.Success"/> Finish the saga successfully, marked all non-started operations as succeeded</remarks></param>
+        /// <returns>Async operation</returns>
+        public async Task ReportOperationOutcomeAsync(TEOperations operation, bool success, SagaFastOutcome sagaFastOutcome = SagaFastOutcome.None)
+        {
+            if (success && sagaFastOutcome == SagaFastOutcome.Failure)
+                throw new InvalidOperationException("Cannot have success and fail fast at the same time");
+
+            if (!success && sagaFastOutcome == SagaFastOutcome.Success)
+                throw new InvalidOperationException("Cannot have fast success without success");
+
             await _lock.LockAsync(async () =>
             {
                 if (!InProgress)
@@ -408,6 +429,17 @@ namespace Sagaway
 
                 try
                 {
+                    if (sagaFastOutcome == SagaFastOutcome.Success)
+                    {
+
+                        var allNotStartedOperations = _operations.Where(o => o.NotStarted);
+
+                        foreach (var op in allNotStartedOperations)
+                        {
+                            op.MarkSucceeded();
+                        }
+                    }
+
                     var operationExecution = _operations.Single(o => o.Operation.Operation.Equals(operation));
                     if (success)
                     {
@@ -415,7 +447,7 @@ namespace Sagaway
                     }
                     else
                     {
-                        await operationExecution.InformFailureOperationAsync(failFast);
+                        await operationExecution.InformFailureOperationAsync(sagaFastOutcome == SagaFastOutcome.Failure);
                     }
                 }
                 finally

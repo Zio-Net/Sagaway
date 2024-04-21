@@ -457,6 +457,25 @@ private async Task OnCarBookingResultAsync(ReservationOperationResult reservatio
  }
 ```
 
+The `ReportCompleteOperationOutcomeAsync` informs the Saga about the operation outcome. The Saga uses this information to decide whether to proceed to the next operation or to switch to the compensation phase.
+There are two optional arguments in the `ReportCompleteOperationOutcomeAsync` function, the `failFast` and the `fastSuccess`:
+
+```csharp
+    /// <summary>
+    /// Implementer should call this method to inform the outcome of an operation
+    /// </summary>
+    /// <param name="operation">The operation</param>
+    /// <param name="success">Success or failure</param>
+    /// <param name="sagaFastOutcome">Inform a fast outcome for the Saga from a single operation, either fast fail or success
+    /// <remarks><see cref="SagaFastOutcome.Failure"/> fails the saga and start the compensation process</remarks>
+    /// <remarks><see cref="SagaFastOutcome.Success"/> Finish the saga successfully, marked all non-started operations as succeeded</remarks></param>
+    /// <returns>Async operation</returns>
+    Task ReportOperationOutcomeAsync(TEOperations operation, bool success, SagaFastOutcome sagaFastOutcome = SagaFastOutcome.None);
+```
+
+Pass `SagaFastOutcome.Failure` value to the `sagaFastOutcome` argument to fail the saga and start the compensassion process.
+Pass `SagaFastOutcome.Success` value to the `sagaFastOutcome` argument to inform the Saga that the operation succeeded and to complete the Saga. The Saga will mark all the operations that have not started as successful.
+
 - The following optional functions configure the retry behavior:
 
 ```csharp

@@ -157,7 +157,7 @@ public class IntegrationTests
 
             var testResult = _testServiceHelper.GetTestResultFromSignalR(testInfo.Id);
 
-            await Task.Delay(10000);
+            await Task.Delay(1000);
 
             string openTelemetryResults = await GetTracesFromZipkinAsync(startTs);
             
@@ -198,10 +198,10 @@ public class IntegrationTests
 
             traces = await response.Content.ReadAsStringAsync();
 
-            if (traces.Contains("saga.outcome"))
+            if (traces.Contains("saga.outcome") && traces.Contains("operation.outcome"))
                 break;
 
-            await Task.Delay(1000);
+            await Task.Delay(2000);
         }
 
         var options = new JsonSerializerOptions
