@@ -201,7 +201,7 @@ public class IntegrationTests
             if (traces.Contains("saga.outcome"))
                 break;
 
-            await Task.Delay(1000);
+            await Task.Delay(3000);
         }
 
         var options = new JsonSerializerOptions
