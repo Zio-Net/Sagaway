@@ -18,7 +18,7 @@ jobs:
         dotnet-version: 8.0.x
 
     - name: Wait for NuGet packages to be available
-      run: sleep 180 # Delays for 180 seconds, or 3 minutes
+      run: sleep 300 # Delays for 300 seconds, or 5 minutes
       
     - name: Create Nuget Package
       run: dotnet pack -c Release -p:PackageVersion=${{ github.event.release.tag_name }} /p:PackageReleaseNotes="See https://raw.githubusercontent.com/alonf/Sagaway/master/README.md" Sagaway.OpenTelemetry/Sagaway.OpenTelemetry.csproj
