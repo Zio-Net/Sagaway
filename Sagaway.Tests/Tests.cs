@@ -254,7 +254,7 @@ public partial class Tests
     [InlineData("test_two_second_failed_first_depends_on_first", "O2|F1", "O1|D2")]
     [InlineData("test_two_second_failed_first_fast_second", "O2|FF", "O1|D2")]
     [InlineData("test_two_first_failed_fast_after_running_second", "O2", "O1|D2|FF")]
-    [InlineData("test_tow_first_fast_succeeded_second_not_run", "O1|FS", "O2|D1")]
+    [InlineData("test_two_first_fast_succeeded_second_not_run", "O1|FS", "O2|D1")]
     [InlineData("test_two_both_failed_revert_fails_2_times", "O1|F1|RRW1|UR3|UF2", "O2|F1|RRW1|UR3|UF2")]
     [InlineData("test_two_first_deactivate_saga", "O1|S1|R2|RW1|W1.4|V1.S", "O2|W1.6")]
     [InlineData("test_two_ops_throw_exception_on_first", "O1|T1", "O2")]
