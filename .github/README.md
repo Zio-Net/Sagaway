@@ -1,7 +1,8 @@
 # Sagaway - A Distributed Application Saga
 
-## The Saga Pattern
+If you want to use Sagaway and need instructions, skip to the [using Sagaway section](#using-sagaway-in-a-dapr-system)
 
+## The Saga Pattern
 Sagaway embodies the Saga pattern, a sophisticated approach to managing transactions and ensuring consistency within distributed systems. This pattern delineates a sequence of local transactions, each updating the system's state and paving the way for the subsequent step. In the event of a transaction failure, compensating transactions are initiated to reverse the effects of prior operations. Sagas can operate sequentially, where operations follow one another or execute multiple operations simultaneously in parallel.
 
 Implementing Sagas can be straightforward, involving synchronous request-reply interactions with participant services. Yet, embracing asynchronous communication proves superior for optimal integration within a Microservices Architecture (MSA). It entails employing queues or publish/subscribe models and awaiting results. This strategy allows the coordinating service to halt its operations, thereby liberating resources. The orchestration of the Saga resumes once a response is received from any of the participant services, typically through callback mechanisms like queues or a publish/subscribe system. This advanced pattern of Saga management necessitates asynchronous service calls, resource allocation efficiency, and mechanisms to revisit operational states. Additionally, it encompasses handling unacknowledged requests through status checks and retries, along with executing asynchronous compensations.
@@ -65,6 +66,21 @@ Follow these steps to implement Saga with Sagaway, Dapr, and ASP.NET Minimal API
 For the service that hosts the Dapr Actor:
 
 - Create a minimal API project
+- Add Sagaway NuGet packages. For the service that host the Dapr Actors add:
+  - Dapr.Client
+  - Dapr.AspNetCore
+  - Dapr.Actors
+  - Sagaway.Hosts.DaprActorHost
+  - If you want to have Open Telemetry, then add:
+    - OpenTelemetry NuGet packages, according to the kinf of instrumentations and exporters, for example:
+      - OpenTelemetry
+      - OpenTelemetry.Api.ProviderBuilderExtensions
+      - OpenTelemetry.Exporter.Console
+      - OpenTelemetry.Extensions.Hosting
+      - OpenTelemetry.Instrumentation.AspNetCore
+      - OpenTelemetry.Instrumentation.Http
+      - OpenTelemetry.Exporter.Zipkin
+      - Sagaway.OpenTelemetry
 - Register the Dapr client. You can also add Json options for the default serialization:
 
 ```csharp
@@ -98,6 +114,24 @@ builder.Services.AddActors(options =>
         PropertyNameCaseInsensitive = true
     };
 });
+```
+
+- Add the Open Telemetry support:
+
+```csharp
+builder.Services.AddSagawayOpenTelemetry(configureTracerProvider =>
+{
+    configureTracerProvider
+        .AddAspNetCoreInstrumentation(options => 
+            { options.Filter = (httpContext) => httpContext.Request.Path != "/healthz"; }) // Instruments incoming requests
+        .AddHttpClientInstrumentation() // Instrument outgoing HTTP requests
+        .AddConsoleExporter()
+        .AddZipkinExporter(options =>
+        {
+            options.Endpoint = new Uri("http://zipkin:9411/api/v2/spans");
+        })
+        .SetSampler(new AlwaysOnSampler()); // Collect all samples. Adjust as necessary for production.
+}, "ReservationManagerService");
 ```
 
 - Dapr sidecar uses the ASP.NET built-in health API, so add also:
@@ -259,8 +293,34 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     where TEOperations : Enum
 {
 ...
+
 }
 ```
+
+For example, this is the CarReservationActor:
+
+```csharp
+[Actor(TypeName = "CarReservationActor")]
+public class CarReservationActor : DaprActorHost<CarReservationActorOperations>, ICarReservationActor
+{
+    private readonly ILogger<CarReservationActor> _logger;
+    private readonly ActorHost _actorHost;
+    private ReservationInfo? _reservationInfo;
+
+    public CarReservationActor(ActorHost host, ILogger<CarReservationActor> logger, IServiceProvider? serviceProvider)
+        : base(host, logger, serviceProvider)
+    {
+        _actorHost = host;
+        _logger = logger;
+    }
+
+    protected override string GetCallbackBindingName()
+    {
+        return "reservation-response-queue";
+    }
+```
+
+The `GetCallbackBindingName` is needed to enable auto dispatching of callback calls using Dapr binding.
 
 ## The Saga Builder
 
@@ -277,46 +337,47 @@ The static state is the Saga configuration. Sagaway uses the Builder pattern to 
 protected override ISaga<CarReservationActorOperations> ReBuildSaga()
  {
      var saga = Saga<CarReservationActorOperations>.Create(_actorHost.Id.ToString(), this, _logger)
-         .WithOnSuccessCompletionCallback(OnSuccessCompletionCallbackAsync)
-         .WithOnRevertedCallback(OnRevertedCallbackAsync)
-         .WithOnFailedRevertedCallback(OnFailedRevertedCallbackAsync)
-         .WithOnFailedCallback(OnFailedCallbackAsync)
+        .WithOnSuccessCompletionCallback(OnSuccessCompletionCallbackAsync)
+        .WithOnRevertedCallback(OnRevertedCallbackAsync)
+        .WithOnFailedRevertedCallback(OnFailedRevertedCallbackAsync)
+        .WithOnFailedCallback(OnFailedCallbackAsync)
 
-         .WithOperation(CarReservationActorOperations.CarBooking)
-         .WithDoOperation(BookCarReservationAsync)
-         .WithMaxRetries(3)
-         .WithRetryIntervalTime(TimeSpan.FromMinutes(2))
-         .WithValidateFunction(ValidateBookCarReservationAsync)
-         .WithUndoOperation(RevertBookCarReservationAsync)
-         .WithMaxRetries(3)
-         .WithUndoRetryInterval(TimeSpan.FromMinutes(10))
-         .WithValidateFunction(ValidateRevertBookCarReservationAsync)
+        .WithOperation(CarReservationActorOperations.CarBooking)
+        .WithDoOperation(BookCarReservationAsync)
+        .WithMaxRetries(3)
+        .WithRetryIntervalTime(TimeSpan.FromMinutes(2)) //an example of a fixed interval
+        .WithValidateFunction(ValidateBookCarReservationAsync)
+        .WithUndoOperation(RevertBookCarReservationAsync)
+        .WithMaxRetries(3)
+        .WithUndoRetryInterval(TimeSpan.FromMinutes(10))
+        .WithValidateFunction(ValidateRevertBookCarReservationAsync)
 
-         .WithOperation(CarReservationActorOperations.InventoryReserving)
-         .WithDoOperation(ReserveInventoryAsync)
-         .WithMaxRetries(3)
-         .WithRetryIntervalTime(TimeSpan.FromMinutes(2))
-         .WithValidateFunction(ValidateReserveInventoryAsync)
-         .WithUndoOperation(RevertReserveInventoryAsync)
-         .WithMaxRetries(3)
-         .WithUndoRetryInterval(TimeSpan.FromMinutes(10))
-         .WithValidateFunction(ValidateRevertReserveInventoryAsync)
+        .WithOperation(CarReservationActorOperations.InventoryReserving)
+        .WithDoOperation(ReserveInventoryAsync)
+        .WithMaxRetries(3)
+        .WithRetryIntervalTime(ExponentialBackoff.InMinutes()) //An example of an exponential backoff in minutes
+        .WithValidateFunction(ValidateReserveInventoryAsync)
+        .WithUndoOperation(RevertReserveInventoryAsync)
+        .WithMaxRetries(3)
+        .WithUndoRetryInterval(ExponentialBackoff.InMinutes())
+        .WithValidateFunction(ValidateRevertReserveInventoryAsync)
 
-         .WithOperation(CarReservationActorOperations.Billing)
-         .WithDoOperation(BillReservationAsync)
-         .WithMaxRetries(3)
-         .WithRetryIntervalTime(TimeSpan.FromSeconds(10))
-         .WithValidateFunction(ValidateBillReservationAsync)
-         .WithPreconditions(CarReservationActorOperations.CarBooking | CarReservationActorOperations.InventoryReserving)
-         .WithUndoOperation(RevertBillReservationAsync)
-         .WithMaxRetries(3)
-         .WithUndoRetryInterval(TimeSpan.FromSeconds(10))
-         .WithValidateFunction(ValidateRevertBillReservationAsync)
-         .Build();
+        .WithOperation(CarReservationActorOperations.Billing)
+        .WithDoOperation(BillReservationAsync)
+        .WithMaxRetries(3)
+        .WithRetryIntervalTime(ExponentialBackoff.InSeconds()) //An example of an exponential backoff in seconds
+        .WithValidateFunction(ValidateBillReservationAsync)
+        .WithPreconditions(CarReservationActorOperations.CarBooking | CarReservationActorOperations.InventoryReserving)
+        .WithUndoOperation(RevertBillReservationAsync)
+        .WithMaxRetries(3)
+        .WithUndoRetryInterval(ExponentialBackoff.InSeconds())
+        .WithValidateFunction(ValidateRevertBillReservationAsync)
 
-     saga.OnSagaCompleted += async (s, e) => await OnSagaCompletedAsync(s, e);
+        .Build();
 
-     return saga;
+    saga.OnSagaCompleted += async (s, e) => await OnSagaCompletedAsync(s, e);
+
+    return saga;
  }
 ```
 
@@ -395,6 +456,25 @@ private async Task OnCarBookingResultAsync(ReservationOperationResult reservatio
  }
 ```
 
+The `ReportCompleteOperationOutcomeAsync` informs the Saga about the operation outcome. The Saga uses this information to decide whether to proceed to the next operation or to switch to the compensation phase.
+There are two optional arguments in the `ReportCompleteOperationOutcomeAsync` function, the `failFast` and the `fastSuccess`:
+
+```csharp
+    /// <summary>
+    /// Implementer should call this method to inform the outcome of an operation
+    /// </summary>
+    /// <param name="operation">The operation</param>
+    /// <param name="success">Success or failure</param>
+    /// <param name="sagaFastOutcome">Inform a fast outcome for the Saga from a single operation, either fast fail or success
+    /// <remarks><see cref="SagaFastOutcome.Failure"/> fails the saga and start the compensation process</remarks>
+    /// <remarks><see cref="SagaFastOutcome.Success"/> Finish the saga successfully, marked all non-started operations as succeeded</remarks></param>
+    /// <returns>Async operation</returns>
+    Task ReportOperationOutcomeAsync(TEOperations operation, bool success, SagaFastOutcome sagaFastOutcome = SagaFastOutcome.None);
+```
+
+Pass `SagaFastOutcome.Failure` value to the `sagaFastOutcome` argument to fail the saga and start the compensassion process.
+Pass `SagaFastOutcome.Success` value to the `sagaFastOutcome` argument to inform the Saga that the operation succeeded and to complete the Saga. The Saga will mark all the operations that have not started as successful.
+
 - The following optional functions configure the retry behavior:
 
 ```csharp
@@ -402,7 +482,13 @@ private async Task OnCarBookingResultAsync(ReservationOperationResult reservatio
 .WithRetryIntervalTime(TimeSpan.FromMinutes(2))
 ```
 
-The number of retries before the Saga switches to the compensation state and the time to set the reminder to wake the Saga to retry the call. The current interval is constant, although a future overload might accept a function to provide dynamic retries, such as exponential backoffs in the future.
+The number of retries before the Saga switches to the compensation state and the time to set the reminder to wake the Saga to retry the call. The interval can be constant, or a function returning the interval according to the retry attempt. You can use it to create an exponential backoff wait. Look at the `ExponentialBackoff` utility class for predefined functions:
+
+```csharp
+WithRetryIntervalTime(ExponentialBackoff.InMinutes())
+ //or
+WithRetryIntervalTime(ExponentialBackoff.InSeconds())
+```
 
 - The optional: `WithValidateFunction(ValidateBookCarReservationAsync)` sets a function that the Saga can call to validate an outcome of an operation. If the operation has not informed a result, and the retry timeout has elapsed, the Saga issues a call to get the success or failure result. If the remote service does not provide a callback mechanism, use this function for polling for the outcome. 
 
@@ -471,6 +557,7 @@ Look at the [complete Actor implementation]( https://github.com/alonf/Sagaway/bl
 The Saga can call any service, utilizing any means of communication. However, to enable auto-routing, the Sagaway framework provides a mechanism that propagates the actor identity and the callback function name so the callback message can be dispatched to the correct function. If you decide not to use the Sagaway auto-routing, you must inform the Saga of each call outcome or rely on the Saga polling mechanism. If you want a more straightforward implementation, follow these instructions:
 
 - Create an ASP.NET Minimal API project
+- Add NuGet packages for Dapr, for Open Telemetry and the `Sagaway.Callback.Propagator` to support auto callback dispatch
 - Add the following services:
 
 ```csharp
@@ -533,11 +620,95 @@ ISagaSupport is an interface that the host must implement. It defines the suppor
 
 The design of these interfaces ensures that the Sagaway framework remains decoupled from any hosting technology. By defining clear contracts for implementing Sagas and their supportive operations, Sagaway can be utilized in a variety of runtime environments, from serverless functions and containers to traditional server-based applications.
 
+### The ISagaSupport interface
+
+```csharp
+using System.Text.Json.Nodes;
+
+namespace Sagaway
+{
+    /// <summary>
+    /// Provide the required methods for a Saga
+    /// </summary>
+    public interface ISagaSupport
+    {
+        /// <summary>
+        /// A function to set reminder. The reminder should bring the saga back to life and call the OnReminder function
+        /// With the reminder name.
+        /// </summary>
+        /// <param name="reminderName">A unique name for the reminder</param>
+        /// <param name="dueTime">The time to re-activate the saga</param>
+        /// <returns>Async operation</returns>
+        Task SetReminderAsync(string reminderName, TimeSpan dueTime);
+
+        /// <summary>
+        /// A function to cancel a reminder
+        /// </summary>
+        /// <param name="reminderName">The reminder to cancel</param>
+        /// <returns>Async operation</returns>
+        Task CancelReminderAsync(string reminderName);
+
+        /// <summary>
+        /// Provide a mechanism to persist the saga state
+        /// </summary>
+        /// <param name="sagaId">The saga unique id</param>
+        /// <param name="state">The saga serialized state</param>
+        /// <returns>Async operation</returns>
+        Task SaveSagaStateAsync(string sagaId, JsonObject state);
+
+        /// <summary>
+        /// Provide a mechanism to load the saga state
+        /// </summary>
+        /// <param name="sagaId">The saga unique id</param>
+        /// <returns>The serialized saga state</returns>
+        Task<JsonObject?> LoadSagaAsync(string sagaId);
+
+        /// <summary>
+        /// Provide the lock for a thread-safe saga if required
+        /// Can utilize the <see cref="ReentrantAsyncLock"/> or <see cref="NonLockAsync"/>
+        /// </summary>
+        /// <returns>A lock implementor</returns>
+        ILockWrapper CreateLock();
+
+        private static readonly ITelemetryAdapter NullTelemetryAdapterInstance = new NullTelemetryAdapter();
+
+        /// <summary>
+        /// Provide the telemetry adapter for the saga
+        /// </summary>
+        ITelemetryAdapter TelemetryAdapter  => NullTelemetryAdapterInstance;
+    }
+}
+```
+
+The saga requirements from the host are straightforward. The `SetReminderAsync` and the `CancelReminderAsync` allow the saga to set or cancel a reminder from the host or cancel it. For a simple host, the remainder is just a callback function that must be triggered after a due period. For more complex hosts such as Dapr Actor, the reminder may also reactivate the Actor and the saga, bringing it back to life on one of the hosted services. When the saga wakes up, the `ReBuildSaga` method is called to create the Saga object graph, i.e., the Saga operations. After that, the saga is loaded from the state by calling the `LoadSagaState` methods of the `ISagaSupport`. The `LoadSagaState` returns a Json representing the last state of the saga, i.e., the result of the already executed operations. The saga uses the `SaveSagaStateAsync` to store the information when it is called by the host in case the host is deactivated.
+The next method in the interface is the `CreateLock`, which should provide an `ILockWrapper` instance. The saga uses this interface to obtain an async lock mechanism. If the host is a single-threaded host that allows only a single call to run concurrently, as the Dapr Actor does, then the host uses the [`NonLockAsync`]( https://github.com/alonf/Sagaway/blob/master/Sagaway/NonLockAsync.cs) class, otherwise it uses the [`ReentrantAsyncLock`]( https://github.com/alonf/Sagaway/blob/master/Sagaway/ReentrantAsyncLock.cs) class. The last property in the interface is the `TelemetryAdapter`. The host can leave the defualt `NullTelemetryAdapterInstance` or provide an implementation for the [`ITelemetryAdapter`](https://github.com/alonf/Sagaway/blob/master/Sagaway/Telemetry/ITelemetryAdapter.cs). For OpenTelemetry, there is a predefined implementation [`OpenTelemetryAdapter`](https://github.com/alonf/Sagaway/blob/master/Sagaway.OpenTelemetry/OpenTelemetryAdapter.cs) that can be injected using the [`AddSagawayOpenTelemetry`](https://github.com/alonf/Sagaway/blob/master/Sagaway.OpenTelemetry/TelemetryExtensions.cs) extension method.
+
+The host uses the [`ISaga`](https://github.com/alonf/Sagaway/blob/master/Sagaway/ISaga.cs) interface methods to inform that saga about deactivation ` InformDeactivatedAsync `, activation: ` InformActivatedAsync `  and about a reminder that goes off `ReportReminderAsync`. The host can also use the interface to know the Saga status: ` InProgress `,` Succeeded `,` Failed `,` Reverted `, and `RevertFailed` and can know that the saga is done with the `OnSagaCompleted` event. The host can execute the saga with `RunAsync` and inform Saga operation results with `ReportOperationOutcomeAsync` and `ReportUndoOperationOutcomeAsync`.
+
+The [`DaprActorHost`](https://github.com/alonf/Sagaway/tree/master/Sagaway.Hosts.DaprActorHost)implements the required functionality and hides the complexity from the developer that uses it. If you need to create your host, see the `DaprActorHost` implementation.
+
+### The [`DaprActorHost`](https://github.com/alonf/Sagaway/tree/master/Sagaway.Hosts.DaprActorHost) class
+
+```csharp
+public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSupport, ISagawayActor
+    where TEOperations : Enum
+{
+   ...
+   
+}
+```
+
+The `DaprActorHost` class derived from the Dapr [`Actor`](https://github.com/dapr/dotnet-sdk/blob/master/src/Dapr.Actors/Runtime/Actor.cs) class and implements the Dapr Actor [`IRemindable`](https://github.com/dapr/dotnet-sdk/blob/master/src/Dapr.Actors/Runtime/IRemindable.cs) to set and invoke by a reminder callback. The next two interfaces are the `ISagaSupport` that we have discussed and the [`ISagawayActor](https://github.com/alonf/Sagaway/blob/master/Sagaway.Callback.Router/ISagawayActor.cs) which enables the auto-routing of callback asynchronous results from external services when needed.
+
+Most of the code of the `DaprActorHost` is a delegation either to the underline Sagaway [`Saga`](https://github.com/alonf/Sagaway/blob/master/Sagaway/Saga.cs) class or for the Dapr [`Actor`](https://github.com/dapr/dotnet-sdk/blob/master/src/Dapr.Actors/Runtime/Actor.cs) class. The only exception is the `DispatchCallbackAsync` that has the implementation using reflection to call back to complete the asynchronous Saga step.
+
+
+
 ### The Saga Core
 
 #### The Saga class
 
-##### Thread Safty
+##### Thread Safety
 
 #### The SagaOperation and SagaAction classes
 
@@ -548,5 +719,3 @@ The design of these interfaces ensures that the Sagaway framework remains decoup
 ### The Dapr Host
 
 #### The Auto-Dispatcher Mechanism
-
-
