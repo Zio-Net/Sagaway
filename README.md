@@ -122,10 +122,8 @@ builder.Services.AddActors(options =>
 builder.Services.AddSagawayOpenTelemetry(configureTracerProvider =>
 {
     configureTracerProvider
-        tracing.AddAspNetCoreInstrumentation(options =>
-        {
-            options.Filter = (httpContext) => httpContext.Request.Path != "/healthz";
-        })                              // Instruments incoming requests
+        .AddAspNetCoreInstrumentation(options => 
+            { options.Filter = (httpContext) => httpContext.Request.Path != "/healthz"; }) // Instruments incoming requests
         .AddHttpClientInstrumentation() // Instrument outgoing HTTP requests
         .AddConsoleExporter()
         .AddZipkinExporter(options =>
