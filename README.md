@@ -1,7 +1,8 @@
 # Sagaway - A Distributed Application Saga
 
-## The Saga Pattern
+If you want to use Sagaway and need instructions, skip to the [using Sagaway section](using-sagaway-section)
 
+## The Saga Pattern
 Sagaway embodies the Saga pattern, a sophisticated approach to managing transactions and ensuring consistency within distributed systems. This pattern delineates a sequence of local transactions, each updating the system's state and paving the way for the subsequent step. In the event of a transaction failure, compensating transactions are initiated to reverse the effects of prior operations. Sagas can operate sequentially, where operations follow one another or execute multiple operations simultaneously in parallel.
 
 Implementing Sagas can be straightforward, involving synchronous request-reply interactions with participant services. Yet, embracing asynchronous communication proves superior for optimal integration within a Microservices Architecture (MSA). It entails employing queues or publish/subscribe models and awaiting results. This strategy allows the coordinating service to halt its operations, thereby liberating resources. The orchestration of the Saga resumes once a response is received from any of the participant services, typically through callback mechanisms like queues or a publish/subscribe system. This advanced pattern of Saga management necessitates asynchronous service calls, resource allocation efficiency, and mechanisms to revisit operational states. Additionally, it encompasses handling unacknowledged requests through status checks and retries, along with executing asynchronous compensations.
@@ -53,6 +54,7 @@ One strategy employed to mitigate a wrong outcome of out-of-order messages is th
 The TTL duration is carefully calibrated to balance prompt resource liberation with the demands of ongoing Saga operations. For instance, in the car reservations system, once a cancellation is confirmed, the TTL ensures that the vehicle is retained in the "reserved" state only as long as necessary to prevent any out-of-order messages from affecting the availability. Once the TTL expires, the system can confidently release the car into the available inventory, optimizing the asset's utilization and ensuring customer satisfaction. 
 You can free resources immediately by utilizing a separate database (or a distributed cache) for the historical messages, their identity, and dispatch time stamps. You need to house-keeping this database.
 
+<a id="using-sagaway-section"></a>
 ## Using Sagaway in a Dapr System
 
 [Dapr]( https://dapr.io/) – a Distributed Application Runtime is a robust foundation for developing Microservices solutions. As such, Dapr provides various mechanisms to handle the MSA complexity. One of the new mechanisms is Dapr [Dapr Workflow]( https://docs.dapr.io/developing-applications/building-blocks/workflow/workflow-overview/)
