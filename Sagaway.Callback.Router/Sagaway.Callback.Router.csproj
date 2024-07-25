@@ -7,7 +7,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\$(AssemblyName).xml</DocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
-    <Title>Sagaway Main Package</Title>
+    <Title>Sagaway Callback Router Package</Title>
     <Authors>Alon Fliess</Authors>
     <Company>ZioNet</Company>
     <Description>The callback router package of the Sagaway Saga Framework. Use by the service that routs the messages back to the Saga host actor</Description>
