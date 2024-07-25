@@ -9,7 +9,7 @@ public class HeaderPropagationMiddleware(RequestDelegate next)
     public static readonly AsyncLocal<SagawayContext> SagawayContext = new();
 
     // The propagated callback binding name
-    public static string CallbackBindingName => SagawayContext.Value?.CallbackBindingName ?? throw new InvalidOperationException("CallbackBindingName is not set");
+    public static string? CallbackBindingName => SagawayContext.Value?.CallbackBindingName;
 
     public async Task InvokeAsync(HttpContext context)
     {
