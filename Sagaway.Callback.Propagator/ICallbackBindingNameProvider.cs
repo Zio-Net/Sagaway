@@ -5,5 +5,5 @@
 /// </summary>
 public interface ICallbackBindingNameProvider
 {
-    string CallbackBindingName { get; }
+    string? CallbackBindingName { get; }
 }

@@ -5,5 +5,5 @@
 /// </summary>
 public class CallbackBindingNameProvider : ICallbackBindingNameProvider
 {
-    public string CallbackBindingName => HeaderPropagationMiddleware.CallbackBindingName;
+    public string? CallbackBindingName => HeaderPropagationMiddleware.CallbackBindingName;
 }
