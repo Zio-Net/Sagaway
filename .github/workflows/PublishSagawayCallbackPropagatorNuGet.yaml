@@ -2,9 +2,13 @@ name: Build and Publish the Sagaway Callback Propagator NuGet Package
 
 on:
   workflow_dispatch:
+    inputs:
+      package_version:
+        description: 'Package version'
+        required: false
   release:
     types: [published]
-  
+
 jobs:
   build:
 
@@ -12,16 +16,29 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+
     - name: Setup .NET 8
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 8.0.x
+
+    - name: Determine Package Version
+      id: get-version
+      run: |
+        if [ "${{ github.event.release.tag_name }}" ]; then
+          echo "##[set-output name=package_version;]${{ github.event.release.tag_name }}"
+        else
+          echo "##[set-output name=package_version;]${{ github.event.inputs.package_version }}"
+        fi
+
     - name: Create Nuget Package
-      run: dotnet pack -c Release -p:PackageVersion=${{ github.event.release.tag_name}} /p:PackageReleaseNotes="See https://raw.githubusercontent.com/alonf/Sagaway/master/.github/README.md" Sagaway.Callback.Propagator/Sagaway.Callback.Propagator.csproj
+      run: dotnet pack -c Release -p:PackageVersion=${{ steps.get-version.outputs.package_version }} /p:PackageReleaseNotes="See https://raw.githubusercontent.com/alonf/Sagaway/master/.github/README.md" Sagaway.Callback.Propagator/Sagaway.Callback.Propagator.csproj
+
     - name: Archive Nuget Package for Sagaway
       uses: actions/upload-artifact@v4
       with:
         name: packages
-        path: "Sagaway/bin/Release/Sagaway.Callback.Propagator.${{ github.event.release.tag_name}}.nupkg"
+        path: "Sagaway/bin/Release/Sagaway.Callback.Propagator.${{ steps.get-version.outputs.package_version }}.nupkg"
+
     - name: Publish Nuget Package
       run: dotnet nuget push **/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --no-service-endpoint --source https://api.nuget.org/v3/index.json
