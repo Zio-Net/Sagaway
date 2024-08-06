@@ -7,6 +7,7 @@ using Grpc.Net.Client;
 using Sagaway.Callback.Router;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
+using Sagaway.Hosts.DaprActorHost;
 using Sagaway.Telemetry;
 
 // ReSharper disable MemberCanBePrivate.Global
@@ -17,12 +18,13 @@ namespace Sagaway.Hosts;
 /// A Sagaway Saga Dapr Actor host
 /// </summary>
 /// <typeparam name="TEOperations">The enum of the saga operations</typeparam>
-public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSupport, ISagawayActor
+public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSupport, ISagawayActor, IDaprHostDeactivationHandler
     where TEOperations : Enum
 {
     private readonly ILogger _logger;
     private DaprClient? _daprClient;
     private readonly ITelemetryAdapter _telemetryAdapter;
+    private bool _hasDeactivationMiddlewareRegistered;
 
     /// <summary>
     /// Create a Dapr Actor host for the saga
@@ -139,14 +141,43 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     /// </summary>
     protected override async Task OnDeactivateAsync()
     {
+        //if this method is called before the IDaprHostDeactivationHandler.OnDeactivateActorAsync(), it means the user forgot to register the middleware
+        if (!_hasDeactivationMiddlewareRegistered)
+        {
+            _logger.LogError("Deactivation middleware not registered, actor may not deactivate properly. Did you forget to add: app.MapSagawayActorsHandlers() instead of app.MapActorsHandlers()");
+            throw new InvalidOperationException("Deactivation middleware not registered. Did you forget to add: app.MapSagawayActorsHandlers() instead of app.MapActorsHandlers()");
+        }
+
+        await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// A private method to call the saga to inform that the actor is deactivated
+    /// </summary>
+    /// <returns></returns>
+    async Task IDaprHostDeactivationHandler.OnDeactivateActorAsync()
+    {
+        _hasDeactivationMiddlewareRegistered = true;
+
         _logger.LogInformation($"Deactivating actor id: {Id}");
         await OnDeactivateSagaAsync();
         await Saga!.InformDeactivatedAsync();
     }
 
+    /// <summary>
+    /// This method is called from the actor activation context to inform the actor that the deactivation middleware has been registered
+    /// We use it to assist the developer in registering the middleware
+    /// </summary>
+    Task IDaprHostDeactivationHandler.InformDeactivationMiddlewareRegisteredAsync()
+    {
+        _hasDeactivationMiddlewareRegistered = true;
+        return Task.CompletedTask;
+    }
+
 
     /// <summary>
     /// Called when the saga is deactivated, before the saga state is stored
+    /// Override this method to store any Saga state that is not stored by the framework
     /// </summary>
     /// <returns>Async operation</returns>
     protected virtual async Task OnDeactivateSagaAsync()
@@ -372,4 +403,3 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
         };
     }
 }
-

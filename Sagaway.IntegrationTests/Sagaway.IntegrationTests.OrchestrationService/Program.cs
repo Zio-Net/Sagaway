@@ -10,6 +10,7 @@ using Sagaway.IntegrationTests.OrchestrationService;
 using Sagaway.IntegrationTests.OrchestrationService.Actors;
 using Sagaway.OpenTelemetry;
 using OpenTelemetry.Trace;
+using Sagaway.Hosts.DaprActorHost;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -138,6 +139,7 @@ app.MapPost("/run-test", async (
 .WithOpenApi();
 
 
+
 app.MapPost("/negotiate", async (
     [FromServices] IHubContextStore store,
     [FromServices] ILogger<Program> logger) =>
@@ -164,6 +166,6 @@ app.UseCors("AllowAll");
 app.MapControllers();
 app.MapSubscribeHandler();
 app.UseRouting();
-app.MapActorsHandlers();
+app.MapSagawayActorsHandlers();
 
 app.Run();

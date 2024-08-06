@@ -611,5 +611,33 @@ namespace Sagaway
                 }
             });
         }
+
+        /// <summary>
+        /// Reset the saga state to allow re-execution
+        /// </summary>
+        /// <returns>Async operation</returns>
+        public async Task ResetAsync()
+        {
+            try
+            {
+                foreach (var operation in _operations)
+                {
+                    await operation.ResetStateAsync();
+                }
+
+                _isReverting = false;
+                _hasFailedReported = false;
+                _stepRecorder.Clear();
+
+                _telemetryStateStore.Clear();
+
+                await StoreStateAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error resetting saga {_sagaUniqueId}");
+                throw;
+            }
+        }
     }
 }

@@ -1,6 +1,4 @@
-﻿using Sagaway.Telemetry;
-
-namespace Sagaway;
+﻿namespace Sagaway;
 
 public interface ISaga<in TEOperations> where TEOperations : Enum
 {
@@ -91,4 +89,10 @@ public interface ISaga<in TEOperations> where TEOperations : Enum
     /// <param name="reminder"></param>
     /// <returns>Async operation</returns>
     Task ReportReminderAsync(string reminder);
+
+    /// <summary>
+    /// Reset the saga state to allow re-execution
+    /// </summary>
+    /// <returns>Async operation</returns>
+    Task ResetAsync();
 }

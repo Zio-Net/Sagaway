@@ -16,6 +16,7 @@ public record ServiceTestInfo
     public bool[]? ShouldReturnCallbackResultOnCall { get; set; } = [true, true, true, true, true, true, true, true, true, true];
 
     //Is this info in use
+    // ReSharper disable once UnusedAutoPropertyAccessor.Global
     public bool InUse { get; set; }
 
     //max times that the Saga calls should retry
