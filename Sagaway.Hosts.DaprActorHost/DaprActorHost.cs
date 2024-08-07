@@ -9,6 +9,7 @@ using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Sagaway.Hosts.DaprActorHost;
 using Sagaway.Telemetry;
+using System.Diagnostics;
 
 // ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable once CheckNamespace
@@ -18,6 +19,7 @@ namespace Sagaway.Hosts;
 /// A Sagaway Saga Dapr Actor host
 /// </summary>
 /// <typeparam name="TEOperations">The enum of the saga operations</typeparam>
+[DebuggerTypeProxy(typeof(DaprActorHostDebuggerProxy<>))]
 public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSupport, ISagawayActor, IDaprHostDeactivationHandler
     where TEOperations : Enum
 {
@@ -410,5 +412,19 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
             { "x-sagaway-callback-method", callbackMethodName },
             { "x-sagaway-message-dispatch-time", DateTime.UtcNow.ToString("o")} // ISO 8601 format
         };
+    }
+
+    /// <summary>
+    /// Return the saga log up to this point
+    /// </summary>
+    public string SagaLog => Saga?.SagaLog ?? "The Saga object is null";
+
+    /// <summary>
+    /// Return the saga status for debugging purposes
+    /// </summary>
+    /// <returns>The complete state of the Saga</returns>
+    public string GetSagaStatus()
+    {
+        return Saga?.GetSagaStatus() ?? "The Saga object is null";
     }
 }

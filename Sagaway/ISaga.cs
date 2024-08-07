@@ -1,4 +1,6 @@
-﻿namespace Sagaway;
+﻿using System.Text;
+
+namespace Sagaway;
 
 public interface ISaga<in TEOperations> where TEOperations : Enum
 {
@@ -94,4 +96,16 @@ public interface ISaga<in TEOperations> where TEOperations : Enum
     /// <param name="reminder"></param>
     /// <returns>Async operation</returns>
     Task ReportReminderAsync(string reminder);
+
+    /// <summary>
+    /// Return the saga log up to this point
+    /// </summary>
+    public string SagaLog { get; }
+
+    /// <summary>
+    /// Return the saga status for debugging purposes
+    /// </summary>
+    /// <returns>The complete state of the Saga</returns>
+    public string GetSagaStatus();
+
 }
