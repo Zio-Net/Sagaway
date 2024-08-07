@@ -156,6 +156,15 @@ namespace Sagaway
                 var opRevertState = json[op + "Revert"] as JsonObject;
                 _sagaRevertAction.LoadState(opRevertState!);
             }
+
+            public string GetStatus()
+            {
+                if (Succeeded) return "Succeeded";
+                if (Failed) return "Failed";
+                if (Reverted) return "Reverted";
+                if (RevertFailed) return "RevertFailed";
+                return "Not Started";
+            }
         }
     }
 }
