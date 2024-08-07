@@ -3,6 +3,7 @@
 If you want to use Sagaway and need instructions, skip to the [using Sagaway section](#using-sagaway-in-a-dapr-system)
 
 ## The Saga Pattern
+
 Sagaway embodies the Saga pattern, a sophisticated approach to managing transactions and ensuring consistency within distributed systems. This pattern delineates a sequence of local transactions, each updating the system's state and paving the way for the subsequent step. In the event of a transaction failure, compensating transactions are initiated to reverse the effects of prior operations. Sagas can operate sequentially, where operations follow one another or execute multiple operations simultaneously in parallel.
 
 Implementing Sagas can be straightforward, involving synchronous request-reply interactions with participant services. Yet, embracing asynchronous communication proves superior for optimal integration within a Microservices Architecture (MSA). It entails employing queues or publish/subscribe models and awaiting results. This strategy allows the coordinating service to halt its operations, thereby liberating resources. The orchestration of the Saga resumes once a response is received from any of the participant services, typically through callback mechanisms like queues or a publish/subscribe system. This advanced pattern of Saga management necessitates asynchronous service calls, resource allocation efficiency, and mechanisms to revisit operational states. Additionally, it encompasses handling unacknowledged requests through status checks and retries, along with executing asynchronous compensations.
@@ -145,7 +146,6 @@ builder.Services.AddHealthChecks();
 ```csharp
 app.UseSagawayCallbackRouter("reservation-response-queue");
 ```
-
 The parameter is a Dapr component binding name of the callback. The Sagaway currently supports bindings that call the POST HTTP method. A Pub/Sub Topic is not supported yet for auto-routing.
 
 Example of such a binding:
@@ -235,8 +235,19 @@ app.MapHealthChecks("/healthz");
 app.MapControllers();
 app.MapSubscribeHandler();
 app.UseRouting();
-app.MapActorsHandlers();
+```
 
+- Add the following code to map the actor Dapr support routine and the Sagaway deactivation handler:
+
+```csharp
+app.MapSagawayActorsHandlers();
+```
+
+- The above line replaces the Dapr actor `app.MapActorsHandlers();` method. The `app.MapSagawayActorsHandlers();` installs a deactivation middleware to intercept the actor runtime API calls.
+
+- Dont forget to run the app:
+
+```csharp
 app.Run();
 ```
 
@@ -551,6 +562,10 @@ WithOperation(CarReservationActorOperations.Billing)
 - The `.WithPreconditions(CarReservationActorOperations.CarBooking | CarReservationActorOperations.InventoryReserving)` sets the execution order.
 
 Look at the [complete Actor implementation]( https://github.com/alonf/Sagaway/blob/master/Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationManager/Actors/CarReservation/CarReservationActor.cs).
+
+### Enable Saga Re-Execution
+
+Sometimes, you must rerun a completed Saga to overcome failure or rerun a business process due to a data set. As long as the Dapr Actor holds the actor state, the Sagaway library prevents execution of the same Saga (dictated by the Saga ID). It also provides the ability to read the outcome of the Saga. If you must re-execute the Saga, you can call `ResetSagaAsync` on the Dapr host. It will remove the Saga state from the Actor state. You must also remove all your Saga implementation states if they prevent a re-execution of your Saga.
 
 ## Implementing a participant Service
 

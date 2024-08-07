@@ -43,6 +43,11 @@ public interface ISaga<in TEOperations> where TEOperations : Enum
     bool RevertFailed { get; }
 
     /// <summary>
+    /// The Saga executed and finished either successfully or failed
+    /// </summary>
+    bool Completed { get; }
+
+    /// <summary>
     /// Implementer should call this method to inform an activated event
     /// </summary>
     /// <returns>Async operation</returns>
@@ -89,10 +94,4 @@ public interface ISaga<in TEOperations> where TEOperations : Enum
     /// <param name="reminder"></param>
     /// <returns>Async operation</returns>
     Task ReportReminderAsync(string reminder);
-
-    /// <summary>
-    /// Reset the saga state to allow re-execution
-    /// </summary>
-    /// <returns>Async operation</returns>
-    Task ResetAsync();
 }

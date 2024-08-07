@@ -329,6 +329,15 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
         };
     }
 
+    public async Task ResetSagaAsync()
+    {
+        if (Saga != null)
+        {
+            await ((ISagaReset)Saga).ResetSagaAsync();
+            Saga = null;
+        }
+    }
+
     /// <summary>
     /// Used by the framework to dispatch callbacks to the actor
     /// </summary>

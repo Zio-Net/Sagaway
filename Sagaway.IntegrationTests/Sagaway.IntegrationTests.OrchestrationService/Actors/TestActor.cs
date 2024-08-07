@@ -103,6 +103,12 @@ public class TestActor : DaprActorHost<TestActorOperations>, ITestActor
     {
         try
         {
+            if (Saga is { Completed: true })
+            {
+                _logger.LogInformation("The saga is already completed. Skip execution.");
+                return;
+            }
+
             _logger.LogInformation("RunTestAsync called with test info: {testInfo}", testInfo);
 
             if (testInfo == null || testInfo.Id == Guid.Empty)
