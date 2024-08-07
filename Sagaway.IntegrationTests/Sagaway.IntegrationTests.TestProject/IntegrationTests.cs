@@ -182,6 +182,126 @@ public class IntegrationTests
         }
     }
 
+    [Trait("Integration Test", "Restart Completed Saga")]
+    [Fact]
+    public async Task TestResetAndReExecuteSaga()
+    {
+        Approvals.RegisterDefaultNamerCreation(() => new AprovalNamer("TestResetAndReExecuteSaga"));
+        StringBuilder sb = new("First Run");
+
+        TestInfo testInfo = new()
+        {
+            TestName = "TestRestart",
+            Id = Guid.NewGuid(),
+            ServiceACall = new ServiceTestInfo
+            {
+                InUse = true,
+                MaxRetries = 1,
+                RetryDelayInSeconds = 3,
+                CallId = Guid.NewGuid().ToString(),
+                DelayOnCallInSeconds = [2,1],
+                SuccessOnCall = -1,
+                ShouldReturnCallbackResultOnCall = [false, true]
+            },
+            ServiceARevert = null,
+            ServiceBCall = null,
+            ServiceBRevert = null,
+        };
+
+        await SignalR.StartSignalRAsync(testInfo.Id.ToString());
+
+        var body = new StringContent(JsonSerializer.Serialize(testInfo, SerializeOptions), Encoding.UTF8,
+            "application/json");
+
+        var response = await HttpClient.PostAsync("run-test", body);
+
+        var responseContent = await response.Content.ReadAsStringAsync();
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        TestOutputHelper.WriteLine(responseContent);
+
+        var result = await SignalR.WaitForSignalREventAsync(40);
+
+        Assert.True(result);
+
+        var testResultFirstRun = _testServiceHelper.GetTestResultFromSignalR(testInfo.Id);
+        sb.AppendLine(testResultFirstRun.SagaLog);
+
+        await Task.Delay(1000);
+
+        TestInfo newTestInfoSameSagaId = new()
+        {
+            TestName = "TestRRestart",
+            Id = testInfo.Id,
+            ServiceACall = new ServiceTestInfo
+            {
+                InUse = true,
+                MaxRetries = 3,
+                RetryDelayInSeconds = 10,
+                CallId = Guid.NewGuid().ToString(),
+                DelayOnCallInSeconds = [1,2,3],
+                SuccessOnCall = 2,
+                ShouldReturnCallbackResultOnCall = [true,true]
+            },
+            ServiceARevert = null,
+            ServiceBCall = new ServiceTestInfo
+            {
+                InUse = true,
+                MaxRetries = 2,
+                RetryDelayInSeconds = 2,
+                CallId = Guid.NewGuid().ToString(),
+                DelayOnCallInSeconds = [2, 4],
+                SuccessOnCall = 1,
+                ShouldReturnCallbackResultOnCall = [true, true]
+            },
+            ServiceBRevert = null
+        };
+
+        SignalR.ClearMessages();
+
+        body = new StringContent(JsonSerializer.Serialize(newTestInfoSameSagaId, SerializeOptions), Encoding.UTF8,
+            "application/json");
+
+        response = await HttpClient.PostAsync("run-test", body);
+        sb.AppendLine("Second Run");
+        responseContent = await response.Content.ReadAsStringAsync();
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        TestOutputHelper.WriteLine(responseContent);
+
+        //since the saga already finished, no signalR message will come
+        result = await SignalR.WaitForSignalREventAsync(10);
+
+        Assert.False(result);
+
+
+        sb.AppendLine("No SignalR message received");
+
+        sb.AppendLine("Third Run");
+        response = await HttpClient.DeleteAsync($"/clear-test/{testInfo.Id}");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        SignalR.ClearMessages();
+
+        response = await HttpClient.PostAsync("run-test", body);
+        responseContent = await response.Content.ReadAsStringAsync();
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        TestOutputHelper.WriteLine(responseContent);
+
+        //a new signalR message should come
+        result = await SignalR.WaitForSignalREventAsync(40);
+        
+        Assert.True(result);
+
+        var testResultThirdRun = _testServiceHelper.GetTestResultFromSignalR(testInfo.Id);
+
+        sb.AppendLine(testResultThirdRun.SagaLog);
+
+
+        ApprovalVerifyWithDump.Verify(sb.ToString(), TestOutputHelper, RemoveDynamic);
+    }
+       
     private async Task<string> GetTracesFromZipkinAsync(long startTs)
     {
         string traces = "[]";

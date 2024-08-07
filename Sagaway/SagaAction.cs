@@ -62,6 +62,8 @@ namespace Sagaway
                 _retryCount = json["retryCount"]?.GetValue<int>() ?? throw new Exception("Error when loading state, missing retryCount entry");
             }
 
+            
+
             private async Task<TimeSpan> ResetReminderAsync()
             {
                 await CancelReminderIfOnAsync();

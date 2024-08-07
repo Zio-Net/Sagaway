@@ -12,7 +12,7 @@ namespace Sagaway
     /// </summary>
     /// <typeparam name="TEOperations"></typeparam>
     /// <remarks>Use <see cref="SagaBuilder"></see> to build a saga instance/> </remarks>
-    public partial class Saga<TEOperations> : ISaga<TEOperations> where TEOperations : Enum
+    public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where TEOperations : Enum
     {
         private ILogger _logger;
         private string _sagaUniqueId;
@@ -133,6 +133,11 @@ namespace Sagaway
         /// The saga has failed and has failed to revert all operations. It is considered done.
         /// </summary>
         public bool RevertFailed { get; private set; }
+
+        /// <summary>
+        /// The Saga executed and finished either successfully or failed
+        /// </summary>
+        public bool Completed { get; private set; }
 
         private Saga(ILogger logger, string sagaUniqueId, ISagaSupport sagaSupportOperations, IReadOnlyList<SagaOperation> operations, Action<string>? onSuccessCallback, Action<string>? onFailedCallback, Action<string>? onRevertedCallback, Action<string>? onRevertFailureCallback)
         {
@@ -306,7 +311,7 @@ namespace Sagaway
         private async Task<bool> LoadStateAsync()
         {
             var json = await _sagaSupportOperations.LoadSagaAsync(SagaStateName);
-            if (json is null)
+            if (json is null || json.Count == 0)
             {
                 _logger.LogInformation($"State {SagaStateName} is not found in persistence store, Assuming first run.");
                 return true;
@@ -492,6 +497,7 @@ namespace Sagaway
             Reverted = _operations.All(o => o.Reverted);
             RevertFailed = _operations.Any(o => o.RevertFailed) && _operations.All(o => o.RevertFailed || o.Reverted);
             InProgress = !Succeeded && !Reverted && !RevertFailed;
+            Completed = !InProgress && !_operations.All(o=>o.NotStarted);
 
             var recordedSteps = _stepRecorder.ToString();
             try
@@ -608,6 +614,28 @@ namespace Sagaway
                 {
                     _logger.LogError(ex, $"Error handling reminder {reminder}, canceling reminder.");
                     await _sagaSupportOperations.CancelReminderAsync(reminder);
+                }
+            });
+        }
+
+        /// <summary>
+        /// Reset the saga state to allow re-execution
+        /// </summary>
+        /// <returns>Async operation</returns>
+        public async Task ResetSagaAsync()
+        {
+            await _lock.LockAsync(async () =>
+            {
+                try
+                {
+                    //store empty state
+                    var json = new JsonObject();
+                    await _sagaSupportOperations.SaveSagaStateAsync(SagaStateName, json);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, $"Error resetting saga {_sagaUniqueId}");
+                    throw;
                 }
             });
         }

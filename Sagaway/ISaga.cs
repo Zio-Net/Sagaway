@@ -1,6 +1,4 @@
-﻿using Sagaway.Telemetry;
-
-namespace Sagaway;
+﻿namespace Sagaway;
 
 public interface ISaga<in TEOperations> where TEOperations : Enum
 {
@@ -43,6 +41,11 @@ public interface ISaga<in TEOperations> where TEOperations : Enum
     /// </summary>
     // ReSharper disable once UnusedMemberInSuper.Global
     bool RevertFailed { get; }
+
+    /// <summary>
+    /// The Saga executed and finished either successfully or failed
+    /// </summary>
+    bool Completed { get; }
 
     /// <summary>
     /// Implementer should call this method to inform an activated event

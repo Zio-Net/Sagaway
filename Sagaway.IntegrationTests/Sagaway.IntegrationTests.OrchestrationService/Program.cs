@@ -4,12 +4,14 @@ using Dapr.Actors;
 using Microsoft.AspNetCore.Mvc;
 using Dapr.Actors.Client;
 using Dapr.Client;
+using Microsoft.AspNetCore.Components.Web;
 using OpenTelemetry.Resources;
 using Sagaway.Callback.Router;
 using Sagaway.IntegrationTests.OrchestrationService;
 using Sagaway.IntegrationTests.OrchestrationService.Actors;
 using Sagaway.OpenTelemetry;
 using OpenTelemetry.Trace;
+using Sagaway.Hosts.DaprActorHost;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -100,10 +102,16 @@ app.UseSagawayCallbackRouter("test-response-queue");
 
 app.MapPost("/run-test", async (
         [FromServices] IActorProxyFactory actorProxyFactory,
-        [FromServices] ILogger < Program > logger,
+        [FromServices] ILogger<Program> logger,
         [FromServices] DaprClient daprClient,
         [FromBody] TestInfo? testInfo) =>
 {
+
+    if (string.IsNullOrEmpty(testInfo?.TestName))
+    {
+        logger.LogError("Test name is required");
+        return Results.BadRequest("Test name is required");
+    }
 
     if (string.IsNullOrEmpty(testInfo?.TestName))
     {
@@ -137,6 +145,19 @@ app.MapPost("/run-test", async (
 .WithName("run-test")
 .WithOpenApi();
 
+app.MapDelete("/clear-test/{actorId:Guid}", async (
+    [FromServices] IActorProxyFactory actorProxyFactory,
+    [FromServices] ILogger<Program> logger,
+    [FromServices] DaprClient daprClient,
+    [FromRoute] Guid actorId) =>
+{
+    var actorIdentity = actorId.ToString("D");
+    var proxy = actorProxyFactory.CreateActorProxy<ITestActor>(
+        new ActorId(actorIdentity), "TestActor");
+
+    await proxy.ResetSagaAsync();
+});
+
 
 app.MapPost("/negotiate", async (
     [FromServices] IHubContextStore store,
@@ -164,6 +185,6 @@ app.UseCors("AllowAll");
 app.MapControllers();
 app.MapSubscribeHandler();
 app.UseRouting();
-app.MapActorsHandlers();
+app.MapSagawayActorsHandlers();
 
 app.Run();
