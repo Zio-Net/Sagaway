@@ -5,7 +5,11 @@ namespace Sagaway;
 
 public partial class Saga<TEOperations>
 {
+    #region Persistent State
+
     private readonly ConcurrentDictionary<string, string> _telemetryStateStore = new ();
+
+    #endregion //Persistent State
 
     public class TelemetryDataPersistence(Saga<TEOperations> saga) : ITelemetryDataPersistence
     {

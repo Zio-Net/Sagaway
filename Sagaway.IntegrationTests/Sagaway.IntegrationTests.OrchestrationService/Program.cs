@@ -4,14 +4,12 @@ using Dapr.Actors;
 using Microsoft.AspNetCore.Mvc;
 using Dapr.Actors.Client;
 using Dapr.Client;
-using Microsoft.AspNetCore.Components.Web;
 using OpenTelemetry.Resources;
 using Sagaway.Callback.Router;
 using Sagaway.IntegrationTests.OrchestrationService;
 using Sagaway.IntegrationTests.OrchestrationService.Actors;
 using Sagaway.OpenTelemetry;
 using OpenTelemetry.Trace;
-using Sagaway.Hosts.DaprActorHost;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -113,34 +111,42 @@ app.MapPost("/run-test", async (
         return Results.BadRequest("Test name is required");
     }
 
-    if (string.IsNullOrEmpty(testInfo?.TestName))
+    if (string.IsNullOrEmpty(testInfo.TestName))
     {
         logger.LogError("Test name is required");
         return Results.BadRequest("Test name is required");
     }
 
-    testInfo.ServiceACall ??= new ();
-    testInfo.ServiceBCall ??= new ();
-    testInfo.ServiceARevert ??= new ();
-    testInfo.ServiceBRevert ??= new ();
-
-    logger.LogInformation("Starting test {TestName}", testInfo.TestName);
-
-    var actorId = testInfo.Id.ToString("D");
-    var proxy = actorProxyFactory.CreateActorProxy<ITestActor>(
-        new ActorId(actorId), "TestActor");
-
-    //a hack for testing
-    var metadata = new Dictionary<string, string>
+    try
     {
-        { "ttlInSeconds", "300" }
-    };
+        testInfo.ServiceACall ??= new();
+        testInfo.ServiceBCall ??= new();
+        testInfo.ServiceARevert ??= new();
+        testInfo.ServiceBRevert ??= new();
 
-    await daprClient.SaveStateAsync("statestore", actorId, testInfo, null, metadata);
+        logger.LogInformation("Starting test {TestName}", testInfo.TestName);
 
-    await proxy.RunTestAsync(testInfo);
+        var actorId = testInfo.Id.ToString("D");
+        var proxy = actorProxyFactory.CreateActorProxy<ITestActor>(
+            new ActorId(actorId), "TestActor");
 
-    return Results.Ok();
+        //a hack for testing
+        var metadata = new Dictionary<string, string>
+        {
+            { "ttlInSeconds", "300" }
+        };
+
+        await daprClient.SaveStateAsync("statestore", actorId, testInfo, null, metadata);
+
+        await proxy.RunTestAsync(testInfo);
+
+        return Results.Ok();
+    }
+    catch (Exception e)
+    {
+        logger.LogError(e, "Error running test {TestName}", testInfo?.TestName);
+        throw;
+    }
 })
 .WithName("run-test")
 .WithOpenApi();
@@ -185,6 +191,6 @@ app.UseCors("AllowAll");
 app.MapControllers();
 app.MapSubscribeHandler();
 app.UseRouting();
-app.MapSagawayActorsHandlers();
+app.MapActorsHandlers();
 
 app.Run();

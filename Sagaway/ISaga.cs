@@ -1,6 +1,4 @@
-﻿using System.Text;
-
-namespace Sagaway;
+﻿namespace Sagaway;
 
 public interface ISaga<in TEOperations> where TEOperations : Enum
 {
@@ -14,6 +12,16 @@ public interface ISaga<in TEOperations> where TEOperations : Enum
     /// Call when all saga operations are completed
     /// </summary>
     event EventHandler<SagaCompletionEventArgs> OnSagaCompleted;
+
+    /// <summary>
+    /// The saga has not started yet
+    /// </summary>
+    public bool NotStarted { get; }
+
+    /// <summary>
+    /// The saga has not started
+    /// </summary>
+    public bool Started { get; }
 
     /// <summary>
     /// The saga is in progress
@@ -108,4 +116,19 @@ public interface ISaga<in TEOperations> where TEOperations : Enum
     /// <returns>The complete state of the Saga</returns>
     public string GetSagaStatus();
 
+    /// <summary>
+    /// Record custom telemetry event that is part of the Saga execution and can be traced using
+    /// services such as OpenTelemetry
+    /// </summary>
+    /// <param name="eventName">The custom event name</param>
+    /// <param name="properties">The custom event parameters</param>
+    Task RecordCustomTelemetryEventAsync(string eventName, IDictionary<string, object>? properties);
+
+
+    /// <summary>
+    /// Records any exceptions or failures as part of the Saga operation open telemetry span
+    /// </summary>
+    /// <param name="exception">The exception that occurred.</param>
+    /// <param name="context">An optional context or description where the exception occurred.</param>
+    Task RecordTelemetryExceptionAsync(Exception exception, string? context);
 }

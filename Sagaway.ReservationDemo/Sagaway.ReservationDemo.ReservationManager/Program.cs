@@ -10,7 +10,6 @@ using Sagaway.OpenTelemetry;
 using Sagaway.ReservationDemo.ReservationManager.Actors;
 using Sagaway.ReservationDemo.ReservationManager.Actors.CarReservation;
 using Sagaway.ReservationDemo.ReservationManager.Actors.CarReservationCancellation;
-using Sagaway.Hosts.DaprActorHost;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -232,6 +231,6 @@ app.MapControllers();
 app.MapSubscribeHandler();
 app.UseRouting();
 
-app.MapSagawayActorsHandlers();
+app.MapActorsHandlers();
 
 app.Run();

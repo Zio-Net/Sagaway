@@ -8,11 +8,28 @@ namespace Sagaway
     {
         internal abstract class SagaAction
         {
+            #region Transient State - built on each activation
+
             private readonly Saga<TEOperations> _saga;
-            private readonly SagaOperation _sagaOperation;
             private readonly ILogger _logger;
+
+            #endregion //Transient State - built on each activation
+
+
+            #region Persistent State - kept in the state store
+
             bool _isReminderOn;
             private int _retryCount;
+            private readonly SagaOperation _sagaOperation; //persisted in another class
+            protected Saga<TEOperations> Saga => _saga; //persisted in another class
+
+            //the operation has been executed successfully 
+            public bool Succeeded { get; private set; }
+            //the operation has been executed and failed with all retries
+            public bool Failed { get; private set; }
+
+            #endregion //Persistent State - kept in the state store
+
 
             // ReSharper disable once ConvertToPrimaryConstructor
             protected SagaAction(Saga<TEOperations> saga, SagaOperation sagaOperation, ILogger logger)
@@ -21,8 +38,6 @@ namespace Sagaway
                 _sagaOperation = sagaOperation;
                 _logger = logger;
             }
-
-            protected Saga<TEOperations> Saga => _saga;
 
             protected SagaOperation SagaOperation => _sagaOperation;
 
@@ -54,15 +69,17 @@ namespace Sagaway
             {
                 json["isReminderOn"] = _isReminderOn;
                 json["retryCount"] = _retryCount;
+                json["succeeded"] = Succeeded;
+                json["failed"] = Failed;
             }
 
             public void LoadState(JsonObject json)
             {
                 _isReminderOn = json["isReminderOn"]?.GetValue<bool>() ?? throw new Exception("Error when loading state, missing isReminderOn entry");
                 _retryCount = json["retryCount"]?.GetValue<int>() ?? throw new Exception("Error when loading state, missing retryCount entry");
+                Succeeded = json["succeeded"]?.GetValue<bool>() ?? throw new Exception("Error when loading state, missing succeeded entry");
+                Failed = json["failed"]?.GetValue<bool>() ?? throw new Exception("Error when loading state, missing failed entry");
             }
-
-            
 
             private async Task<TimeSpan> ResetReminderAsync()
             {
@@ -95,7 +112,7 @@ namespace Sagaway
                 catch (Exception ex)
                 {
                     LogAndRecord($"Error when calling {OperationName}. Error: {ex.Message}. Retry in {retryInterval} seconds");
-                    _saga.RecordException(ex, $"Error when calling {OperationName}");
+                    await _saga.RecordTelemetryExceptionAsync(ex, $"Error when calling {OperationName}");
 
                     if (!_isReminderOn)
                     {
@@ -136,7 +153,7 @@ namespace Sagaway
                 if (!failFast && _retryCount <= MaxRetries)
                 {
                     LogAndRecord($"Retry {OperationName}. Retry count: {_retryCount}");
-                    _saga.RecordRetryAttemptTelemetry(_sagaOperation.Operation, _retryCount, IsRevert);
+                    await _saga.RecordRetryAttemptTelemetryAsync(_sagaOperation.Operation, _retryCount, IsRevert);
 
                     await ExecuteAsync();
                     return;
@@ -144,7 +161,7 @@ namespace Sagaway
 
                 Failed = true;
                 LogAndRecord(failFast ? $"{OperationName} Failed Fast." : $"{OperationName} Failed. Retries exhausted.");
-                _saga.RecordEndOperationTelemetry(_sagaOperation.Operation, 
+                await _saga.RecordEndOperationTelemetry(_sagaOperation.Operation, 
                     IsRevert ? OperationOutcome.RevertFailed : OperationOutcome.Failed, IsRevert);
 
                 await OnActionFailureAsync();
@@ -163,7 +180,7 @@ namespace Sagaway
                 
                 Succeeded = true;
                 
-                _saga.RecordEndOperationTelemetry(_sagaOperation.Operation, IsRevert ? OperationOutcome.Reverted : OperationOutcome.Succeeded, IsRevert);
+                await _saga.RecordEndOperationTelemetry(_sagaOperation.Operation, IsRevert ? OperationOutcome.Reverted : OperationOutcome.Succeeded, IsRevert);
                 _saga.CheckForCompletion();
             }
 
@@ -178,7 +195,6 @@ namespace Sagaway
                 {
                     return;
                 }
-
 
                 try
                 {
@@ -196,14 +212,9 @@ namespace Sagaway
                     LogAndRecord($"Error when calling {OperationName} validate. Error: {ex.Message}.");
                 }
                 //the state is unknown, retry action
-                LogAndRecord($"The state is unknown in the reminder, retry {OperationName} action");
+                LogAndRecord($"The validate function does not exist or raised an exception, retry {OperationName} action");
                 await InformFailureOperationAsync(false);
             }
-            
-            //the operation has been executed successfully 
-            public bool Succeeded { get; private set; }
-            //the operation has been executed and failed with all retries
-            public bool Failed { get; private set; }
             
             public void MarkSucceeded()
             {

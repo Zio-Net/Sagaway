@@ -62,13 +62,13 @@ Run Log:
 [*time*][Op2]: Registering reminder Op2:Retry for Op2 with interval 00:00:04
 [*time*][Op2]: Error when calling Op2. Error: Throwing exception on call 1. Retry in 00:00:04 seconds
 [*time*][Op1]: Wake by a reminder
-[*time*][Op1]: The state is unknown in the reminder, retry Op1 action
+[*time*][Op1]: The validate function does not exist or raised an exception, retry Op1 action
 [*time*][Op1]: Retry Op1. Retry count: 1
 [*time*][Op1]: Start Executing Op1
 [*time*][Op1]: Registering reminder Op1:Retry for Op1 with interval 00:00:02
 [*time*][Op1]: Op1 Success
 [*time*][Op2]: Wake by a reminder
-[*time*][Op2]: The state is unknown in the reminder, retry Op2 action
+[*time*][Op2]: The validate function does not exist or raised an exception, retry Op2 action
 [*time*][Op2]: Retry Op2. Retry count: 1
 [*time*][Op2]: Start Executing Op2
 [*time*][Op2]: Registering reminder Op2:Retry for Op2 with interval 00:00:04

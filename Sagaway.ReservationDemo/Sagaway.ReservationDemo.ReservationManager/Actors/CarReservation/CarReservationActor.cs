@@ -79,11 +79,7 @@ public class CarReservationActor : DaprActorHost<CarReservationActorOperations>,
 
     protected override async Task OnActivateSagaAsync()
     {
-        if (_reservationInfo == null)
-        {
-            _logger.LogInformation("The reservation id is empty. Assuming actor activation.");
-            _reservationInfo = (await StateManager.TryGetStateAsync<ReservationInfo>("reservationInfo")).Value;
-        }
+        _reservationInfo = (await StateManager.TryGetStateAsync<ReservationInfo>("reservationInfo")).Value;
     }
 
     public async Task ReserveCarAsync(ReservationInfo reservationInfo)
