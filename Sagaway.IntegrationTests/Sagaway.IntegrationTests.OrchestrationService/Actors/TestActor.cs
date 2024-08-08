@@ -204,6 +204,11 @@ public class TestActor : DaprActorHost<TestActorOperations>, ITestActor
         _logger.LogInformation("{callOperation} for {testInfo}",
             testActorOperations, _testInfo);
 
+        await RecordCustomTelemetryEventAsync("Sending a message to a participant service", new Dictionary<string, object>
+        {
+            { "Test Information", testInfo }
+        });
+
         await DaprClient.InvokeBindingAsync("test-queue", "create", testInfo,
             GetCallbackMetadata(callbackFunctionName));
 
@@ -242,6 +247,8 @@ public class TestActor : DaprActorHost<TestActorOperations>, ITestActor
         catch (Exception e)
         {
             _logger.LogError(e, "Error in ValidateCallAAsync for call id: {callId}", callId);
+            await RecordTelemetryExceptionAsync(e, $"Error in ValidateCallAAsync for call id: {callId}");
+
             return false;
         }
     }

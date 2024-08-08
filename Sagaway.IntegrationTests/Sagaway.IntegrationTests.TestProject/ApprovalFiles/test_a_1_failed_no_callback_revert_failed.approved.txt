@@ -159,21 +159,5 @@ Open Telemetry:
       "saga.outcome": "PartiallyReverted",
       "saga.type": "SagaTestActorOperations"
     }
-  },
-  {
-    "TraceId": "id-17",
-    "ParentId": "id-18",
-    "Kind": "SERVER",
-    "Name": "name-4",
-    "LocalEndpoint": {
-      "ServiceName": "orchestrationservice.sagaway"
-    },
-    "Tags": {
-      "otel.library.name": "OrchestrationService.Sagaway",
-      "otel.scope.name": "OrchestrationService.Sagaway",
-      "saga.id": "id-3",
-      "saga.outcome": "Reverted",
-      "saga.type": "SagaTestActorOperations"
-    }
   }
 ]

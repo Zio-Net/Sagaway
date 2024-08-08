@@ -59,7 +59,7 @@ You can free resources immediately by utilizing a separate database (or a distri
 
 [Dapr]( https://dapr.io/) – a Distributed Application Runtime is a robust foundation for developing Microservices solutions. As such, Dapr provides various mechanisms to handle the MSA complexity. One of the new mechanisms is Dapr [Dapr Workflow]( https://docs.dapr.io/developing-applications/building-blocks/workflow/workflow-overview/)
 Dapr Workflow is a new mechanism of Dapr that provides long-running, isolated workflows that can be used to implement a Saga. However, the Dapr Workflow is a new, [not production-ready]( https://docs.dapr.io/developing-applications/building-blocks/workflow/workflow-overview/#limitations), mechanism. [Dapr Workflow is based on the event sourcing pattern]( https://docs.dapr.io/developing-applications/building-blocks/workflow/workflow-architecture/), meaning that it records any outcome of activity operation, and when the Workflow resumes, it executes all previous events to get to the last Workflow state. While this mechanism is effective, it has many restrictions and pitfalls, such as using deterministic functions and only splitting the Workflow into orchestration, activities, and child workflows to prevent too many historical events. I developed the first version of Sagaway before Dapr had built-in support for workflow executions. However, even with Dapr Workflow, Sagaway provides an out-of-the-box method to implement asynchronous Saga. In contrast, with Dapr Workflow, you must manually craft the calls to validate an action outcome and implement waiting for callback events with `WaitForExternalEventAsync`.  
-For good reasons, the Sagaway Host and the Dapr Workflow building block utilize the Dapr Actor model. Dapr Actor provides the means to execute code in isolation, calling the Actor via a proxy and enabling the Dapr runtime to deactivate and reactivate Actor instances. Dapr actor has built-in state management and a reminder mechanism – crucial for waking the Saga to verify the outcome and retry operations. The Actor model dictates that only a single request is executed on an instance at a time, ensuring thread safety.
+For good reasons, the Sagaway Host and the Dapr Workflow building block utilize the Dapr Actor model. Dapr Actor provides the means to execute code in isolation, calling the Actor via a proxy and enabling the Dapr runtime to deactivate and reactivate Actor instances. Dapr actor has built-in state management and a reminder mechanism, crucial for waking the Saga to verify the outcome and retry operations. The Actor model dictates that only a single request is executed on an instance at a time, ensuring thread safety. When using the Dapr Actor as a host, the Saga instance is valid only during a call, and the only way to use it is with a call coming from the Actor interface via the Actor proxy or from an Actor reminder or timer. The consequence is that you should not keep a state in your Saga implementation class between calls.
 
 ## Using the Sagaway Framework in ASP.NET Minimal API and Dapr
 
@@ -237,13 +237,11 @@ app.MapSubscribeHandler();
 app.UseRouting();
 ```
 
-- Add the following code to map the actor Dapr support routine and the Sagaway deactivation handler:
+- Add the following code to map the actor Dapr support routine:
 
 ```csharp
-app.MapSagawayActorsHandlers();
+app.MapActorsHandlers();
 ```
-
-- The above line replaces the Dapr actor `app.MapActorsHandlers();` method. The `app.MapSagawayActorsHandlers();` installs a deactivation middleware to intercept the actor runtime API calls.
 
 - Dont forget to run the app:
 
@@ -335,7 +333,7 @@ The `GetCallbackBindingName` is needed to enable auto dispatching of callback ca
 
 ## The Saga Builder
 
-Since Actor instances are subject to deactivation, it is crucial to restore the state of the Actor instance when reactivating. There are two parts of the state:
+Since Actor instances can execute code only while a call is active, meaning that the call to the Dapr Actor comes from the Actor's proxy, from an Actor Timer, or an Actor Reminder, It is crucial to start each call from the previous call stored state and to not rely on any class member state. It is vital since an Actor call can be made on different Actor instances running in other containers. It is also important since, in the case of a failure, the Actor rolls back the state to its last good state that was stored after completing a function call. To ensure the C# class member states are aligned to the Dapr Actor state, keep the local state in the Actor Stae Store and load and store them on function activation and deactivation. Sagaway provides the means to do so. For the Saga own state, There are two parts of the state:
 
 - The static state, i.e., the operations object graph, the parameters such as the number of retries, the wait time between a retry attempt per operation, and more
 - The dynamic state, i.e., the progress of the Saga.
@@ -501,7 +499,7 @@ WithRetryIntervalTime(ExponentialBackoff.InMinutes())
 WithRetryIntervalTime(ExponentialBackoff.InSeconds())
 ```
 
-- The optional: `WithValidateFunction(ValidateBookCarReservationAsync)` sets a function that the Saga can call to validate an outcome of an operation. If the operation has not informed a result, and the retry timeout has elapsed, the Saga issues a call to get the success or failure result. If the remote service does not provide a callback mechanism, use this function for polling for the outcome. 
+- The optional: `WithValidateFunction(ValidateBookCarReservationAsync)` sets a function that the Saga can call to validate an outcome of an operation. If the operation has not informed a result, and the retry timeout has elapsed, the Saga issues a call to get the success or failure result. If the remote service does not provide a callback mechanism, use this function for polling for the outcome.
 
 ```csharp
 private async Task<bool> ValidateBookCarReservationAsync()
@@ -639,6 +637,7 @@ The design of these interfaces ensures that the Sagaway framework remains decoup
 
 ```csharp
 using System.Text.Json.Nodes;
+using Sagaway.Telemetry;
 
 namespace Sagaway
 {
@@ -679,11 +678,12 @@ namespace Sagaway
         Task<JsonObject?> LoadSagaAsync(string sagaId);
 
         /// <summary>
-        /// Provide the lock for a thread-safe saga if required
+        /// Provide the lock for a thread safe saga, if required
         /// Can utilize the <see cref="ReentrantAsyncLock"/> or <see cref="NonLockAsync"/>
         /// </summary>
         /// <returns>A lock implementor</returns>
         ILockWrapper CreateLock();
+
 
         private static readonly ITelemetryAdapter NullTelemetryAdapterInstance = new NullTelemetryAdapter();
 

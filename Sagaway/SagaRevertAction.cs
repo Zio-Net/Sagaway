@@ -23,7 +23,7 @@ namespace Sagaway
                     return;
                 }
                 //else
-                Saga.RecordStartOperationTelemetry(SagaOperation.Operation, true);
+                await Saga.RecordStartOperationTelemetry(SagaOperation.Operation, true);
                 await SagaOperation.RevertOperationAsync();
             }
 

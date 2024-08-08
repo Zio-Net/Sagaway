@@ -67,12 +67,12 @@ Run Log:
 [*time*][Op2]: Start Executing Op2
 [*time*][Op2]: Registering reminder Op2:Retry for Op2 with interval 00:00:02
 [*time*][Op2]: Wake by a reminder
-[*time*][Op2]: The state is unknown in the reminder, retry Op2 action
+[*time*][Op2]: The validate function does not exist or raised an exception, retry Op2 action
 [*time*][Op2]: Retry Op2. Retry count: 1
 [*time*][Op2]: Start Executing Op2
 [*time*][Op2]: Registering reminder Op2:Retry for Op2 with interval 00:00:02
 [*time*][Op2]: Wake by a reminder
-[*time*][Op2]: The state is unknown in the reminder, retry Op2 action
+[*time*][Op2]: The validate function does not exist or raised an exception, retry Op2 action
 [*time*][Op2]: Op2 Failed. Retries exhausted.
 [*time*][Op1]: Start Executing Revert Op1
 [*time*][Op1]: No undo operation for Op1. Marking as reverted

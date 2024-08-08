@@ -23,7 +23,7 @@ namespace Sagaway
             {
                 if (SagaOperation.DoOperationAsync != null)
                 {
-                    Saga.RecordStartOperationTelemetry(SagaOperation.Operation, false);
+                    await Saga.RecordStartOperationTelemetry(SagaOperation.Operation, false);
                     await SagaOperation.DoOperationAsync();
                 }
             }

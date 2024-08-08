@@ -151,7 +151,7 @@ public class IntegrationTests
 
             TestOutputHelper.WriteLine(responseContent);
 
-            var result = await SignalR.WaitForSignalREventAsync(40);
+            var result = await SignalR.WaitForSignalREventAsync(60);
 
             Assert.True(result);
 
@@ -237,24 +237,22 @@ public class IntegrationTests
             {
                 InUse = true,
                 MaxRetries = 3,
-                RetryDelayInSeconds = 10,
+                RetryDelayInSeconds = 1,
                 CallId = Guid.NewGuid().ToString(),
-                DelayOnCallInSeconds = [1,2,3],
-                SuccessOnCall = 2,
+                DelayOnCallInSeconds = [1,1,1],
+                SuccessOnCall = -1,
                 ShouldReturnCallbackResultOnCall = [true,true]
             },
-            ServiceARevert = null,
-            ServiceBCall = new ServiceTestInfo
+            ServiceARevert = new ServiceTestInfo
             {
                 InUse = true,
-                MaxRetries = 2,
-                RetryDelayInSeconds = 2,
+                MaxRetries = 1,
+                RetryDelayInSeconds = 1,
                 CallId = Guid.NewGuid().ToString(),
-                DelayOnCallInSeconds = [2, 4],
+                DelayOnCallInSeconds = [1],
                 SuccessOnCall = 1,
-                ShouldReturnCallbackResultOnCall = [true, true]
+                ShouldReturnCallbackResultOnCall = [true]
             },
-            ServiceBRevert = null
         };
 
         SignalR.ClearMessages();

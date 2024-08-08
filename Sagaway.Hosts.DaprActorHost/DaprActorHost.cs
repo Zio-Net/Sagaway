@@ -87,7 +87,6 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     {
         Saga = null; //just in case
         Saga = ReBuildSaga();
-        Saga.OnSagaCompleted += async (_, _) => await OnSagaCompletedAsync();
         await Saga.InformActivatedAsync();
         await OnActivateSagaAsync();
     }
@@ -136,12 +135,6 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     /// </summary>
     protected abstract string GetCallbackBindingName();
 
-    //Clean Actor state on saga completion - this is just a cache cleanup.
-    //The database state will be cleaned by the Actor runtime garbage collector
-    private async Task OnSagaCompletedAsync()
-    {
-        await StateManager.ClearCacheAsync();
-    }
 
     /// <summary>
     /// Called when the saga is activated, after the saga state is rebuilt
@@ -151,7 +144,6 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     {
         await Task.CompletedTask;
     }
-
 
    
     /// <summary>
@@ -402,5 +394,28 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     public string GetSagaStatus()
     {
         return Saga?.GetSagaStatus() ?? "The Saga object is null";
+    }
+
+    /// <summary>
+    /// Record custom telemetry event that is part of the Saga execution and can be traced using
+    /// services such as OpenTelemetry
+    /// </summary>
+    /// <param name="eventName">The custom event name</param>
+    /// <param name="properties">The custom event parameters</param>
+    protected async Task RecordCustomTelemetryEventAsync(string eventName, IDictionary<string, object>? properties = null)
+    {
+        if (Saga != null)
+            await Saga.RecordCustomTelemetryEventAsync(eventName, properties);
+    }
+
+    /// <summary>
+    /// Records any exceptions or failures as part of the Saga operation open telemetry span
+    /// </summary>
+    /// <param name="exception">The exception that occurred.</param>
+    /// <param name="context">An optional context or description where the exception occurred.</param>
+    protected async Task RecordTelemetryExceptionAsync(Exception exception, string? context = null)
+    {
+        if (Saga != null)
+            await Saga.RecordTelemetryExceptionAsync(exception, context);
     }
 }

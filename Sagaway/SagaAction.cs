@@ -112,7 +112,7 @@ namespace Sagaway
                 catch (Exception ex)
                 {
                     LogAndRecord($"Error when calling {OperationName}. Error: {ex.Message}. Retry in {retryInterval} seconds");
-                    _saga.RecordException(ex, $"Error when calling {OperationName}");
+                    await _saga.RecordTelemetryExceptionAsync(ex, $"Error when calling {OperationName}");
 
                     if (!_isReminderOn)
                     {
@@ -153,7 +153,7 @@ namespace Sagaway
                 if (!failFast && _retryCount <= MaxRetries)
                 {
                     LogAndRecord($"Retry {OperationName}. Retry count: {_retryCount}");
-                    _saga.RecordRetryAttemptTelemetry(_sagaOperation.Operation, _retryCount, IsRevert);
+                    await _saga.RecordRetryAttemptTelemetryAsync(_sagaOperation.Operation, _retryCount, IsRevert);
 
                     await ExecuteAsync();
                     return;
@@ -161,7 +161,7 @@ namespace Sagaway
 
                 Failed = true;
                 LogAndRecord(failFast ? $"{OperationName} Failed Fast." : $"{OperationName} Failed. Retries exhausted.");
-                _saga.RecordEndOperationTelemetry(_sagaOperation.Operation, 
+                await _saga.RecordEndOperationTelemetry(_sagaOperation.Operation, 
                     IsRevert ? OperationOutcome.RevertFailed : OperationOutcome.Failed, IsRevert);
 
                 await OnActionFailureAsync();
@@ -180,7 +180,7 @@ namespace Sagaway
                 
                 Succeeded = true;
                 
-                _saga.RecordEndOperationTelemetry(_sagaOperation.Operation, IsRevert ? OperationOutcome.Reverted : OperationOutcome.Succeeded, IsRevert);
+                await _saga.RecordEndOperationTelemetry(_sagaOperation.Operation, IsRevert ? OperationOutcome.Reverted : OperationOutcome.Succeeded, IsRevert);
                 _saga.CheckForCompletion();
             }
 
@@ -195,7 +195,6 @@ namespace Sagaway
                 {
                     return;
                 }
-
 
                 try
                 {
@@ -213,7 +212,7 @@ namespace Sagaway
                     LogAndRecord($"Error when calling {OperationName} validate. Error: {ex.Message}.");
                 }
                 //the state is unknown, retry action
-                LogAndRecord($"The state is unknown in the reminder, retry {OperationName} action");
+                LogAndRecord($"The validate function does not exist or raised an exception, retry {OperationName} action");
                 await InformFailureOperationAsync(false);
             }
             
