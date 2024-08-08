@@ -8,14 +8,23 @@ namespace Sagaway
     {
         internal class SagaOperationExecution
         {
+            #region Transient State - built on each activation
+
             private readonly Saga<TEOperations> _saga;
             private IReadOnlyList<SagaOperationExecution>? _precondition;
             private readonly ILogger _logger;
-            private bool _started;
+
+            #endregion //Transient State - built on each activation
+
+            #region Persistent State - kept in the state store
 
             private readonly SagaDoAction _sagaDoAction;
             private readonly OnActionFailure _sagaRevertAction;
             private SagaAction _currentAction;
+            private bool _started;
+
+            #endregion //Persistent State - kept in the state store
+
 
             public SagaOperationExecution(Saga<TEOperations> saga, SagaOperation operation, ILogger logger)
             {

@@ -8,11 +8,28 @@ namespace Sagaway
     {
         internal abstract class SagaAction
         {
+            #region Transient State - built on each activation
+
             private readonly Saga<TEOperations> _saga;
-            private readonly SagaOperation _sagaOperation;
             private readonly ILogger _logger;
+
+            #endregion //Transient State - built on each activation
+
+
+            #region Persistent State - kept in the state store
+
             bool _isReminderOn;
             private int _retryCount;
+            private readonly SagaOperation _sagaOperation; //persisted in another class
+            protected Saga<TEOperations> Saga => _saga; //persisted in another class
+
+            //the operation has been executed successfully 
+            public bool Succeeded { get; private set; }
+            //the operation has been executed and failed with all retries
+            public bool Failed { get; private set; }
+
+            #endregion //Persistent State - kept in the state store
+
 
             // ReSharper disable once ConvertToPrimaryConstructor
             protected SagaAction(Saga<TEOperations> saga, SagaOperation sagaOperation, ILogger logger)
@@ -21,8 +38,6 @@ namespace Sagaway
                 _sagaOperation = sagaOperation;
                 _logger = logger;
             }
-
-            protected Saga<TEOperations> Saga => _saga;
 
             protected SagaOperation SagaOperation => _sagaOperation;
 
@@ -201,11 +216,6 @@ namespace Sagaway
                 LogAndRecord($"The state is unknown in the reminder, retry {OperationName} action");
                 await InformFailureOperationAsync(false);
             }
-            
-            //the operation has been executed successfully 
-            public bool Succeeded { get; private set; }
-            //the operation has been executed and failed with all retries
-            public bool Failed { get; private set; }
             
             public void MarkSucceeded()
             {

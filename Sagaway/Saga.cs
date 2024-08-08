@@ -14,23 +14,62 @@ namespace Sagaway;
 /// <remarks>Use <see cref="SagaBuilder"></see> to build a saga instance/> </remarks>
 public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where TEOperations : Enum
 {
+    #region Transient State - built in each activation
+
     private ILogger _logger;
-    private string _sagaUniqueId;
     private readonly ISagaSupport _sagaSupportOperations;
-    private readonly List<SagaOperationExecution> _operations;
     private readonly Action<string>? _onSuccessCallback;
     private readonly Action<string>? _onFailedCallback;
     private readonly Action<string>? _onRevertedCallback;
     private readonly Action<string>? _onRevertFailureCallback;
-    private bool _isReverting;
-    private readonly StringBuilder _stepRecorder = new();
     private bool _deactivated;
-    private bool _hasFailedReported;
     private readonly ILockWrapper _lock;
-    private readonly SagaTelemetryContext _telemetryContext;
-
 
     private string SagaStateName => $"Saga_{_sagaUniqueId}";
+
+    #endregion //Transient State
+
+    #region Persistent State - kept in the persistence store
+
+    private string _sagaUniqueId;
+    private readonly List<SagaOperationExecution> _operations;
+    private readonly StringBuilder _stepRecorder = new();
+    private bool _hasFailedReported;
+    private bool _isReverting;
+    private readonly SagaTelemetryContext _telemetryContext;
+    
+    /// <summary>
+    /// The saga is in progress
+    /// </summary>
+    public bool InProgress { get; private set; } = true;
+
+    /// <summary>
+    /// All operations have been executed successfully and the saga is completed
+    /// </summary>
+    public bool Succeeded { get; private set; }
+
+    /// <summary>
+    /// The saga has failed and is in the process of reverting
+    /// </summary>
+    public bool Failed { get; private set; }
+
+    /// <summary>
+    /// The saga has failed and has reverted all operations
+    /// </summary>
+    public bool Reverted { get; private set; }
+
+    /// <summary>
+    /// The saga has failed and has failed to revert all operations. It is considered done.
+    /// </summary>
+    public bool RevertFailed { get; private set; }
+
+    /// <summary>
+    /// The Saga executed and finished either successfully or failed
+    /// </summary>
+    public bool Completed { get; private set; }
+
+    #endregion //Persistent State
+
 
     #region Telemetry
 
@@ -113,36 +152,7 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
 
     #endregion //telemetry
 
-    /// <summary>
-    /// The saga is in progress
-    /// </summary>
-    public bool InProgress { get; private set; } = true;
-
-    /// <summary>
-    /// All operations have been executed successfully and the saga is completed
-    /// </summary>
-    public bool Succeeded { get; private set; }
-
-    /// <summary>
-    /// The saga has failed and is in the process of reverting
-    /// </summary>
-    public bool Failed { get; private set; }
-
-    /// <summary>
-    /// The saga has failed and has reverted all operations
-    /// </summary>
-    public bool Reverted { get; private set; }
-
-    /// <summary>
-    /// The saga has failed and has failed to revert all operations. It is considered done.
-    /// </summary>
-    public bool RevertFailed { get; private set; }
-
-    /// <summary>
-    /// The Saga executed and finished either successfully or failed
-    /// </summary>
-    public bool Completed { get; private set; }
-
+    
     private Saga(ILogger logger, string sagaUniqueId, ISagaSupport sagaSupportOperations,
         IReadOnlyList<SagaOperation> operations, Action<string>? onSuccessCallback, Action<string>? onFailedCallback,
         Action<string>? onRevertedCallback, Action<string>? onRevertFailureCallback)
