@@ -78,7 +78,7 @@ namespace Sagaway
 
             public async Task InformSuccessOperationAsync()
             {
-                //since Inform comes from the user of the saga, a do inform may come after we start reverting
+                //since Inform comes from the user of the saga, do inform may come after we start reverting
                 if (_currentAction == _sagaDoAction)
                 {
                     await _sagaDoAction.InformSuccessOperationAsync();
@@ -96,7 +96,7 @@ namespace Sagaway
 
             public async Task InformFailureOperationAsync(bool failFast)
             {
-                //since Inform comes from the user of the saga, a do inform may come after we start reverting
+                //since Inform comes from the user of the saga, do inform may come after we start reverting
                 if (_currentAction == _sagaDoAction)
                 {
                     await _sagaDoAction.InformFailureOperationAsync(failFast);
@@ -132,6 +132,7 @@ namespace Sagaway
                 var op = Operation.Operation.ToString();
                 json[op] = new JsonObject();
                 json[op]!["started"] = _started;
+                json[op]!["IsCurrentOperationRevert"] = _currentAction == _sagaRevertAction;
 
                 var jsonDo = new JsonObject();
                 json[op + "Do"] = jsonDo;
@@ -150,6 +151,10 @@ namespace Sagaway
                 //else
                 var opState = json[op] as JsonObject;
                 _started = opState!["started"]?.GetValue<bool>() ?? throw new Exception("Error when loading state, missing started entry");
+                
+                var isCurrentOperationRevert = opState["IsCurrentOperationRevert"]?.GetValue<bool>() ?? throw new Exception("Error when loading state, missing IsCurrentOperationRevert entry");
+                _currentAction = isCurrentOperationRevert ? _sagaRevertAction : _sagaDoAction;
+
                 var opDoState = json[op + "Do"] as JsonObject;
                 _sagaDoAction.LoadState(opDoState!);
 

@@ -54,15 +54,17 @@ namespace Sagaway
             {
                 json["isReminderOn"] = _isReminderOn;
                 json["retryCount"] = _retryCount;
+                json["succeeded"] = Succeeded;
+                json["failed"] = Failed;
             }
 
             public void LoadState(JsonObject json)
             {
                 _isReminderOn = json["isReminderOn"]?.GetValue<bool>() ?? throw new Exception("Error when loading state, missing isReminderOn entry");
                 _retryCount = json["retryCount"]?.GetValue<int>() ?? throw new Exception("Error when loading state, missing retryCount entry");
+                Succeeded = json["succeeded"]?.GetValue<bool>() ?? throw new Exception("Error when loading state, missing succeeded entry");
+                Failed = json["failed"]?.GetValue<bool>() ?? throw new Exception("Error when loading state, missing failed entry");
             }
-
-            
 
             private async Task<TimeSpan> ResetReminderAsync()
             {

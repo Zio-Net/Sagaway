@@ -4,14 +4,12 @@ using Dapr.Actors;
 using Microsoft.AspNetCore.Mvc;
 using Dapr.Actors.Client;
 using Dapr.Client;
-using Microsoft.AspNetCore.Components.Web;
 using OpenTelemetry.Resources;
 using Sagaway.Callback.Router;
 using Sagaway.IntegrationTests.OrchestrationService;
 using Sagaway.IntegrationTests.OrchestrationService.Actors;
 using Sagaway.OpenTelemetry;
 using OpenTelemetry.Trace;
-using Sagaway.Hosts.DaprActorHost;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -113,7 +111,7 @@ app.MapPost("/run-test", async (
         return Results.BadRequest("Test name is required");
     }
 
-    if (string.IsNullOrEmpty(testInfo?.TestName))
+    if (string.IsNullOrEmpty(testInfo.TestName))
     {
         logger.LogError("Test name is required");
         return Results.BadRequest("Test name is required");
@@ -185,6 +183,6 @@ app.UseCors("AllowAll");
 app.MapControllers();
 app.MapSubscribeHandler();
 app.UseRouting();
-app.MapSagawayActorsHandlers();
+app.MapActorsHandlers();
 
 app.Run();

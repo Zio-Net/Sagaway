@@ -5,7 +5,11 @@ Saga Log:
 [*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:10
 [*time*][CallB]: Start Executing CallB
 [*time*][CallB]: Registering reminder CallB:Retry for CallB with interval 00:00:10
+The Saga is deactivated.
+The Saga is activated.
 [*time*][CallA]: CallA Success
+The Saga is deactivated.
+The Saga is activated.
 [*time*][CallB]: CallB Success
 
 Open Telemetry:
@@ -22,7 +26,6 @@ Open Telemetry:
       "otel.library.name": "OrchestrationService.Sagaway",
       "otel.scope.name": "OrchestrationService.Sagaway",
       "saga.id": "id-3",
-      "saga.outcome": "Succeeded",
       "saga.type": "SagaTestActorOperations"
     }
   },
@@ -36,7 +39,6 @@ Open Telemetry:
     },
     "Tags": {
       "operation.name": "CallA",
-      "operation.outcome": "Succeeded",
       "otel.library.name": "OrchestrationService.Sagaway",
       "otel.scope.name": "OrchestrationService.Sagaway",
       "saga.id": "id-3"
@@ -52,10 +54,40 @@ Open Telemetry:
     },
     "Tags": {
       "operation.name": "CallB",
-      "operation.outcome": "Succeeded",
       "otel.library.name": "OrchestrationService.Sagaway",
       "otel.scope.name": "OrchestrationService.Sagaway",
       "saga.id": "id-3"
+    }
+  },
+  {
+    "TraceId": "id-1",
+    "ParentId": "id-8",
+    "Kind": "SERVER",
+    "Name": "name-4",
+    "LocalEndpoint": {
+      "ServiceName": "orchestrationservice.sagaway"
+    },
+    "Tags": {
+      "otel.library.name": "OrchestrationService.Sagaway",
+      "otel.scope.name": "OrchestrationService.Sagaway",
+      "saga.id": "id-3",
+      "saga.type": "SagaTestActorOperations"
+    }
+  },
+  {
+    "TraceId": "id-1",
+    "ParentId": "id-9",
+    "Kind": "SERVER",
+    "Name": "name-4",
+    "LocalEndpoint": {
+      "ServiceName": "orchestrationservice.sagaway"
+    },
+    "Tags": {
+      "otel.library.name": "OrchestrationService.Sagaway",
+      "otel.scope.name": "OrchestrationService.Sagaway",
+      "saga.id": "id-3",
+      "saga.outcome": "Succeeded",
+      "saga.type": "SagaTestActorOperations"
     }
   }
 ]

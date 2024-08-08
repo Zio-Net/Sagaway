@@ -20,13 +20,12 @@ namespace Sagaway.Hosts;
 /// </summary>
 /// <typeparam name="TEOperations">The enum of the saga operations</typeparam>
 [DebuggerTypeProxy(typeof(DaprActorHostDebuggerProxy<>))]
-public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSupport, ISagawayActor, IDaprHostDeactivationHandler
+public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSupport, ISagawayActor
     where TEOperations : Enum
 {
     private readonly ILogger _logger;
     private DaprClient? _daprClient;
     private readonly ITelemetryAdapter _telemetryAdapter;
-    private bool _hasDeactivationMiddlewareRegistered;
 
     /// <summary>
     /// Create a Dapr Actor host for the saga
@@ -63,15 +62,17 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     /// <summary>
     /// This method is called whenever an actor is activated.
     /// An actor is activated the first time any of its methods are invoked.
+    /// You can create any non actor related resource. Any resource that needs actor state should be created between
+    /// <see cref="OnActivateSagaAsync"/> and <see cref="OnDeactivateSagaAsync"/>
     /// The call recreate the Saga operations and delicate the call to the saga
     /// to load the last stored saga state.
     /// </summary>
-    protected sealed override async Task OnActivateAsync()
+    protected sealed override Task OnActivateAsync()
     {
         if (Saga != null)
         {
             _logger.LogWarning("OnActivateAsync called when saga is already active, doing nothing.");
-            return;
+            return Task.CompletedTask;
         }
 
         //else    
@@ -79,10 +80,24 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
 
         CreateDaprClient();
 
+        return Task.CompletedTask;
+    }
+
+    protected override async Task OnPreActorMethodAsync(ActorMethodContext actorMethodContext)
+    {
+        Saga = null; //just in case
         Saga = ReBuildSaga();
         Saga.OnSagaCompleted += async (_, _) => await OnSagaCompletedAsync();
         await Saga.InformActivatedAsync();
         await OnActivateSagaAsync();
+    }
+
+    protected override async Task OnPostActorMethodAsync(ActorMethodContext actorMethodContext)
+    {
+        _logger.LogInformation($"Deactivating actor id: {Id}");
+        await OnDeactivateSagaAsync();
+        await Saga!.InformDeactivatedAsync();
+        Saga = null;
     }
 
     /// <summary>
@@ -138,45 +153,7 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     }
 
 
-    /// <summary>
-    /// This method is called whenever an actor is deactivated after a period of inactivity.
-    /// </summary>
-    protected override async Task OnDeactivateAsync()
-    {
-        //if this method is called before the IDaprHostDeactivationHandler.OnDeactivateActorAsync(), it means the user forgot to register the middleware
-        if (!_hasDeactivationMiddlewareRegistered)
-        {
-            _logger.LogError("Deactivation middleware not registered, actor may not deactivate properly. Did you forget to add: app.MapSagawayActorsHandlers() instead of app.MapActorsHandlers()");
-            throw new InvalidOperationException("Deactivation middleware not registered. Did you forget to add: app.MapSagawayActorsHandlers() instead of app.MapActorsHandlers()");
-        }
-
-        await Task.CompletedTask;
-    }
-
-    /// <summary>
-    /// A private method to call the saga to inform that the actor is deactivated
-    /// </summary>
-    /// <returns></returns>
-    async Task IDaprHostDeactivationHandler.OnDeactivateActorAsync()
-    {
-        _hasDeactivationMiddlewareRegistered = true;
-
-        _logger.LogInformation($"Deactivating actor id: {Id}");
-        await OnDeactivateSagaAsync();
-        await Saga!.InformDeactivatedAsync();
-    }
-
-    /// <summary>
-    /// This method is called from the actor activation context to inform the actor that the deactivation middleware has been registered
-    /// We use it to assist the developer in registering the middleware
-    /// </summary>
-    Task IDaprHostDeactivationHandler.InformDeactivationMiddlewareRegisteredAsync()
-    {
-        _hasDeactivationMiddlewareRegistered = true;
-        return Task.CompletedTask;
-    }
-
-
+   
     /// <summary>
     /// Called when the saga is deactivated, before the saga state is stored
     /// Override this method to store any Saga state that is not stored by the framework
@@ -194,8 +171,8 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     /// <returns></returns>
     protected async Task SagaRunAsync()
     {
-        Saga ??= ReBuildSaga();
-        await Saga.RunAsync();
+        //Saga ??= ReBuildSaga();
+        await Saga!.RunAsync();
     }
 
     /// <summary>
@@ -336,7 +313,6 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
         if (Saga != null)
         {
             await ((ISagaReset)Saga).ResetSagaAsync();
-            Saga = null;
         }
     }
 

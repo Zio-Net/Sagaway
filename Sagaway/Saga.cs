@@ -304,7 +304,7 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
 
             try
             {
-                _stepRecorder.AppendLine($"{SagaStateName} is deactivated.");
+                _stepRecorder.AppendLine("The Saga is deactivated.");
                 _deactivated = true;
                 await StoreStateAsync();
             }
@@ -335,11 +335,18 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
         _hasFailedReported = json["hasFailedReported"]?.GetValue<bool>() ?? false;
         _stepRecorder.Length = 0;
         _stepRecorder.Append(json["stepRecorder"]?.GetValue<string>() ?? string.Empty);
-        _stepRecorder.AppendLine($"{SagaStateName} is activated.");
+        _stepRecorder.AppendLine($"The Saga is activated.");
         foreach (var operation in _operations)
         {
             operation.LoadState(json);
         }
+
+        InProgress = json["inProgress"]?.GetValue<bool>() ?? true;
+        Completed = json["completed"]?.GetValue<bool>() ?? false;
+        Succeeded = json["succeeded"]?.GetValue<bool>() ?? false;
+        Failed = json["failed"]?.GetValue<bool>() ?? false;
+        Reverted = json["reverted"]?.GetValue<bool>() ?? false;
+        RevertFailed = json["revertFailed"]?.GetValue<bool>() ?? false;
 
         var telemetryStateStore = json["telemetryStateStore"]?.GetValue<string>() ?? string.Empty;
         var telemetryStatePairs = telemetryStateStore.Split('|', StringSplitOptions.RemoveEmptyEntries);
@@ -369,7 +376,13 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
         json["isReverting"] = _isReverting;
         json["hasFailedReported"] = _hasFailedReported;
         json["stepRecorder"] = _stepRecorder.ToString();
-
+        json["inProgress"] = InProgress;
+        json["completed"] = Completed;
+        json["succeeded"] = Succeeded;
+        json["failed"] = Failed;
+        json["reverted"] = Reverted;
+        json["revertFailed"] = RevertFailed;
+        
         var telemetryStateStore = _telemetryStateStore.Aggregate(
             new StringBuilder(), (sb, pair) => sb.Append($"{pair.Key},{pair.Value}|"), sb => sb.ToString());
 

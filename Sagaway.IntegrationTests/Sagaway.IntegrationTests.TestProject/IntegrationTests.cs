@@ -304,6 +304,8 @@ public class IntegrationTests
        
     private async Task<string> GetTracesFromZipkinAsync(long startTs)
     {
+        await Task.Delay(2000);
+
         string traces = "[]";
 
         for (int i = 0; i < 10; i++)
