@@ -123,9 +123,9 @@ namespace Sagaway
                 }
             }
             
-            public async Task CancelReminderIfOnAsync()
+            public async Task CancelReminderIfOnAsync(bool forceCancel = false)
             {
-                if (_isReminderOn)
+                if (_isReminderOn || forceCancel)
                 {
                     _logger.LogInformation($"Canceling old reminder {ReminderName} for {OperationName}");
                     _isReminderOn = false;

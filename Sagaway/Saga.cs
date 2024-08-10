@@ -340,47 +340,77 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
     //load the state of the saga, if there is no state, it is a new saga
     private async Task<bool> LoadStateAsync()
     {
-        var json = await _sagaSupportOperations.LoadSagaAsync(SagaStateName);
-
-        //log the json as readable text
-        _logger.LogDebug($"On loading state: Saga {SagaStateName} state: {json}");
-
-        if (json is null || json.Count == 0)
+        try
         {
-            _logger.LogInformation($"State {SagaStateName} is not found in persistence store, Assuming first run.");
-            return true;
-        }
+            var json = await _sagaSupportOperations.LoadSagaAsync(SagaStateName);
 
-        var uniqueId = json["sagaUniqueId"]?.GetValue<string>();
+            //log the json as readable text
+            _logger.LogDebug($"On loading state: Saga {SagaStateName} state: {json}");
 
-        _sagaUniqueId = uniqueId!;
-        _done = json["done"]?.GetValue<bool>() ?? false;
-        _isReverting = json["isReverting"]?.GetValue<bool>() ?? false;
-        _hasFailedReported = json["hasFailedReported"]?.GetValue<bool>() ?? false;
-
-        _stepRecorder.Length = 0;
-        _stepRecorder.Append(json["stepRecorder"]?.GetValue<string>() ?? string.Empty);
-        _stepRecorder.AppendLine("The Saga is activated.");
-        foreach (var operation in _operations)
-        {
-            operation.LoadState(json);
-        }
-
-        var telemetryStateStore = json["telemetryStateStore"]?.GetValue<string>() ?? string.Empty;
-        var telemetryStatePairs = telemetryStateStore.Split('|', StringSplitOptions.RemoveEmptyEntries);
-        
-        _telemetryStateStore.Clear();
-        foreach (var pair in telemetryStatePairs)
-        {
-            var keyValue = pair.Split(',', StringSplitOptions.RemoveEmptyEntries);
-            if (keyValue.Length == 2)
+            if (json is null || json.Count == 0)
             {
-                _telemetryStateStore[keyValue[0]] = keyValue[1];
+                _logger.LogInformation($"State {SagaStateName} is not found in persistence store, Assuming first run.");
+                return true;
             }
-        }
 
-        CheckForCompletion();
-        return false; //new saga
+            var uniqueId = json["sagaUniqueId"]?.GetValue<string>();
+
+            _sagaUniqueId = uniqueId!;
+            _done = json["done"]?.GetValue<bool>() ?? false;
+            _isReverting = json["isReverting"]?.GetValue<bool>() ?? false;
+            _hasFailedReported = json["hasFailedReported"]?.GetValue<bool>() ?? false;
+
+            _stepRecorder.Length = 0;
+            _stepRecorder.Append(json["stepRecorder"]?.GetValue<string>() ?? string.Empty);
+            _stepRecorder.AppendLine("The Saga is activated.");
+            foreach (var operation in _operations)
+            {
+                operation.LoadState(json);
+            }
+
+            var telemetryStateStore = json["telemetryStateStore"]?.GetValue<string>() ?? string.Empty;
+            var telemetryStatePairs = telemetryStateStore.Split('|', StringSplitOptions.RemoveEmptyEntries);
+
+            _telemetryStateStore.Clear();
+            foreach (var pair in telemetryStatePairs)
+            {
+                var keyValue = pair.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                if (keyValue.Length == 2)
+                {
+                    _telemetryStateStore[keyValue[0]] = keyValue[1];
+                }
+            }
+
+            CheckForCompletion();
+            return false; //new saga
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error loading saga state {SagaStateName}");
+
+            await CancelOperationRemindersAsync();
+            throw new CorruptedSagaStateException("Error loading Saga State, see inner exception. Important, check this problem, it can hurt reliability since a Saga process may stop in the middle!", ex);
+        }
+    }
+
+    private async Task CancelOperationRemindersAsync()
+    {
+         _logger.LogInformation($"Trying to cancel all reminders for saga {_sagaUniqueId}");
+
+
+         foreach (var operation in _operations)
+         {
+             try
+             {
+                 await operation.CancelPossibleReminderIfOnAsync();
+             }
+
+             catch (Exception e)
+             {
+                 _logger.LogWarning(e,
+                     $"Error trying to cancel reminder for operation {operation.Operation.Operation} as a clean operation to prevent endless loop");
+             }
+         }
     }
 
     private async Task StoreStateAsync()
