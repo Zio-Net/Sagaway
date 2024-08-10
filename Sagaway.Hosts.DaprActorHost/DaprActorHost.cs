@@ -85,10 +85,24 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
 
     protected override async Task OnPreActorMethodAsync(ActorMethodContext actorMethodContext)
     {
-        Saga = null; //just in case
-        Saga = ReBuildSaga();
-        await Saga.InformActivatedAsync();
-        await OnActivateSagaAsync();
+        try
+        {
+            Saga = null; //just in case
+            Saga = ReBuildSaga();
+            await Saga.InformActivatedAsync();
+            await OnActivateSagaAsync();
+        }
+        catch (CorruptedSagaStateException ex)
+        {
+            if (actorMethodContext.CallType == ActorCallType.ReminderMethod)
+            {
+                _logger.LogWarning(ex, "Error during reminder activation, finish gracefully to allow cancelling leftover reminders");
+                return;
+            }
+            
+            _logger.LogError(ex, "Error during saga activation");
+            throw;
+        }
     }
 
     protected override async Task OnPostActorMethodAsync(ActorMethodContext actorMethodContext)

@@ -1,6 +1,6 @@
 ﻿namespace Sagaway;
 
-class CorruptedSagaStateException : Exception
+public class CorruptedSagaStateException : Exception
 {
     public CorruptedSagaStateException(string message) : base(message)
     {

@@ -342,8 +342,6 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
     {
         try
         {
-
-
             var json = await _sagaSupportOperations.LoadSagaAsync(SagaStateName);
 
             //log the json as readable text
