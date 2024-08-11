@@ -25,6 +25,7 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
     private bool _deactivated;
     private readonly ILockWrapper _lock;
     private bool _resetSagaState;
+    private bool _corruptedState; //use for flagging corrupted state, for the current call
 
     private string SagaStateName => $"Saga_{_sagaUniqueId}";
 
@@ -387,7 +388,7 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
         catch (Exception ex)
         {
             _logger.LogError(ex, $"Error loading saga state {SagaStateName}");
-
+            _corruptedState = true;
             await CancelOperationRemindersAsync();
             throw new CorruptedSagaStateException("Error loading Saga State, see inner exception. Important, check this problem, it can hurt reliability since a Saga process may stop in the middle!", ex);
         }
@@ -701,6 +702,12 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
     /// <returns>Async operation</returns>
     public async Task ReportReminderAsync(string reminder)
     {
+        if (_corruptedState)
+        {
+            _logger.LogWarning("Saga state is corrupted, skipping reminder handling.");
+            return;
+        }
+
         await _lock.LockAsync(async () =>
         {
             try
