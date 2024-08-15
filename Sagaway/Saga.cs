@@ -382,7 +382,7 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
                 }
             }
 
-            CheckForCompletion();
+            await CheckForCompletionAsync();
             return false; //new saga
         }
         catch (Exception ex)
@@ -580,7 +580,7 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
     public string SagaLog => _stepRecorder.ToString();
 
 
-    private void CheckForCompletion()
+    private async Task CheckForCompletionAsync()
     {
          //we use _done flag and not the Completed property to make sure we enter this function
         //for the last time when the saga is done
@@ -597,7 +597,7 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
             {
                 _hasFailedReported = true;
                 _onFailedCallback(recordedSteps);
-                TelemetryAdapter.RecordCustomEventAsync(_telemetryContext, "SagaFailure");
+                await TelemetryAdapter.RecordCustomEventAsync(_telemetryContext, "SagaFailure");
             }
 
             if (Completed)
@@ -605,14 +605,14 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
                 _done = true;
                 var telemetryOutcome = Succeeded ? SagaOutcome.Succeeded :
                     Reverted ? SagaOutcome.Reverted : SagaOutcome.PartiallyReverted;
-                TelemetryAdapter.EndSagaAsync(_telemetryContext, telemetryOutcome);
+                await TelemetryAdapter.EndSagaAsync(_telemetryContext, telemetryOutcome);
             }
 
             //first handle completion notification
             if (Succeeded && _onSuccessCallback != null)
             {
                 _onSuccessCallback(recordedSteps);
-            } 
+            }
             else if (Reverted && _onRevertedCallback != null)
             {
                 _onRevertedCallback(recordedSteps);
@@ -625,6 +625,16 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error calling report result callback");
+        }
+        finally
+        {
+            if (_done) //cancel all possible left reminders
+            {
+                foreach (var sagaOperationExecution in _operations)
+                {
+                    await sagaOperationExecution.CancelPossibleReminderIfOnAsync();
+                }
+            }
         }
 
         if (!_done) //saga completed
@@ -692,7 +702,7 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
             await operation.RevertAsync();
         }
 
-        CheckForCompletion();
+        await CheckForCompletionAsync();
     }
 
     /// <summary>
@@ -704,6 +714,7 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
     {
         if (_corruptedState)
         {
+            await _sagaSupportOperations.CancelReminderAsync(reminder);
             _logger.LogWarning("Saga state is corrupted, skipping reminder handling.");
             return;
         }
