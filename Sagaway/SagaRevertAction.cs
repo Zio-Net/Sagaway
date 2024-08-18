@@ -34,7 +34,7 @@ namespace Sagaway
 
             protected override async Task OnActionFailureAsync()
             {
-                Saga.CheckForCompletion();
+                await Saga.CheckForCompletionAsync();
                 await Task.CompletedTask;
             }
             

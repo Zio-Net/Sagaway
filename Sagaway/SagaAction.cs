@@ -181,7 +181,7 @@ namespace Sagaway
                 Succeeded = true;
                 
                 await _saga.RecordEndOperationTelemetry(_sagaOperation.Operation, IsRevert ? OperationOutcome.Reverted : OperationOutcome.Succeeded, IsRevert);
-                _saga.CheckForCompletion();
+                await _saga.CheckForCompletionAsync();
             }
 
             public async Task OnReminderAsync()
