@@ -16,11 +16,16 @@
     <RepositoryUrl>https://github.com/alonf/Sagaway</RepositoryUrl>
     <EnableNETAnalyzers>True</EnableNETAnalyzers>
     <PackageVersion>1.0.0</PackageVersion>
-    <PackageIcon>../assets/package-icon.png</PackageIcon>
-    <!-- Default version if not overridden -->
+    <PackageIcon>assets/package-icon.png</PackageIcon>
+  <!-- Default version if not overridden -->
     <UsePackages>false</UsePackages>
     <!-- Default to false; override in CI/CD or command line -->
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../assets/package-icon.png" Pack="true" PackagePath="assets/" />
+  </ItemGroup>
+
 
   <ItemGroup>
     <None Include="..\.github\README.md">
