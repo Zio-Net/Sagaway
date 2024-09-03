@@ -213,7 +213,7 @@ public partial class Saga<TEOperations> where TEOperations : Enum
             }
             catch (Exception e)
             {
-                _logger.LogWarning("Error when trying to force canceling a possible revert operation reminder", e);
+                _logger.LogWarning(e, "Error when trying to force canceling a possible revert operation reminder");
             }
         }
     }
