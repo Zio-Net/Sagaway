@@ -30,7 +30,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Dapr.Actors.AspNetCore" Version="1.13.1" />
+    <PackageReference Include="Dapr.Actors.AspNetCore" Version="1.14.0" />
   </ItemGroup>
 
   <!-- Conditionally include Project References -->
