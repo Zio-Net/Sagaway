@@ -1,0 +1,77 @@
+﻿Preparing test test_two_ops_throw_exception_on_second
+OperationNumber: Op1
+Dependencies: 0
+MaxRetries: 0
+NumberOfFailures: 0
+CallDelays: empty
+RetryDelay: 0
+RevertMaxRetries: 0
+RevertNumberOfFailures: 0
+RevertCallDelay: empty
+RevertRetryDelay: 0
+ValidateFunctionResults: empty
+RevertValidateFunctionResults: empty
+CallCounter: 0
+RevertCallCounter: 0
+ValidateCallCounter: 0
+RevertValidateCallCounter: 0
+Deactivate: empty
+ThrowException: empty
+ValidateThrowException: empty
+RevertThrowException: empty
+RevertValidateThrowException: empty
+HasReportFail: False
+HasRevert: False
+HasValidate: False
+HasRevertValidate: False
+
+OperationNumber: Op2
+Dependencies: 0
+MaxRetries: 0
+NumberOfFailures: 0
+CallDelays: empty
+RetryDelay: 0
+RevertMaxRetries: 0
+RevertNumberOfFailures: 0
+RevertCallDelay: empty
+RevertRetryDelay: 0
+ValidateFunctionResults: empty
+RevertValidateFunctionResults: empty
+CallCounter: 0
+RevertCallCounter: 0
+ValidateCallCounter: 0
+RevertValidateCallCounter: 0
+Deactivate: empty
+ThrowException: 1
+ValidateThrowException: empty
+RevertThrowException: empty
+RevertValidateThrowException: empty
+HasReportFail: False
+HasRevert: False
+HasValidate: False
+HasRevertValidate: False
+
+Calling Op1: Success True
+OnRevertedCallback: Reverted.
+Run Log:
+[*time*][Op1]: Start Executing Op1
+[*time*][Op1]: Op1 Success
+[*time*][Op2]: Start Executing Op2
+[*time*][Op2]: Error when calling Op2. Error: Throwing exception on call 1. Retry in 00:00:00 seconds
+[*time*][Op2]: Op2 Failed. Retries exhausted.
+[*time*][Op1]: Start Executing Revert Op1
+[*time*][Op1]: No undo operation for Op1. Marking as reverted
+[*time*][Op2]: Start Executing Revert Op2
+[*time*][Op2]: No undo operation for Op2. Marking as reverted
+
+
+OnSagaCompleted: Id: test Status: Reverted
+
+*** Telemetry ***
+1: StartSaga - SagaID: test, Type: SagaOperations
+2: StartOperation - SagaID: test, Operation: Op1
+3: EndOperation - SagaID: test, Operation: Op1, Outcome: Succeeded
+4: StartOperation - SagaID: test, Operation: Op2
+5: Exception - SagaID: test, Context: Error when calling Op2, Exception: Throwing exception on call 1
+6: EndOperation - SagaID: test, Operation: Op2, Outcome: Failed
+7: EndSaga - SagaID: test, Outcome: Reverted

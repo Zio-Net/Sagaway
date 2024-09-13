@@ -1,0 +1,109 @@
+﻿Preparing test test_two_both_failed_revert_fails_2_times
+OperationNumber: Op1
+Dependencies: 0
+MaxRetries: 0
+NumberOfFailures: 1
+CallDelays: empty
+RetryDelay: 0
+RevertMaxRetries: 3
+RevertNumberOfFailures: 2
+RevertCallDelay: empty
+RevertRetryDelay: 1
+ValidateFunctionResults: empty
+RevertValidateFunctionResults: empty
+CallCounter: 0
+RevertCallCounter: 0
+ValidateCallCounter: 0
+RevertValidateCallCounter: 0
+Deactivate: empty
+ThrowException: empty
+ValidateThrowException: empty
+RevertThrowException: empty
+RevertValidateThrowException: empty
+HasReportFail: False
+HasRevert: True
+HasValidate: False
+HasRevertValidate: False
+
+OperationNumber: Op2
+Dependencies: 0
+MaxRetries: 0
+NumberOfFailures: 1
+CallDelays: empty
+RetryDelay: 0
+RevertMaxRetries: 3
+RevertNumberOfFailures: 2
+RevertCallDelay: empty
+RevertRetryDelay: 1
+ValidateFunctionResults: empty
+RevertValidateFunctionResults: empty
+CallCounter: 0
+RevertCallCounter: 0
+ValidateCallCounter: 0
+RevertValidateCallCounter: 0
+Deactivate: empty
+ThrowException: empty
+ValidateThrowException: empty
+RevertThrowException: empty
+RevertValidateThrowException: empty
+HasReportFail: False
+HasRevert: True
+HasValidate: False
+HasRevertValidate: False
+
+Calling Op2: Success False
+Calling revert for Op1: Success False
+Calling revert for Op1: Success False
+Calling revert for Op2: Success False
+Calling revert for Op1: Success True
+Calling revert for Op2: Success False
+Calling revert for Op2: Success True
+OnRevertedCallback: Reverted.
+Run Log:
+[*time*][Op2]: Wake by a reminder
+[*time*][Op2]: Start Executing Op2
+[*time*][Op2]: Op2 Failed. Retries exhausted.
+[*time*][Op1]: Wake by a reminder
+[*time*][Op1]: Start Executing Revert Op1
+[*time*][Op1]: Retry Revert Op1. Retry count: 1
+[*time*][Op1]: Registering reminder Op1:Retry for Revert Op1 with configured interval of 00:00:01, waiting the 00:00:04 remaining seconds
+[*time*][Op1]: Wake by a reminder
+[*time*][Op1]: Start Executing Revert Op1
+[*time*][Op1]: Retry Revert Op1. Retry count: 2
+[*time*][Op1]: Registering reminder Op1:Retry for Revert Op1 with configured interval of 00:00:01, waiting the 00:00:04 remaining seconds
+[*time*][Op2]: Wake by a reminder
+[*time*][Op2]: Start Executing Revert Op2
+[*time*][Op2]: Retry Revert Op2. Retry count: 1
+[*time*][Op2]: Registering reminder Op2:Retry for Revert Op2 with configured interval of 00:00:01, waiting the 00:00:04 remaining seconds
+[*time*][Op1]: Wake by a reminder
+[*time*][Op1]: Start Executing Revert Op1
+[*time*][Op1]: Revert Op1 Success
+[*time*][Op2]: Wake by a reminder
+[*time*][Op2]: Start Executing Revert Op2
+[*time*][Op2]: Retry Revert Op2. Retry count: 2
+[*time*][Op2]: Registering reminder Op2:Retry for Revert Op2 with configured interval of 00:00:01, waiting the 00:00:04 remaining seconds
+[*time*][Op1]: Wake by a reminder
+[*time*][Op2]: Wake by a reminder
+[*time*][Op2]: Start Executing Revert Op2
+[*time*][Op2]: Revert Op2 Success
+
+
+OnSagaCompleted: Id: test Status: Reverted
+
+*** Telemetry ***
+1: StartSaga - SagaID: test, Type: SagaOperations
+2: StartOperation - SagaID: test, Operation: Op2
+3: EndOperation - SagaID: test, Operation: Op2, Outcome: Failed
+4: StartOperation - SagaID: test, Operation: RevertOp1
+5: RetryAttempt - SagaID: test, Operation: RevertOp1, Attempt: 1
+6: StartOperation - SagaID: test, Operation: RevertOp1
+7: StartOperation - SagaID: test, Operation: RevertOp2
+8: RetryAttempt - SagaID: test, Operation: RevertOp1, Attempt: 2
+9: StartOperation - SagaID: test, Operation: RevertOp1
+10: EndOperation - SagaID: test, Operation: RevertOp1, Outcome: Reverted
+11: RetryAttempt - SagaID: test, Operation: RevertOp2, Attempt: 1
+12: StartOperation - SagaID: test, Operation: RevertOp2
+13: RetryAttempt - SagaID: test, Operation: RevertOp2, Attempt: 2
+14: StartOperation - SagaID: test, Operation: RevertOp2
+15: EndOperation - SagaID: test, Operation: RevertOp2, Outcome: Reverted
+16: EndSaga - SagaID: test, Outcome: Reverted

@@ -18,8 +18,21 @@ class SagaTestHost : ISagaSupport
     
     public async Task CancelReminderAsync(string reminderName)
     {
-        await _reminders[reminderName].DisposeAsync();
-        _reminders.Remove(reminderName);
+        try
+        {
+            if (!_reminders.TryGetValue(reminderName, out Timer? timer))
+            {
+                return;
+            }
+
+            await timer.DisposeAsync();
+            _reminders.Remove(reminderName);
+        }
+        // ReSharper disable once EmptyGeneralCatchClause
+        catch 
+        {
+            // ignored
+        }
     }
 
     public ILockWrapper CreateLock()

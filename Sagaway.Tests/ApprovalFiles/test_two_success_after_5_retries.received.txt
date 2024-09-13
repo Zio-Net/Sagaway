@@ -1,0 +1,116 @@
+﻿Preparing test test_two_success_after_5_retries
+OperationNumber: Op1
+Dependencies: 0
+MaxRetries: 5
+NumberOfFailures: 4
+CallDelays: empty
+RetryDelay: 1
+RevertMaxRetries: 0
+RevertNumberOfFailures: 0
+RevertCallDelay: empty
+RevertRetryDelay: 0
+ValidateFunctionResults: empty
+RevertValidateFunctionResults: empty
+CallCounter: 0
+RevertCallCounter: 0
+ValidateCallCounter: 0
+RevertValidateCallCounter: 0
+Deactivate: empty
+ThrowException: empty
+ValidateThrowException: empty
+RevertThrowException: empty
+RevertValidateThrowException: empty
+HasReportFail: False
+HasRevert: False
+HasValidate: False
+HasRevertValidate: False
+
+OperationNumber: Op2
+Dependencies: 0
+MaxRetries: 5
+NumberOfFailures: 4
+CallDelays: empty
+RetryDelay: 1
+RevertMaxRetries: 0
+RevertNumberOfFailures: 0
+RevertCallDelay: empty
+RevertRetryDelay: 0
+ValidateFunctionResults: empty
+RevertValidateFunctionResults: empty
+CallCounter: 0
+RevertCallCounter: 0
+ValidateCallCounter: 0
+RevertValidateCallCounter: 0
+Deactivate: empty
+ThrowException: empty
+ValidateThrowException: empty
+RevertThrowException: empty
+RevertValidateThrowException: empty
+HasReportFail: False
+HasRevert: False
+HasValidate: False
+HasRevertValidate: False
+
+Calling Op1: Success False
+Calling Op2: Success False
+OnRevertedCallback: Reverted.
+Run Log:
+[*time*][Op1]: Start Executing Op1
+[*time*][Op1]: Registering reminder Op1:Retry for Op1 with interval 00:00:01
+[*time*][Op1]: Retry Op1. Retry count: 1
+[*time*][Op1]: Registering reminder Op1:Retry for Op1 with interval 00:00:01
+[*time*][Op2]: Start Executing Op2
+[*time*][Op2]: Registering reminder Op2:Retry for Op2 with interval 00:00:01
+[*time*][Op2]: Retry Op2. Retry count: 1
+[*time*][Op2]: Registering reminder Op2:Retry for Op2 with interval 00:00:01
+[19:39:36[*time*][Op1]: Wake by a reminder
+[*time*][Op1]: The validate function does not exist or raised an exception, retry Op1 action
+[*time*][Op2]: The validate function does not exist or raised an exception, retry Op2 action
+[*time*][Op1]: Retry Op1. Retry count: 2
+[*time*][Op2]: Retry Op2. Retry count: 2
+[*time*][Op1]: Registering reminder Op1:Retry for Op1 with configured interval of 00:00:01, waiting the 00:00:00 remaining seconds
+[*time*][Op2]: Registering reminder Op2:Retry for Op2 with configured interval of 00:00:01, waiting the 00:00:00 remaining seconds
+[*time*][Op2]: Wake by a reminder
+[*time*][Op2]: The validate function does not exist or raised an exception, retry Op2 action
+[*time*][Op2]: Retry Op2. Retry count: 3
+[*time*][Op2]: Registering reminder Op2:Retry for Op2 with configured interval of 00:00:01, waiting the 00:00:00 remaining seconds
+[*time*][Op1]: Wake by a reminder
+[*time*][Op1]: The validate function does not exist or raised an exception, retry Op1 action
+[*time*][Op1]: Retry Op1. Retry count: 3
+[*time*][Op1]: Registering reminder Op1:Retry for Op1 with configured interval of 00:00:01, waiting the 00:00:00 remaining seconds
+[*time*][Op2]: Wake by a reminder
+[*time*][Op2]: The validate function does not exist or raised an exception, retry Op2 action
+[*time*][Op1]: Wake by a reminder
+[*time*][Op2]: Retry Op2. Retry count: 4
+[*time*][Op1]: The validate function does not exist or raised an exception, retry Op1 action
+[*time*][Op1]: Retry Op1. Retry count: 4
+[*time*][Op2]: Registering reminder Op2:Retry for Op2 with configured interval of 00:00:01, waiting the 00:00:00 remaining seconds
+[*time*][Op1]: Registering reminder Op1:Retry for Op1 with configured interval of 00:00:01, waiting the 00:00:00 remaining seconds
+[*time*][Op1]: Wake by a reminder
+[*time*][Op1]: The validate function does not exist or raised an exception, retry Op1 action
+[*time*][Op1]: Retry Op1. Retry count: 5
+[*time*][Op1]: Registering reminder Op1:Retry for Op1 with configured interval of 00:00:01, waiting the 00:00:00 remaining seconds
+[*time*][Op2]: Wake by a reminder
+[*time*][Op2]: The validate function does not exist or raised an exception, retry Op2 action
+[*time*][Op2]: Retry Op2. Retry count: 5
+[*time*][Op2]: Registering reminder Op2:Retry for Op2 with configured interval of 00:00:01, waiting the 00:00:00 remaining seconds
+[*time*][Op1]: Wake by a reminder
+[*time*][Op1]: The validate function does not exist or raised an exception, retry Op1 action
+[*time*][Op1]: Op1 Failed. Retries exhausted.
+[*time*][Op1]: Start Executing Revert Op1
+[*time*]
+[*time*][Op2]: The validate function does not exist or raised an exception, retry Op2 action
+[*time*][Op2]: Start Executing Revert Op2
+[*time*][Op2]: No undo operation for Op2. Marking as reverted
+[*time*][Op2]: Op2 Failed. Retries exhausted.
+
+
+OnSagaCompleted: Id: test Status: Reverted
+
+*** Telemetry ***
+1: StartSaga - SagaID: test, Type: SagaOperations
+2: StartOperation - SagaID: test, Operation: Op1
+3: StartOperation - SagaID: test, Operation: Op2
+4: EndOperation - SagaID: test, Operation: Op1, Outcome: Failed
+5: EndOperation - SagaID: test, Operation: Op2, Outcome: Failed
+6: EndSaga - SagaID: test, Outcome: Reverted

@@ -5,7 +5,7 @@
 /// </summary>
 public class ReentrantAsyncLock : ILockWrapper
 {
-    private readonly AsyncLocal<ReentrantLockState> _reentrantLockState = new AsyncLocal<ReentrantLockState>();
+    private readonly AsyncLocal<ReentrantLockState> _reentrantLockState = new();
     private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
 
     /// <summary>

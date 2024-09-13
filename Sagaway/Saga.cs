@@ -114,6 +114,7 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
         }
     }
 
+    // ReSharper disable once UnusedMember.Local
     private async Task RecordRetryAttemptTelemetryAsync(TEOperations sagaOperationOperation, int retryCount, bool isReverting)
     {
         try
@@ -461,23 +462,26 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
     /// <returns>Async method</returns>
     public async Task RunAsync()
     {
-        bool ShouldRun() => !_deactivated && (NotStarted || InProgress);
-
         await _lock.LockAsync(async () =>
         {
-            while (ShouldRun())
+            bool ShouldRun() => !_deactivated && (NotStarted || InProgress);
+
+            if (!ShouldRun())
+                return;
+
+            var allWaitingOperations = _operations.Where(o => o.CanExecute).ToList();
+
+            if (!allWaitingOperations.Any() || allWaitingOperations.All(o => o.Failed))
+                return;
+
+            foreach (var operation in allWaitingOperations)
             {
-                var allWaitingOperations = _operations.Where(o => o.CanExecute).ToList();
+                if (operation.NotStarted && _operations.Any(o=>o.Failed))
+                    continue;
 
-                if (!allWaitingOperations.Any() || allWaitingOperations.All(o => o.Failed))
-                    return;
-
-                foreach (var operation in allWaitingOperations)
-                {
-                    await operation.StartExecuteAsync();
-                    if (!ShouldRun())
-                        break;
-                }
+                await operation.StartExecuteAsync();
+                if (!ShouldRun())
+                    break;
             }
         });
     }
@@ -557,21 +561,29 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
     /// <returns>Async operation</returns>
     public async Task ReportUndoOperationOutcomeAsync(TEOperations operation, bool success)
     {
-        await _lock.LockAsync(async () =>
+        try
         {
-            if (!InProgress)
-                return;
+            await _lock.LockAsync(async () =>
+            {
+                if (!InProgress)
+                    return;
 
-            var operationExecution = _operations.Single(o => o.Operation.Operation.Equals(operation));
-            if (success)
-            {
-                await operationExecution.InformSuccessUndoOperationAsync();
-            }
-            else
-            {
-                await operationExecution.InformFailureUndoOperationAsync();
-            }
-        });
+                var operationExecution = _operations.Single(o => o.Operation.Operation.Equals(operation));
+                if (success)
+                {
+                    await operationExecution.InformSuccessUndoOperationAsync();
+                }
+                else
+                {
+                    await operationExecution.InformFailureUndoOperationAsync();
+                }
+
+            });
+        }
+        finally
+        {
+            await RunAsync();
+        }
     }
 
     /// <summary>

@@ -72,11 +72,11 @@ public partial class Saga<TEOperations> where TEOperations : Enum
 
         public async Task StartExecuteAsync()
         {
-            if (_started)
+            _started = true;
+            if (Succeeded || Failed)
                 return;
 
-            _started = true;
-            await _currentAction.ExecuteAsync();
+            await _currentAction.ScheduleExecuteAsync();
         }
 
         public async Task RevertAsync()
@@ -87,7 +87,7 @@ public partial class Saga<TEOperations> where TEOperations : Enum
             if (Reverted || RevertFailed)
                 return;
 
-            await _sagaRevertAction.ExecuteAsync();
+            await _currentAction.ScheduleExecuteAsync();
         }
 
         public async Task InformSuccessOperationAsync()

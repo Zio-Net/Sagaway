@@ -1,0 +1,102 @@
+﻿Preparing test test_two_throw_exception_twice_and_retry_three_times
+OperationNumber: Op1
+Dependencies: 0
+MaxRetries: 3
+NumberOfFailures: 0
+CallDelays: empty
+RetryDelay: 1
+RevertMaxRetries: 0
+RevertNumberOfFailures: 0
+RevertCallDelay: empty
+RevertRetryDelay: 0
+ValidateFunctionResults: empty
+RevertValidateFunctionResults: empty
+CallCounter: 0
+RevertCallCounter: 0
+ValidateCallCounter: 0
+RevertValidateCallCounter: 0
+Deactivate: empty
+ThrowException: 1
+ThrowException: 2
+ValidateThrowException: empty
+RevertThrowException: empty
+RevertValidateThrowException: empty
+HasReportFail: False
+HasRevert: False
+HasValidate: False
+HasRevertValidate: False
+
+OperationNumber: Op2
+Dependencies: 0
+MaxRetries: 3
+NumberOfFailures: 0
+CallDelay: 1 - 3
+RetryDelay: 4
+RevertMaxRetries: 0
+RevertNumberOfFailures: 0
+RevertCallDelay: empty
+RevertRetryDelay: 0
+ValidateFunctionResults: empty
+RevertValidateFunctionResults: empty
+CallCounter: 0
+RevertCallCounter: 0
+ValidateCallCounter: 0
+RevertValidateCallCounter: 0
+Deactivate: empty
+ThrowException: 1
+ThrowException: 2
+ValidateThrowException: empty
+RevertThrowException: empty
+RevertValidateThrowException: empty
+HasReportFail: False
+HasRevert: False
+HasValidate: False
+HasRevertValidate: False
+
+Calling Op1: Success True
+Calling Op2: Success True
+OnSuccessCompletionCallback: Success.
+Run Log:
+[*time*][Op1]: Start Executing Op1
+[*time*][Op1]: Error when calling Op1. Error: Throwing exception on call 1. Retry in 00:00:00 seconds
+[*time*][Op1]: Retry Op1. Retry count: 1
+[*time*][Op1]: Registering reminder Op1:Retry for Op1 with interval 00:00:01
+[*time*][Op2]: Start Executing Op2
+[*time*][Op2]: Error when calling Op2. Error: Throwing exception on call 1. Retry in 00:00:00 seconds
+[*time*][Op2]: Retry Op2. Retry count: 1
+[*time*][Op2]: Registering reminder Op2:Retry for Op2 with interval 00:00:04
+[*time*][Op1]: Wake by a reminder
+[*time*][Op1]: Start Executing Op1
+[*time*][Op1]: Error when calling Op1. Error: Throwing exception on call 2. Retry in 00:00:00 seconds
+[*time*][Op1]: Retry Op1. Retry count: 2
+[*time*][Op1]: Registering reminder Op1:Retry for Op1 with interval 00:00:01
+[*time*][Op1]: Wake by a reminder
+[*time*][Op1]: Start Executing Op1
+[*time*][Op1]: Op1 Success
+[*time*][Op2]: Wake by a reminder
+[*time*][Op2]: Start Executing Op2
+[*time*][Op2]: Error when calling Op2. Error: Throwing exception on call 2. Retry in 00:00:00 seconds
+[*time*][Op2]: Retry Op2. Retry count: 2
+[*time*][Op2]: Registering reminder Op2:Retry for Op2 with interval 00:00:04
+[*time*][Op2]: Wake by a reminder
+[*time*][Op2]: Start Executing Op2
+[*time*][Op2]: Op2 Success
+
+
+OnSagaCompleted: Id: test Status: Succeeded
+
+*** Telemetry ***
+1: StartSaga - SagaID: test, Type: SagaOperations
+2: StartOperation - SagaID: test, Operation: Op1
+3: Exception - SagaID: test, Context: Error when calling Op1, Exception: Throwing exception on call 1
+4: StartOperation - SagaID: test, Operation: Op2
+5: Exception - SagaID: test, Context: Error when calling Op2, Exception: Throwing exception on call 1
+6: StartOperation - SagaID: test, Operation: Op1
+7: Exception - SagaID: test, Context: Error when calling Op1, Exception: Throwing exception on call 2
+8: StartOperation - SagaID: test, Operation: Op1
+9: EndOperation - SagaID: test, Operation: Op1, Outcome: Succeeded
+10: StartOperation - SagaID: test, Operation: Op2
+11: Exception - SagaID: test, Context: Error when calling Op2, Exception: Throwing exception on call 2
+12: StartOperation - SagaID: test, Operation: Op2
+13: EndOperation - SagaID: test, Operation: Op2, Outcome: Succeeded
+14: EndSaga - SagaID: test, Outcome: Succeeded

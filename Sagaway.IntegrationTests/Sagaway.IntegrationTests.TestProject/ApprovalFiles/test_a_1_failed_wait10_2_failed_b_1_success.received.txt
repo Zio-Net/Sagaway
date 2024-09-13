@@ -1,0 +1,2 @@
+﻿test_a_1_failed_wait10_2_failed_b_1_success
+The request was canceled due to the configured HttpClient.Timeout of 100 seconds elapsing.

@@ -1,0 +1,47 @@
+﻿Preparing test test_single_fail_and_retry
+OperationNumber: Op1
+Dependencies: 0
+MaxRetries: 2
+NumberOfFailures: 1
+CallDelays: empty
+RetryDelay: 10
+RevertMaxRetries: 0
+RevertNumberOfFailures: 0
+RevertCallDelay: empty
+RevertRetryDelay: 0
+ValidateFunctionResults: empty
+RevertValidateFunctionResults: empty
+CallCounter: 0
+RevertCallCounter: 0
+ValidateCallCounter: 0
+RevertValidateCallCounter: 0
+Deactivate: empty
+ThrowException: empty
+ValidateThrowException: empty
+RevertThrowException: empty
+RevertValidateThrowException: empty
+HasReportFail: False
+HasRevert: False
+HasValidate: False
+HasRevertValidate: False
+
+Calling Op1: Success False
+Calling Op1: Success True
+OnSuccessCompletionCallback: Success.
+Run Log:
+[*time*][Op1]: Start Executing Op1
+[*time*][Op1]: Retry Op1. Retry count: 1
+[*time*][Op1]: Registering reminder Op1:Retry for Op1 with interval 00:00:10
+[*time*][Op1]: Wake by a reminder
+[*time*][Op1]: Start Executing Op1
+[*time*][Op1]: Op1 Success
+
+
+OnSagaCompleted: Id: test Status: Succeeded
+
+*** Telemetry ***
+1: StartSaga - SagaID: test, Type: SagaOperations
+2: StartOperation - SagaID: test, Operation: Op1
+3: StartOperation - SagaID: test, Operation: Op1
+4: EndOperation - SagaID: test, Operation: Op1, Outcome: Succeeded
+5: EndSaga - SagaID: test, Outcome: Succeeded

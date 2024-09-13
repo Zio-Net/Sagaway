@@ -2,8 +2,8 @@
 using System.Text.Json.Nodes;
 using Sagaway.Telemetry;
 
-namespace Sagaway
-{
+namespace Sagaway;
+
     public partial class Saga<TEOperations> where TEOperations : Enum
     {
         internal abstract class SagaAction
@@ -18,8 +18,9 @@ namespace Sagaway
 
             #region Persistent State - kept in the state store
 
-            bool _isReminderOn;
             private int _retryCount;
+            private ReminderType _reminderType = ReminderType.None;
+            private long _lastOperationStartInUnixTimeSeconds;
             private readonly SagaOperation _sagaOperation; //persisted in another class
             protected Saga<TEOperations> Saga => _saga; //persisted in another class
 
@@ -67,74 +68,91 @@ namespace Sagaway
 
             public void StoreState(JsonObject json)
             {
-                json["isReminderOn"] = _isReminderOn;
+                json["reminderType"] = (int)_reminderType;
                 json["retryCount"] = _retryCount;
                 json["succeeded"] = Succeeded;
                 json["failed"] = Failed;
+                json["lastOperationStartInUnixTimeSeconds"] = _lastOperationStartInUnixTimeSeconds;
             }
 
             public void LoadState(JsonObject json)
             {
-                _isReminderOn = json["isReminderOn"]?.GetValue<bool>() ?? throw new Exception("Error when loading state, missing isReminderOn entry");
+                _reminderType = json["reminderType"]?.GetValue<ReminderType>() ?? throw new Exception("Error when loading state, missing isReminderOn entry");
                 _retryCount = json["retryCount"]?.GetValue<int>() ?? throw new Exception("Error when loading state, missing retryCount entry");
                 Succeeded = json["succeeded"]?.GetValue<bool>() ?? throw new Exception("Error when loading state, missing succeeded entry");
                 Failed = json["failed"]?.GetValue<bool>() ?? throw new Exception("Error when loading state, missing failed entry");
+                _lastOperationStartInUnixTimeSeconds = json["lastOperationStartInUnixTimeSeconds"]?.GetValue<long>() ?? throw new Exception("Error when loading state, missing lastOperationStartInUnixTimeSeconds entry");
             }
 
-            private async Task<TimeSpan> ResetReminderAsync()
+
+            private async Task ResetReminderAsync(ReminderType reminderType, bool immediate = false)
             {
                 await CancelReminderIfOnAsync();
 
-                var retryInterval = GetRetryInterval(_retryCount);
-                
-                if (retryInterval == default || MaxRetries == 0)
+                TimeSpan reminderDelay = TimeSpan.FromSeconds(4); //wait minimum 4 seconds until execution
+
+                if (!immediate)
                 {
-                    return default;
+
+                    var nextRetryInterval = GetRetryInterval(_retryCount);
+
+                    if (nextRetryInterval == default || MaxRetries == 0)
+                    {
+                        return;
+                    }
+
+                    //calculate the next retry time according to the time elapse since the last operation start, but give a reminder minimum time to wait before firig
+                    //this code has the chance to exist free the lock before the reminder comes
+                    reminderDelay = TimeSpan.FromSeconds(Math.Max(4,
+                        nextRetryInterval.TotalSeconds - (DateTimeOffset.UtcNow.ToUnixTimeSeconds() -
+                                                          _lastOperationStartInUnixTimeSeconds)));
+
+                    LogAndRecord(reminderDelay == nextRetryInterval
+                        ? $"Registering reminder {ReminderName} for {OperationName} with interval {reminderDelay}"
+                        : $"Registering reminder {ReminderName} for {OperationName} with configured interval of {nextRetryInterval}, waiting the {reminderDelay} remaining seconds");
                 }
 
-                LogAndRecord($"Registering reminder {ReminderName} for {OperationName} with interval {retryInterval}");
-                await _saga._sagaSupportOperations.SetReminderAsync(ReminderName, retryInterval);
-                _isReminderOn = true;
-
-                return retryInterval;
+                await _saga._sagaSupportOperations.SetReminderAsync(ReminderName, reminderDelay);
+                _reminderType = reminderType;
             }
 
-            public async Task ExecuteAsync()
+            private async Task ExecuteAsync()
             {
                 LogAndRecord($"Start Executing {OperationName}");
                 TimeSpan retryInterval = default;
 
                 try
                 {
-                    retryInterval = await ResetReminderAsync();
-                    await ExecuteActionAsync(); 
+                    _lastOperationStartInUnixTimeSeconds = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+                    if (_retryCount > 0)
+                    {
+                        await _saga.RecordRetryAttemptTelemetryAsync(_sagaOperation.Operation, _retryCount, IsRevert);
+                    }
+                    await ExecuteActionAsync();
                 }
                 catch (Exception ex)
                 {
-                    LogAndRecord($"Error when calling {OperationName}. Error: {ex.Message}. Retry in {retryInterval} seconds");
+                    LogAndRecord(
+                        $"Error when calling {OperationName}. Error: {ex.Message}. Retry in {retryInterval} seconds");
                     await _saga.RecordTelemetryExceptionAsync(ex, $"Error when calling {OperationName}");
-
-                    if (!_isReminderOn)
-                    {
-                        //no reminder and we failed. Take failure action right away
-                        LogAndRecord($"No reminder set for {OperationName}. Taking failure action");
-                        await InformFailureOperationAsync(false);
-                    }
+                    await InformFailureOperationAsync(false);
                 }
             }
-            
+
             public async Task CancelReminderIfOnAsync(bool forceCancel = false)
             {
-                if (_isReminderOn || forceCancel)
+                if (_reminderType != ReminderType.None || forceCancel)
                 {
                     _logger.LogInformation($"Canceling old reminder {ReminderName} for {OperationName}");
-                    _isReminderOn = false;
+                    _reminderType = ReminderType.None;
                     await _saga._sagaSupportOperations.CancelReminderAsync(ReminderName);
                 }
             }
             
             public async Task InformFailureOperationAsync(bool failFast)
             {
+                await CancelReminderIfOnAsync();
+
                 if (Succeeded || Failed)
                 {
                     return;
@@ -149,13 +167,16 @@ namespace Sagaway
                     _logger.LogInformation($"Operation {OperationName} Failed");
                 }
 
-                _retryCount++;
+                ++_retryCount;
+
                 if (!failFast && _retryCount <= MaxRetries)
                 {
                     LogAndRecord($"Retry {OperationName}. Retry count: {_retryCount}");
-                    await _saga.RecordRetryAttemptTelemetryAsync(_sagaOperation.Operation, _retryCount, IsRevert);
 
-                    await ExecuteAsync();
+                    //set a reminder for the next retry
+                    await ResetReminderAsync(SagaOperation.ValidateAsync == null
+                        ? ReminderType.Execute
+                        : ReminderType.Validate);
                     return;
                 }
 
@@ -186,7 +207,7 @@ namespace Sagaway
 
             public async Task OnReminderAsync()
             {
-                _isReminderOn = true;
+                var reminderType = _reminderType;
                 await CancelReminderIfOnAsync();
 
                 LogAndRecord("Wake by a reminder");
@@ -198,6 +219,13 @@ namespace Sagaway
 
                 try
                 {
+                    if (reminderType == ReminderType.Execute)
+                    {
+                        await ExecuteAsync();
+                        return;
+                    }
+                    //else
+
                     //try to get the action state by calling a state check function if exists
                     var hasValidated = await ValidateAsync();
 
@@ -220,6 +248,10 @@ namespace Sagaway
             {
                 Succeeded = true;
             }
+
+            public async Task ScheduleExecuteAsync()
+            {
+            await ResetReminderAsync(ReminderType.Execute, true);
+        }
         }
     }
-}
