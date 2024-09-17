@@ -152,6 +152,7 @@ If you want to reuse the same callback queue for non-actor-related tasks, you ca
 
 ```csharp
 app.UseSagawayCallbackRouter("reservation-response-queue", async (
+    [FromBody] JsonNode message,
     [FromServices] DaprClient daprClient,
     [FromServices] ILogger<Program> logger) =>
 {
@@ -168,6 +169,8 @@ app.UseSagawayCallbackRouter("reservation-response-queue", async (
 });
 ```
 This allows you to handle messages from the same queue for additional purposes, beyond actor method invocations, giving you more flexibility in routing.
+Pay attention, that message body must of type JsonNode:
+`[FromBody] JsonNode message`, otherwise UseSagawayCallbackRouter won't work properly. You can convert it later to the desired type.
 
 Example of such a binding:
 
