@@ -148,6 +148,27 @@ app.UseSagawayCallbackRouter("reservation-response-queue");
 ```
 The parameter is a Dapr component binding name of the callback. The Sagaway currently supports bindings that call the POST HTTP method. A Pub/Sub Topic is not supported yet for auto-routing.
 
+If you want to reuse the same callback queue for non-actor-related tasks, you can define a custom handler like this:
+
+```csharp
+app.UseSagawayCallbackRouter("reservation-response-queue", async (
+    [FromServices] DaprClient daprClient,
+    [FromServices] ILogger<Program> logger) =>
+{
+    try
+    {
+        logger.LogInformation("Processing custom handler");
+        // your custom handling code
+        return Results.Ok();
+    }
+    catch (Exception)
+    {
+        return Results.Problem();
+    }
+});
+```
+This allows you to handle messages from the same queue for additional purposes, beyond actor method invocations, giving you more flexibility in routing.
+
 Example of such a binding:
 
 ```yaml

@@ -18,7 +18,7 @@ public static class WebApplicationSagawayExtension
             [FromServices] IActorProxyFactory actorProxyFactory,
             [FromServices] ILogger<ISagawayActor> logger) =>
         {
-           
+
             var methodName = httpRequest.Headers["x-sagaway-dapr-callback-method-name"].FirstOrDefault();
             if (string.IsNullOrEmpty(methodName))
             {
@@ -52,6 +52,12 @@ public static class WebApplicationSagawayExtension
                 logger.LogError(ex, "Error dispatching callback to {ActorTypeName} for method {MethodName} with Actor ID {ActorId}", actorTypeName, methodName, actorId);
                 return Results.Ok();
             }
-        }).ExcludeFromDescription(); 
+        }).ExcludeFromDescription();
+    }
+
+    public static void UseSagawayCallbackRouter(this WebApplication app, string callbackBindingName, Delegate handler)
+    {
+        app.MapPost("/" + callbackBindingName, handler)
+        .AddEndpointFilter<SagawayCallbackFilter>();
     }
 }
