@@ -54,7 +54,7 @@ public static class ExponentialBackoff
                 (Random.NextDouble() * 2 - 1) * jitterFactor; // Random between -jitterFactor and +jitterFactor
             var calculatedDelay = Math.Min(maxDelay.TotalSeconds, exponentialDelay * (1 + jitter));
             var finalDelaySeconds = Math.Max(initialDelay.TotalSeconds, calculatedDelay);
-            return unitOfTime(finalDelaySeconds);
+            return TimeSpan.FromSeconds(finalDelaySeconds);
         };
     }
 }

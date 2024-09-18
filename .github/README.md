@@ -169,10 +169,11 @@ app.UseSagawayCallbackRouter("reservation-response-queue", async (
 });
 ```
 This allows you to handle messages from the same queue for additional purposes, beyond actor method invocations, giving you more flexibility in routing.
-Pay attention, that message body must of type JsonNode:
-`[FromBody] JsonNode message`, otherwise UseSagawayCallbackRouter won't work properly. You can convert it later to the desired type.
 
-Example of such a binding:
+Pay attention, that currently there is a restriction to message body type, it must of type JsonNode:
+`[FromBody] JsonNode message`, otherwise UseSagawayCallbackRouter won't work properly. You can convert it later to the desired type. Other option is to create separate queue for requests, which should not be routed to actor.
+___
+Example of a binding:
 
 ```yaml
 apiVersion: dapr.io/v1alpha1
