@@ -11,11 +11,11 @@ spec:
   - name: host
     value: "amqp://rabbitmq:5672"
   - name: durable
-    value: true
+    value: false
   - name: deleteWhenUnused
     value: false
   - name: ttlInSeconds
-    value: 60
+    value: 30
   - name: prefetchCount
     value: 0
   - name: exclusive

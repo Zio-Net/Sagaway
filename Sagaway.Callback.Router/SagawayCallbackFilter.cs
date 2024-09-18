@@ -15,7 +15,8 @@ internal class SagawayCallbackFilter : IEndpointFilter
         var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<ISagawayActor>>();
         var actorProxyFactory = context.HttpContext.RequestServices.GetRequiredService<IActorProxyFactory>();
 
-        var payload = await JsonNode.ParseAsync(httpRequest.Body);
+        var payload = context.Arguments.OfType<JsonNode>().FirstOrDefault();
+
         if (payload is null)
         {
             logger.LogError("Payload is null or empty.");
