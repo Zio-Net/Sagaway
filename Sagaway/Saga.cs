@@ -737,6 +737,10 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
                 _logger.LogError(ex, $"Error handling reminder {reminder}, canceling reminder.");
                 await _sagaSupportOperations.CancelReminderAsync(reminder);
             }
+            finally
+            {
+                await RunAsync();
+            }
         });
     }
 
