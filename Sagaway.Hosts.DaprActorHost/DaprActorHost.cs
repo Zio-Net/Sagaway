@@ -10,6 +10,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Sagaway.Hosts.DaprActorHost;
 using Sagaway.Telemetry;
 using System.Diagnostics;
+using Polly;
+using Polly.Retry;
 
 // ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable once CheckNamespace
@@ -26,6 +28,7 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     private readonly ILogger _logger;
     private DaprClient? _daprClient;
     private readonly ITelemetryAdapter _telemetryAdapter;
+    private readonly AsyncRetryPolicy _retryPolicy;
 
     /// <summary>
     /// Create a Dapr Actor host for the saga
@@ -40,6 +43,8 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
         ActorHost = host;
         _logger = logger;
         _telemetryAdapter = serviceProvider?.GetService<ITelemetryAdapter>() ?? new NullTelemetryAdapter();
+        //todo: provide a way to configure the retry policy
+        _retryPolicy = Policy.Handle<Exception>().WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
     }
 
     /// <summary>
@@ -190,7 +195,10 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     /// <returns>Async operation</returns>
     async Task ISagaSupport.SetReminderAsync(string reminderName, TimeSpan dueTime)
     {
-        await RegisterReminderAsync(reminderName, null, dueTime, dueTime);
+        await _retryPolicy.ExecuteAsync(async () =>
+        {
+            await RegisterReminderAsync(reminderName, null, dueTime, dueTime);
+        });
     }
 
     /// <summary>
@@ -200,7 +208,10 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     /// <returns>Async operation</returns>
     async Task ISagaSupport.CancelReminderAsync(string reminderName)
     {
-        await UnregisterReminderAsync(reminderName);
+        await _retryPolicy.ExecuteAsync(async () =>
+        {
+            await UnregisterReminderAsync(reminderName);
+        });
     }
 
     /// <summary>
@@ -220,7 +231,7 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     /// <remarks>Call the base.ReceiveReminderAsync for all reminder that you didn't set</remarks>
     public virtual async Task ReceiveReminderAsync(string reminderName, byte[] state, TimeSpan dueTime, TimeSpan period)
     {
-        await Saga!.ReportReminderAsync(reminderName);
+        await _retryPolicy.ExecuteAsync(async () => { await Saga!.ReportReminderAsync(reminderName); });
     }
 
     /// <summary>
@@ -231,7 +242,7 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     /// <returns>Async operation</returns>
     async Task ISagaSupport.SaveSagaStateAsync(string sagaId, JsonObject state)
     {
-        await StateManager.SetStateAsync(sagaId, state.ToString());
+        await _retryPolicy.ExecuteAsync(async () => { await StateManager.SetStateAsync(sagaId, state.ToString()); });
     }
 
     /// <summary>
@@ -241,15 +252,18 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     /// <returns>The serialized saga state</returns>
     async Task<JsonObject?> ISagaSupport.LoadSagaAsync(string sagaId)
     {
-        var stateJsonText = await StateManager.TryGetStateAsync<string>(sagaId);
-        if (!stateJsonText.HasValue)
+        return await _retryPolicy.ExecuteAsync(async () =>
         {
-            _logger.LogInformation($"Saga state not found for saga id: {sagaId}, assuming a new saga");
-            return null;
-        }
+            var stateJsonText = await StateManager.TryGetStateAsync<string>(sagaId);
+            if (!stateJsonText.HasValue)
+            {
+                _logger.LogInformation($"Saga state not found for saga id: {sagaId}, assuming a new saga");
+                return null;
+            }
 
-        var jsonObject = JsonNode.Parse(stateJsonText.Value) as JsonObject;
-        return jsonObject!;
+            var jsonObject = JsonNode.Parse(stateJsonText.Value) as JsonObject;
+            return jsonObject!;
+        });
     }
 
     /// <summary>
@@ -272,7 +286,10 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     protected async Task ReportCompleteOperationOutcomeAsync(TEOperations operation, bool isSuccessful,
         bool failFast)
     {
-        await Saga!.ReportOperationOutcomeAsync(operation, isSuccessful, failFast);
+        await _retryPolicy.ExecuteAsync(async () =>
+        {
+            await Saga!.ReportOperationOutcomeAsync(operation, isSuccessful, failFast);
+        });
     }
 
     /// <summary>
@@ -287,9 +304,12 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     protected async Task ReportCompleteOperationOutcomeAsync(TEOperations operation, bool isSuccessful,
         SagaFastOutcome sagaFastOutcome = SagaFastOutcome.None)
     {
-        await Saga!.ReportOperationOutcomeAsync(operation, isSuccessful, sagaFastOutcome);
+        await _retryPolicy.ExecuteAsync(async () =>
+        {
+            await Saga!.ReportOperationOutcomeAsync(operation, isSuccessful, sagaFastOutcome);
+        });
     }
-    
+
     /// <summary>
     /// Inform the outcome of an undo operation
     /// </summary>
@@ -298,7 +318,10 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     /// <returns>Async operation</returns>
     protected async Task ReportUndoOperationOutcomeAsync(TEOperations operation, bool isSuccessful)
     {
-        await Saga!.ReportUndoOperationOutcomeAsync(operation, isSuccessful);
+        await _retryPolicy.ExecuteAsync(async () =>
+        {
+            await Saga!.ReportUndoOperationOutcomeAsync(operation, isSuccessful);
+        });
     }
 
     /// <summary>
@@ -327,52 +350,58 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     /// </summary>
     public async Task DispatchCallbackAsync(string payloadJson, string methodName)
     {
-        try
+        await _retryPolicy.ExecuteAsync(async () =>
         {
-            MethodInfo? methodInfo = GetType().GetMethod(methodName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-            if (methodInfo == null)
+            try
             {
-                _logger.LogError($"Method {methodName} not found in actor {this.GetType().Name}.");
-                throw new InvalidOperationException($"Method {methodName} not found.");
-            }
+                MethodInfo? methodInfo = GetType().GetMethod(methodName,
+                    BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                if (methodInfo == null)
+                {
+                    _logger.LogError($"Method {methodName} not found in actor {this.GetType().Name}.");
+                    throw new InvalidOperationException($"Method {methodName} not found.");
+                }
 
-            // Validate method accepts exactly one parameter
-            var parameters = methodInfo.GetParameters();
-            if (parameters.Length != 1)
+                // Validate method accepts exactly one parameter
+                var parameters = methodInfo.GetParameters();
+                if (parameters.Length != 1)
+                {
+                    _logger.LogError($"Method {methodName} does not accept exactly one parameter.");
+                    throw new InvalidOperationException(
+                        $"Method {methodName} signature mismatch: expected exactly one parameter.");
+                }
+
+                var parameterType = parameters.First().ParameterType;
+
+                // Deserialize the payload to the expected parameter type
+                var parameter = JsonSerializer.Deserialize(payloadJson, parameterType, GetJsonSerializerOptions());
+                if (parameter == null)
+                {
+                    _logger.LogError(
+                        $"Unable to deserialize payload to type {parameterType.Name} for method {methodName}.");
+                    throw new InvalidOperationException($"Payload deserialization failed for method {methodName}.");
+                }
+
+                // Dynamically invoke the method with the deserialized parameter
+                var result = methodInfo.Invoke(this, [parameter]);
+
+                // If the method is asynchronous, await the returned Task
+                if (result is Task task)
+                {
+                    await task;
+                }
+            }
+            catch (TargetInvocationException tie)
             {
-                _logger.LogError($"Method {methodName} does not accept exactly one parameter.");
-                throw new InvalidOperationException($"Method {methodName} signature mismatch: expected exactly one parameter.");
+                _logger.LogError(tie, $"Error invoking method {methodName}.");
+                throw tie.InnerException ?? tie;
             }
-
-            var parameterType = parameters.First().ParameterType;
-
-            // Deserialize the payload to the expected parameter type
-            var parameter = JsonSerializer.Deserialize(payloadJson, parameterType, GetJsonSerializerOptions());
-            if (parameter == null)
+            catch (Exception ex)
             {
-                _logger.LogError($"Unable to deserialize payload to type {parameterType.Name} for method {methodName}.");
-                throw new InvalidOperationException($"Payload deserialization failed for method {methodName}.");
+                _logger.LogError(ex, $"Error dispatching callback to method {methodName}.");
+                throw;
             }
-
-            // Dynamically invoke the method with the deserialized parameter
-            var result = methodInfo.Invoke(this, [parameter]);
-
-            // If the method is asynchronous, await the returned Task
-            if (result is Task task)
-            {
-                await task;
-            }
-        }
-        catch (TargetInvocationException tie)
-        {
-            _logger.LogError(tie, $"Error invoking method {methodName}.");
-            throw tie.InnerException ?? tie;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, $"Error dispatching callback to method {methodName}.");
-            throw;
-        }
+        });
     }
 
     /// <summary>

@@ -130,13 +130,10 @@ HasValidate: True
 HasRevertValidate: False
 
 Op1 Validate returns True
-Calling Op1: Success True
 Op2 Validate returns True
-Calling Op2: Success True
 Op3 Validate returns True
-Calling Op3: Success True
 Op4 Validate returns True
-Calling Op4: Success True
+Calling Op1: Success True
 Op5 Validate returns True
 OnSuccessCompletionCallback: Success.
 Run Log:
@@ -173,7 +170,6 @@ The Saga is activated.
 
 
 OnSagaCompleted: Id: test Status: Succeeded
-Calling Op5: Success True
 
 *** Telemetry ***
 1: StartSaga - SagaID: test, Type: SagaOperations
