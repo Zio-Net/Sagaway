@@ -26,7 +26,7 @@ HasValidate: True
 HasRevertValidate: False
 
 OperationNumber: Op2
-Dependencies: 0
+Dependencies: Op1
 MaxRetries: 2
 NumberOfFailures: 0
 CallDelay: 1 - 10
@@ -52,7 +52,7 @@ HasValidate: True
 HasRevertValidate: False
 
 OperationNumber: Op3
-Dependencies: 0
+Dependencies: Op2
 MaxRetries: 2
 NumberOfFailures: 0
 CallDelay: 1 - 10
@@ -78,7 +78,7 @@ HasValidate: True
 HasRevertValidate: False
 
 OperationNumber: Op4
-Dependencies: 0
+Dependencies: Op3
 MaxRetries: 2
 NumberOfFailures: 0
 CallDelay: 1 - 10
@@ -104,7 +104,7 @@ HasValidate: True
 HasRevertValidate: False
 
 OperationNumber: Op5
-Dependencies: 0
+Dependencies: Op4
 MaxRetries: 2
 NumberOfFailures: 0
 CallDelay: 1 - 10
@@ -130,13 +130,10 @@ HasValidate: True
 HasRevertValidate: False
 
 Op1 Validate returns True
-Calling Op1: Success True
 Op2 Validate returns True
-Calling Op2: Success True
 Op3 Validate returns True
-Calling Op3: Success True
 Op4 Validate returns True
-Calling Op4: Success True
+Calling Op1: Success True
 Op5 Validate returns True
 OnSuccessCompletionCallback: Success.
 Run Log:
@@ -173,7 +170,6 @@ The Saga is activated.
 
 
 OnSagaCompleted: Id: test Status: Succeeded
-Calling Op5: Success True
 
 *** Telemetry ***
 1: StartSaga - SagaID: test, Type: SagaOperations

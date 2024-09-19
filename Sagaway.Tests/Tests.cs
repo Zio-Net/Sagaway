@@ -272,7 +272,7 @@ public partial class Tests
     [Trait("Saga", "Five Operations")]
     [InlineData("test_five_success", "O1", "O2", "O3", "O4", "O5")]
     [InlineData("test_five_deactivated_each", "O1|S1|R2|RW1|W1.10|V1.S", "O2|S1|R2|RW3|W1.10|V1.S", "O3|S1|R2|RW5|W1.10|V1.S", "O4|S1|R2|RW7|W1.10|V1.S", "O5|S1|R2|RW9|W1.10|V1.S")]
-    [InlineData("test_five_deactivated_each_exponential_wait", "O1|S1|R2|RWe|W1.10|V1.S", "O2|S1|R2|RWe|W1.10|V1.S", "O3|S1|R2|RWe|W1.10|V1.S", "O4|S1|R2|RWe|W1.10|V1.S", "O5|S1|R2|RWe|W1.10|V1.S")]
+    [InlineData("test_five_deactivated_each_exponential_wait", "O1|S1|R2|RWe|W1.10|V1.S", "O2|D1|S1|R2|RWe|W1.10|V1.S", "O3|D2|S1|R2|RWe|W1.10|V1.S", "O4|D3|S1|R2|RWe|W1.10|V1.S", "O5|D4|S1|R2|RWe|W1.10|V1.S")]
     [InlineData("test_five_throw_on_fifth", "O1", "O2", "O3", "O4", "O5|T1")]
     [InlineData("test_five_throw_on_fifth_report_failure", "O1|RF", "O2|W1.1", "O3|W1.2", "O4|W1.3", "O5|W1.4|T1")]
     [InlineData("test_five_failfast_on_third", "O1", "O2|W1.1", "O3|W1.2|FF", "O4|W1.3", "O5|W1.4")]
