@@ -144,7 +144,7 @@ app.MapPost("/run-test", async (
     }
     catch (Exception e)
     {
-        logger.LogError(e, "Error running test {TestName}", testInfo?.TestName);
+        logger.LogError(e, "Error running test {TestName}", testInfo.TestName);
         throw;
     }
 })
