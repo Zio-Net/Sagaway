@@ -24,7 +24,9 @@
         "orchestrationservice-dapr": "StartWithoutDebugging",
         "testservice": "StartDebugging",
         "testservice-dapr": "StartWithoutDebugging",
-        "signalr": "StartWithoutDebugging"
+        "signalr": "StartWithoutDebugging",
+        "testsubsagacommunicationservice": "StartDebugging",
+        "testsubsagacommunicationservice-dapr": "StartWithoutDebugging"
       }
     }
   }

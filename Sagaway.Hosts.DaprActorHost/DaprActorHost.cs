@@ -142,7 +142,7 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
         var httpClient = CreateHttpClient(); // Get the custom or default HttpClient
         httpClient.DefaultRequestHeaders.Add("x-sagaway-dapr-actor-id", ActorHost.Id.GetId());
         httpClient.DefaultRequestHeaders.Add("x-sagaway-dapr-actor-type", ActorHost.ActorTypeInfo.ActorTypeName);
-        httpClient.DefaultRequestHeaders.Add("x-sagaway-callback-binding-name", GetCallbackBindingName());
+        httpClient.DefaultRequestHeaders.Add("x-sagaway-dapr-callback-binding-name", GetCallbackBindingName());
         
         var daprClientBuilder = new DaprClientBuilder();
 
@@ -429,8 +429,8 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
 
         return new Dictionary<string, string>
         {
-            { "x-sagaway-callback-method", callbackMethodName },
-            { "x-sagaway-message-dispatch-time", DateTime.UtcNow.ToString("o")} // ISO 8601 format
+            { "x-sagaway-dapr-callback-method", callbackMethodName },
+            { "x-sagaway-dapr-message-dispatch-time", DateTime.UtcNow.ToString("o")} // ISO 8601 format
         };
     }
 
@@ -480,10 +480,10 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     {
         var callbackContext = new Dictionary<string, string>()
         {
-            ["x-sagaway-callback-method"] = callbackMethodName,
+            ["x-sagaway-dapr-callback-method"] = callbackMethodName,
             ["x-sagaway-dapr-actor-id"] = ActorHost.Id.GetId(),
             ["x-sagaway-dapr-actor-type"] = ActorHost.ActorTypeInfo.ActorTypeName,
-            ["x-sagaway-message-dispatch-time"] = DateTime.UtcNow.ToString("o") // ISO 8601 format
+            ["x-sagaway-dapr-message-dispatch-time"] = DateTime.UtcNow.ToString("o") // ISO 8601 format
         };
 
         // Return the serialized JSON string
@@ -492,11 +492,12 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
 
 
     /// <summary>
-    /// Starts a sub-saga by invoking a method on a sub-saga actor using an expression to capture the method call.
+    /// Call or start a sub-saga by invoking a method on a sub-saga actor using an expression to capture the method call.
     /// The method extracts the function name and parameters from the provided expression, and sends them via Dapr binding,
     /// along with the captured callback context to enable communication between the main and sub-sagas.
     /// </summary>
     /// <typeparam name="TSubSaga">The type of the sub-saga actor.</typeparam>
+    /// <typeparam name="TISubSaga">The type of the interface of the sub-saga actor.</typeparam>
     /// <param name="methodExpression">An expression that represents the method to call on the sub-saga.</param>
     /// <param name="newActorId">The identity of the sub-saga actor</param>
     /// <param name="callbackMethodName">The name of the method in the main saga to call back once the sub-saga finishes its operation.</param>
@@ -508,8 +509,9 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     /// </code>
     /// This will invoke the "DoSomethingAsync" method on the sub-saga and allow for a callback to the "MainSagaCallback" method on completion.
     /// </example>
-    public async Task StartSubSagaAsync<TSubSaga>(Expression<Func<TSubSaga, Task>> methodExpression, string newActorId, string callbackMethodName)
-        where TSubSaga : ISagawayActor
+    protected async Task CallSubSagaAsync<TISubSaga, TSubSaga>(Expression<Func<TSubSaga, Task>> methodExpression, string newActorId, string callbackMethodName = "")
+        where TISubSaga : ISagawayActor
+        where TSubSaga : Actor
     {
         _logger.LogInformation("Starting sub-saga with actor id {NewActorId} using method {CallbackMethodName}", newActorId, callbackMethodName);
 
@@ -533,10 +535,10 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
 
         var invokeDispatcherParameters = new Dictionary<string, string>()
         {
-            ["x-sagaway-callback-method"] = nameof(SubSagaStartAsync),
+            ["x-sagaway-dapr-callback-method-name"] = nameof(ProcessASubSagaCallAsync),
             ["x-sagaway-dapr-actor-id"] = newActorId,
             ["x-sagaway-dapr-actor-type"] = typeof(TSubSaga).FullName ?? throw new ArgumentException(nameof(TSubSaga)),
-            ["x-sagaway-message-dispatch-time"] = DateTime.UtcNow.ToString("o") // ISO 8601 format
+            ["x-sagaway-dapr-message-dispatch-time"] = DateTime.UtcNow.ToString("o") // ISO 8601 format
         };
 
         _logger.LogInformation("Dispatching sub-saga invocation for method {MethodName}", methodName);
@@ -552,7 +554,7 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
         _logger.LogInformation("Sub-saga invocation dispatched successfully for method {MethodName}", methodName);
     }
 
-    private async Task SubSagaStartAsync(SubSagaInvocationContext context)
+    public async Task ProcessASubSagaCallAsync(SubSagaInvocationContext context)
     {
         _logger.LogDebug("SubSagaStartAsync invoked with method {MethodName}", context.MethodName);
 
@@ -569,7 +571,7 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
 
 
         // Use reflection to invoke the actual method on the sub-saga
-        MethodInfo? methodInfo = GetType().GetMethod(context.MethodName);
+        MethodInfo? methodInfo = GetType().GetMethod(context.MethodName, BindingFlags.Instance|BindingFlags.Public|BindingFlags.NonPublic);
         if (methodInfo == null)
         {
             _logger.LogCritical("Method {MethodName} not found in actor.", context.MethodName);
@@ -613,17 +615,16 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     /// <exception cref="InvalidOperationException">
     /// Thrown if the callback context is not found in the state store.
     /// </exception>
-
-    public async Task CallbackMainSagaAsync<T>(T result)
+    protected async Task CallbackMainSagaAsync<T>(T result)
     {
         _logger.LogDebug("CallbackMainSagaAsync invoked with result of type {Type}", typeof(T).Name);
 
         // Retrieve the callback context from the state store
         var callbackContext = await StateManager.GetStateAsync<JsonObject>("MainSagaCallbackContext");
-        if (callbackContext == null)
+        if (callbackContext == null || string.IsNullOrEmpty(callbackContext.Root["x-sagaway-dapr-callback-method"]?.GetValue<string>()))
         {
-            _logger.LogCritical("Main saga callback context not found in actor state.");
-            throw new InvalidOperationException("Main saga callback context not found.");
+            _logger.LogCritical("Main saga callback context not found in actor state. Forgot to pass it?");
+            throw new InvalidOperationException("Main saga callback context not found. Forgot to pass it?");
         }
 
         _logger.LogInformation("Retrieved callback context for MainSagaCallback.");
@@ -645,7 +646,7 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
 
         // Call the main saga via Dapr binding with the result and callback metadata
         await _daprClient!.InvokeBindingAsync(
-            callbackContext["x-sagaway-callback-binding-name"]!.ToString(),
+            callbackContext["x-sagaway-dapr-callback-binding-name"]!.ToString(),
             "create", // or another operation
             payload,
             callbackMetadata

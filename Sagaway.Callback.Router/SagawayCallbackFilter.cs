@@ -26,7 +26,7 @@ internal class SagawayCallbackFilter : IEndpointFilter
         var methodName = httpRequest.Headers["x-sagaway-dapr-callback-method-name"].FirstOrDefault();
         if (string.IsNullOrEmpty(methodName))
         {
-            logger.LogError("x-sagaway-callback-method-name header is missing or empty.");
+            logger.LogError("x-sagaway-dapr-callback-method-name header is missing or empty.");
             return await next(context);
         }
 

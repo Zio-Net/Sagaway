@@ -17,9 +17,9 @@ public class HeaderPropagationMiddleware(RequestDelegate next)
         SagawayContext.Value = new SagawayContext(
             context.Request.Headers["x-sagaway-dapr-actor-id"],
             context.Request.Headers["x-sagaway-dapr-actor-type"],
-            context.Request.Headers["x-sagaway-callback-binding-name"],
-            context.Request.Headers["x-sagaway-callback-method"],
-            context.Request.Headers["x-sagaway-message-dispatch-time"]
+            context.Request.Headers["x-sagaway-dapr-callback-binding-name"],
+            context.Request.Headers["x-sagaway-dapr-callback-method"],
+            context.Request.Headers["x-sagaway-dapr-message-dispatch-time"]
         );
     
         

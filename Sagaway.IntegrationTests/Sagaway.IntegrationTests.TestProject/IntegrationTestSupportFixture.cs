@@ -19,6 +19,7 @@ public class IntegrationTestSupportFixture : IDisposable
     private readonly Random _jitterer = new();
     private bool _isDisposed;
     private readonly TracerProvider _tracerProvider;
+    
 
     public IntegrationTestSupportFixture()
     {
@@ -37,7 +38,8 @@ public class IntegrationTestSupportFixture : IDisposable
                             ?? throw new Exception("ConfigurationRoot is null");
 
         var testServiceUrl = configuration["AppSettings:TestServiceUrl"] ?? throw new ArgumentException("AppSettings:TestServiceUrl is not configured");
-
+        SubSagaTestServiceUrl = configuration["AppSettings:SubSagaTestServiceUrl"] ?? throw new ArgumentException("AppSettings:SubSagaTestServiceUrl is not configured");
+        
         AddRobustHttpClient<IntegrationTestSupportFixture>(services, baseUrl: testServiceUrl);
 
         // Setup OpenTelemetry
@@ -70,6 +72,8 @@ public class IntegrationTestSupportFixture : IDisposable
 
     // ReSharper disable once MemberCanBePrivate.Global
     public HttpClient HttpClient => _testHttpClient;
+
+    public string SubSagaTestServiceUrl { get; }
 
     public JsonSerializerOptions SerializeOptions => new()
     {

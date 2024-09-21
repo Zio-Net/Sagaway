@@ -57,7 +57,7 @@ if (app.Environment.IsDevelopment())
 
 app.MapPost("/test-queue", async (
     [FromBody] ServiceTestInfo request,
-    [FromHeader(Name = "x-sagaway-message-dispatch-time")]
+    [FromHeader(Name = "x-sagaway-dapr-message-dispatch-time")]
     string messageDispatchTimeHeader,
     [FromServices] ILogger<Program> logger,
     [FromServices] ICallbackBindingNameProvider callbackBindingNameProvider,
