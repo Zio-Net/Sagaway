@@ -6,14 +6,15 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
+using Polly;
 
 namespace Sagaway.Callback.Router;
 
 public static class WebApplicationSagawayExtension
 {
-    public static void UseSagawayCallbackRouter(this WebApplication app, string callbackBindingName)
+    public static RouteHandlerBuilder UseSagawayCallbackRouter(this WebApplication app, string callbackBindingName)
     {
-        app.MapPost("/" + callbackBindingName, async (
+        return app.MapPost("/" + callbackBindingName, async (
             HttpRequest httpRequest,
             [FromBody] JsonNode payload,
             [FromServices] IActorProxyFactory actorProxyFactory,
@@ -41,10 +42,25 @@ public static class WebApplicationSagawayExtension
                 return Results.Ok();
             }
 
+            var retryPolicy = Policy
+                .Handle<Exception>()
+                .WaitAndRetryAsync(4, retryAttempt =>
+                    TimeSpan.FromSeconds(Math.Min(Math.Pow(1, retryAttempt), 30)) +
+                    TimeSpan.FromMilliseconds(new Random().Next(0, 1000)),
+                (exception, timeSpan, retryCount, context) =>
+                {
+                    logger.LogWarning(exception, "Retry {RetryCount} for method {MethodName} on actor {ActorTypeName} with ID {ActorId} failed. Retrying in {Delay} seconds...",
+                                      retryCount, methodName, actorTypeName, actorId, timeSpan.TotalSeconds);
+                });
+
             try
             {
                 var proxy = actorProxyFactory.CreateActorProxy<ISagawayActor>(new ActorId(actorId), actorTypeName);
-                await proxy.DispatchCallbackAsync(payload.ToJsonString(), methodName);
+                await retryPolicy.ExecuteAsync(async () =>
+                {
+                    await proxy.DispatchCallbackAsync(payload.ToJsonString(), methodName);
+                });
+
                 logger.LogInformation("Dispatched callback to {ActorTypeName} for method {MethodName} with Actor ID {ActorId}", actorTypeName, methodName, actorId);
                 return Results.Ok();
             }
@@ -56,9 +72,10 @@ public static class WebApplicationSagawayExtension
         }).ExcludeFromDescription();
     }
 
-    public static void UseSagawayCallbackRouter(this WebApplication app, string callbackBindingName, Delegate handler)
+
+    public static RouteHandlerBuilder UseSagawayCallbackRouter(this WebApplication app, string callbackBindingName, Delegate handler)
     {
-        app.MapPost("/" + callbackBindingName, handler)
+        return app.MapPost("/" + callbackBindingName, handler)
         .AddEndpointFilter<SagawayCallbackFilter>();
     }
 }
