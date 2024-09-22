@@ -634,6 +634,91 @@ The `x-sagaway-message-dispatch-time` provides the dispatch time of the message.
 await daprClient.InvokeBindingAsync(callbackBindingNameProvider.CallbackBindingName, "create", reservationOperationResult);
 ```
 
+### **New Saga-to-Saga Communication**
+
+Sagaway now supports seamless communication between sagas. The **main saga** can invoke operations on a **sub-saga** actor, await results, and proceed based on the outcome. This new feature enables complex workflows, allowing the main saga to initiate and coordinate sub-sagas to perform independent operations. The communication between sagas is facilitated through callback mechanisms, where the sub-saga can notify the main saga of its success or failure.
+
+The new feature includes:
+
+- **Calling Sub-Sagas:** The main saga can invoke sub-saga operations asynchronously, such as initiating a transaction and waiting for the sub-saga to complete its process.
+- **Callback Integration:** Once the sub-saga completes, it sends results back to the main saga using Dapr's binding mechanism for automatic callback routing.
+- **State Consistency:** Both the main and sub-sagas maintain state consistency, even in failure scenarios, with built-in retry and compensation mechanisms.
+
+This enhancement allows developers to create more sophisticated distributed workflows by decoupling operations across different saga actors.
+
+Here’s an example that demonstrates both the call from the **main saga** and the callback mechanism in the **sub-saga**, showing the interaction between the two:
+
+---
+
+### **Example: Saga-to-Saga Call and Callback**
+
+This example shows how the main saga calls a sub-saga to perform an operation, and how the sub-saga sends the result back to the main saga once it completes the operation.
+
+#### 1. **Main Saga: Calling the Sub-Saga**
+
+```csharp
+private async Task OnCallSubSagaAsync()
+{
+    Logger.LogInformation("Main saga: Starting sub-saga...");
+
+    // Call the sub-saga, passing the callback method name
+    await CallSubSagaAsync<ISubSagaActor>(
+        subSaga => subSaga.AddNumbersAsync(38, 4),
+        "SubSagaActor", 
+        "Sub_" + ActorHost.Id, 
+        nameof(OnSubSagaCallbackAsync)  // The callback method to handle the result
+    );
+}
+
+private async Task OnSubSagaCallbackAsync(AddResult result)
+{
+    if (result.Result == 42)
+    {
+        Logger.LogInformation("Main saga: Sub-saga completed successfully with result: {Result}", result.Result);
+        // Proceed with main saga operations
+        await ReportCompleteOperationOutcomeAsync(MainSagaOperations.SubSaga, true);
+    }
+    else
+    {
+        Logger.LogError("Main saga: Sub-saga returned an unexpected result.");
+        // Handle failure
+        await ReportCompleteOperationOutcomeAsync(MainSagaOperations.SubSaga, false);
+    }
+}
+```
+
+In this code:
+- The **main saga** calls the sub-saga using `CallSubSagaAsync`. It specifies the operation `AddNumbersAsync` to perform in the sub-saga and registers the `OnSubSagaCallbackAsync` method as the callback handler.
+- The `OnSubSagaCallbackAsync` method processes the result sent back from the sub-saga.
+
+#### 2. **Sub-Saga: Performing the Operation and Returning the Result**
+
+```csharp
+public async Task AddNumbersAsync(int a, int b)
+{
+    Logger.LogInformation("Sub-saga: Adding numbers {A} and {B}", a, b);
+
+    var result = a + b;
+
+    // Call back to the main saga with the result
+    await CallbackMainSagaAsync(new AddResult { Result = result });
+
+    await ReportCompleteOperationOutcomeAsync(SubSagaActorOperations.Add, true);
+}
+
+```
+
+In this code:
+- The **sub-saga** performs an operation (`AddNumbersAsync`), adding two numbers.
+- Once the operation is complete, the result is sent back to the **main saga** via the `CallbackMainSagaAsync` method, which calls the main saga's callback method (`OnSubSagaCallbackAsync` in this case).
+
+### **Flow Summary**:
+- The **main saga** calls the **sub-saga** with `CallSubSagaAsync`, passing a callback method.
+- The **sub-saga** executes the requested operation, and upon completion, it calls back the **main saga** using the callback method provided during the invocation.
+- The **main saga** processes the result in the callback and continues with its workflow.
+
+
+
 That is all you need to do to use the Sagaway with Dapr services.
 
 ### Is the Sagaway Auto-Dispaching Framework an MSA Anti-Pattern?
