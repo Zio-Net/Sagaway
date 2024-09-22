@@ -19,7 +19,16 @@ public class SubSagaIntegrationTests
     [Fact]
     public async Task TestSubSagaAsync()
     {
-        var response = await HttpClient.PostAsync("run-test", null);
+        // Act
+        var response = await HttpClient.PostAsync("/run-test", null);
+
+        // Assert that the status code is OK (200)
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        // Read the response content
+        var responseBody = (await response.Content.ReadAsStringAsync()).Trim('"');
+
+        // Assert that the response body matches the expected content
+        Assert.Equal("Test Succeeded", responseBody);
     }
 }

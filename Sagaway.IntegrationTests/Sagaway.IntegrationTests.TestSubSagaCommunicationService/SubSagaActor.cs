@@ -30,7 +30,14 @@ public class SubSagaActor : DaprActorHost<SubSagaActorOperations>, ISubSagaActor
             .WithDoOperation(OnEndSagaAsync);
 
 
-        return sagaBuilder.Build();
+        var saga = sagaBuilder.Build();
+
+        saga.OnSagaCompleted += (_, args) =>
+        {
+            Logger.LogInformation(args.Log);
+        };
+
+        return saga;
     }
 
     public async Task AddAsync(int a, int b, TimeSpan delay)
@@ -74,13 +81,16 @@ public class SubSagaActor : DaprActorHost<SubSagaActorOperations>, ISubSagaActor
 
         Logger.LogInformation("AddInSubSagaAsync completed with result {Result}", result);
 
-        await CallbackMainSagaAsync(result);
+        await CallbackMainSagaAsync(new AddResult {Result = result});
+
+        await ReportCompleteOperationOutcomeAsync(SubSagaActorOperations.Add, true);
     }
 
     public async Task DoneAsync()
     {
         Logger.LogInformation("DoneAsync called to test the sub-saga");
         await ReportCompleteOperationOutcomeAsync(SubSagaActorOperations.Done, true);
+        await CallbackMainSagaAsync(new DoneResult {Result = true});
     }
 
     private void OnSuccessCompletionCallbackAsync(string obj)
@@ -105,7 +115,7 @@ public class SubSagaActor : DaprActorHost<SubSagaActorOperations>, ISubSagaActor
 
     private Task OnEndSagaAsync()
     {
-        Logger.LogInformation("MainSagaActor completed successfully.");
+        Logger.LogInformation("SubSagaActor last operation");
         return Task.CompletedTask;
     }
 

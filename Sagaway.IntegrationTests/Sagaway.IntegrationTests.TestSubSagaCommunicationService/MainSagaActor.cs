@@ -29,8 +29,17 @@ public class MainSagaActor : DaprActorHost<MainSagaActorOperations>, IMainSagaAc
             .WithOperation(MainSagaActorOperations.EndSaga)
             .WithDoOperation(OnEndSagaAsync);
 
-        return sagaBuilder.Build();
+        var saga = sagaBuilder.Build();
+        
+        saga.OnSagaCompleted += (_, args) =>
+        {
+            Logger.LogInformation(args.Log);
+        };
+
+        return saga;
     }
+
+    private TestResult _testResult = TestResult.Running;
 
     public async Task RunTestAsync()
     {
@@ -53,9 +62,15 @@ public class MainSagaActor : DaprActorHost<MainSagaActorOperations>, IMainSagaAc
         }
     }
 
+    public Task<TestResult> GetTestResultAsync()
+    {
+        return Task.FromResult(_testResult);
+    }
+
 
     private void OnSuccessCompletionCallbackAsync(string obj)
     {
+        _testResult = TestResult.Succeeded;
         Logger.LogInformation("MainSagaActor completed successfully.");
     }
 
@@ -71,27 +86,47 @@ public class MainSagaActor : DaprActorHost<MainSagaActorOperations>, IMainSagaAc
 
     private void OnFailedCallbackAsync(string obj)
     {
+        _testResult = TestResult.Failed;
         Logger.LogInformation("MainSagaActor failed.");
     }
 
     private async Task OnCallSubSagaAsync()
     {
-        await CallSubSagaAsync<ISubSagaActor, SubSagaActor>(subSaga => subSaga.AddAsync(38, 4, TimeSpan.FromSeconds(5)),
-            "Sub" + ActorHost.Id, nameof(OnAddResultAsync));
+        Logger.LogInformation("Start calling sub-saga...");
+
+        await CallSubSagaAsync<ISubSagaActor>(subSaga => subSaga.AddAsync(38, 4, TimeSpan.FromSeconds(5)),
+            "SubSagaActor","Sub" + ActorHost.Id, nameof(OnAddResultAsync));
     }
 
-    private async Task OnAddResultAsync(int result)
+    private async Task OnAddResultAsync(AddResult addResult)
     {
-        Logger.LogInformation("SubSagaActor completed with result {Result}", result);
-        await ReportCompleteOperationOutcomeAsync(MainSagaActorOperations.CallSubSaga, true);
+        Logger.LogInformation("SubSagaActor completed with result {Result}", addResult.Result);
 
-        await CallSubSagaAsync<ISubSagaActor, SubSagaActor>(subSaga => subSaga.DoneAsync(),
-            "Sub" + ActorHost.Id);
+        if (addResult.Result == 42)
+        {
+            Logger.LogInformation("Telling SubSagaActor to complete...");
+            await CallSubSagaAsync<ISubSagaActor>(subSaga => subSaga.DoneAsync(),
+                "SubSagaActor", "Sub" + ActorHost.Id, nameof(OnSubSagaEndAsync));
+
+            // Wait for the sub-saga to be fully done before marking the operation complete.
+            await ReportCompleteOperationOutcomeAsync(MainSagaActorOperations.CallSubSaga, true);
+        }
+        else
+        {
+            Logger.LogError("SubSagaActor failed or returned an unexpected result.");
+            await ReportCompleteOperationOutcomeAsync(MainSagaActorOperations.CallSubSaga, false);
+        }
+    }
+
+    private async Task OnSubSagaEndAsync(DoneResult doneResult)
+    {
+        Logger.LogInformation("SubSagaActor completed {result}", doneResult.Result ? "successfully" : "with a failure");
+        await ReportCompleteOperationOutcomeAsync(MainSagaActorOperations.EndSaga, true);
     }
 
     private Task OnEndSagaAsync()
     {
-        Logger.LogInformation("MainSagaActor completed successfully.");
+        Logger.LogInformation("MainSagaActor last operation.");
         return Task.CompletedTask;
     }
 

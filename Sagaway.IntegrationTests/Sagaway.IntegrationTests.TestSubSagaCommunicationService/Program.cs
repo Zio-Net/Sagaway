@@ -104,7 +104,34 @@ app.MapPost("/run-test", async (
 
         await proxy.RunTestAsync();
 
-        return Results.Ok();
+        var startTime = DateTime.UtcNow;  // Take the start time
+        const int timeoutInSeconds = 10;  // Timeout duration
+
+        while (true)
+        {
+            // Check if the time elapsed exceeds the timeout duration
+            if ((DateTime.UtcNow - startTime).TotalSeconds > timeoutInSeconds)
+            {
+                logger.LogError("Sub-saga test timed out after {timeoutInSeconds} seconds", timeoutInSeconds);
+                return Results.Ok("Test Timed Out");
+            }
+
+            var endStatus = await proxy.GetTestResultAsync();
+            if (endStatus == TestResult.Running)
+            {
+                await Task.Delay(500);
+                continue;
+            }
+
+            if (endStatus == TestResult.Failed)
+            {
+                logger.LogError("Sub-saga test failed");
+                return Results.Ok("Test Failed");
+            }
+
+            logger.LogInformation("Test succeeded");
+            return Results.Ok("Test Succeeded");
+        }
     }
     catch (Exception e)
     {
