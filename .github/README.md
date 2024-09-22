@@ -619,7 +619,7 @@ Now, the API can leverage the framework:
 ```csharp
 app.MapPost("/booking-queue", async (
         [FromBody] CarReservationRequest request,
-        [FromHeader(Name = "x-sagaway-message-dispatch-time")] string messageDispatchTimeHeader,
+        [FromHeader(Name = "x-sagaway-dapr-message-dispatch-time")] string messageDispatchTimeHeader,
         [FromServices] ILogger<Program> logger,
         [FromServices] ICallbackBindingNameProvider callbackBindingNameProvider,
         [FromServices] DaprClient daprClient) =>
@@ -628,7 +628,7 @@ app.MapPost("/booking-queue", async (
     }
 ```
 
-The `x-sagaway-message-dispatch-time` provides the dispatch time of the message. You can use it for handling out-of-order messaging. The `ICallbackBindingNameProvider callbackBindingNameProvider` service provides the Dapr binding name of the callback component that the Actor host uses for accepting the outcome of a service:
+The `x-sagaway-dapr-message-dispatch-time` provides the dispatch time of the message. You can use it for handling out-of-order messaging. The `ICallbackBindingNameProvider callbackBindingNameProvider` service provides the Dapr binding name of the callback component that the Actor host uses for accepting the outcome of a service:
 
 ```csharp
 await daprClient.InvokeBindingAsync(callbackBindingNameProvider.CallbackBindingName, "create", reservationOperationResult);

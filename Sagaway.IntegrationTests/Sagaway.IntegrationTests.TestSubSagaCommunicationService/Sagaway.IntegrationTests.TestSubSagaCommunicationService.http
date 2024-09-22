@@ -1,0 +1,6 @@
+@Sagaway.IntegrationTests.TestSubSagaCommunicationService_HostAddress = http://localhost:5064
+
+GET {{Sagaway.IntegrationTests.TestSubSagaCommunicationService_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

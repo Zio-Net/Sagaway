@@ -58,7 +58,7 @@ Dictionary<string, string> jsonMetadata = new() { { "contentType", "application/
 
 app.MapPost("/booking-queue", async (
         [FromBody] CarReservationRequest request,
-        [FromHeader(Name = "x-sagaway-message-dispatch-time")] string messageDispatchTimeHeader,
+        [FromHeader(Name = "x-sagaway-dapr-message-dispatch-time")] string messageDispatchTimeHeader,
         [FromServices] ILogger<Program> logger,
         [FromServices] ICallbackBindingNameProvider callbackBindingNameProvider,
         [FromServices] DaprClient daprClient) =>

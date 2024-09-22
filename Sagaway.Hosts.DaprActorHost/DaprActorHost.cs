@@ -10,11 +10,14 @@ using Microsoft.Extensions.DependencyInjection;
 using Sagaway.Hosts.DaprActorHost;
 using Sagaway.Telemetry;
 using System.Diagnostics;
+using System.Linq.Expressions;
 using Polly;
 using Polly.Retry;
 
 // ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable once CheckNamespace
+// ReSharper disable VirtualMemberNeverOverridden.Global
+// ReSharper disable  UnusedMember.Global
 namespace Sagaway.Hosts;
 
 /// <summary>
@@ -81,7 +84,7 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
         }
 
         //else    
-        _logger.LogInformation($"Activating actor id: {Id}");
+        _logger.LogInformation("Activating actor id: {Id}", Id);
 
         CreateDaprClient();
 
@@ -90,12 +93,16 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
 
     protected override async Task OnPreActorMethodAsync(ActorMethodContext actorMethodContext)
     {
+        _logger.LogDebug("OnPreActorMethodAsync invoked for method {MethodName}", actorMethodContext.MethodName);
+
         try
         {
             Saga = null; //just in case
             Saga = ReBuildSaga();
             await Saga.InformActivatedAsync();
             await OnActivateSagaAsync();
+
+            _logger.LogInformation("Saga rebuilt and activated for actor id: {ActorId}", Id);
         }
         catch (CorruptedSagaStateException ex)
         {
@@ -112,7 +119,8 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
 
     protected override async Task OnPostActorMethodAsync(ActorMethodContext actorMethodContext)
     {
-        _logger.LogInformation($"Deactivating actor id: {Id}");
+        _logger.LogInformation("Deactivating actor id: {ActorId} after executing {MethodName}", Id, actorMethodContext.MethodName);
+
         await OnDeactivateSagaAsync();
         await Saga!.InformDeactivatedAsync();
         Saga = null;
@@ -134,7 +142,7 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
         var httpClient = CreateHttpClient(); // Get the custom or default HttpClient
         httpClient.DefaultRequestHeaders.Add("x-sagaway-dapr-actor-id", ActorHost.Id.GetId());
         httpClient.DefaultRequestHeaders.Add("x-sagaway-dapr-actor-type", ActorHost.ActorTypeInfo.ActorTypeName);
-        httpClient.DefaultRequestHeaders.Add("x-sagaway-callback-binding-name", GetCallbackBindingName());
+        httpClient.DefaultRequestHeaders.Add("x-sagaway-dapr-callback-binding-name", GetCallbackBindingName());
         
         var daprClientBuilder = new DaprClientBuilder();
 
@@ -348,6 +356,9 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     /// <summary>
     /// Used by the framework to dispatch callbacks to the actor
     /// </summary>
+    /// <summary>
+    /// Used by the framework to dispatch callbacks to the actor
+    /// </summary>
     public async Task DispatchCallbackAsync(string payloadJson, string methodName)
     {
         await _retryPolicy.ExecuteAsync(async () =>
@@ -404,6 +415,9 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
         });
     }
 
+
+
+
     /// <summary>
     /// Easy way to get the callback metadata
     /// </summary>
@@ -420,8 +434,8 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
 
         return new Dictionary<string, string>
         {
-            { "x-sagaway-callback-method", callbackMethodName },
-            { "x-sagaway-message-dispatch-time", DateTime.UtcNow.ToString("o")} // ISO 8601 format
+            { "x-sagaway-dapr-callback-method-name", callbackMethodName },
+            { "x-sagaway-dapr-message-dispatch-time", DateTime.UtcNow.ToString("o")} // ISO 8601 format
         };
     }
 
@@ -460,5 +474,220 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     {
         if (Saga != null)
             await Saga.RecordTelemetryExceptionAsync(exception, context);
+    }
+
+    /// <summary>
+    /// Provide the ability to capture the callback context for the actor as a string.
+    /// </summary>
+    /// <param name="callbackMethodName">The callback function that will be dispatched by this context.</param>
+    /// <returns>The callback context as a key,value dictionary</returns>
+    public IDictionary<string, string> CaptureCallbackContext(string callbackMethodName)
+    {
+        var callbackContext = new Dictionary<string, string>()
+        {
+            ["x-sagaway-dapr-callback-method-name"] = callbackMethodName,
+            ["x-sagaway-dapr-actor-id"] = ActorHost.Id.GetId(),
+            ["x-sagaway-dapr-actor-type"] = ActorHost.ActorTypeInfo.ActorTypeName,
+            ["x-sagaway-dapr-message-dispatch-time"] = DateTime.UtcNow.ToString("o") // ISO 8601 format
+        };
+
+        // Return the serialized JSON string
+        return callbackContext;
+    }
+
+
+    /// <summary>
+    /// Call or start a sub-saga by invoking a method on a sub-saga actor using an expression to capture the method call.
+    /// The method extracts the function name and parameters from the provided expression, and sends them via Dapr binding,
+    /// along with the captured callback context to enable communication between the main and sub-sagas.
+    /// </summary>
+    /// <typeparam name="TSubSaga">The type of the interface of the sub-saga actor.</typeparam>
+    /// <param name="methodExpression">An expression that represents the method to call on the sub-saga.</param>
+    /// <param name="actorTypeName">The type name of the actor as added to the Dapr actor runtime</param>
+    /// <param name="newActorId">The identity of the sub-saga actor</param>
+    /// <param name="callbackMethodName">The name of the method in the main saga to call back once the sub-saga finishes its operation.</param>
+    /// <returns>A task representing the asynchronous operation of invoking the sub-saga.</returns>
+    /// <example>
+    /// Example usage:
+    /// <code>
+    /// await StartSubSagaAsync&lt;ISubSaga&gt;(s => s.DoSomethingAsync(param1, param2), "MainSagaCallback");
+    /// </code>
+    /// This will invoke the "DoSomethingAsync" method on the sub-saga and allow for a callback to the "MainSagaCallback" method on completion.
+    /// </example>
+    protected async Task CallSubSagaAsync<TSubSaga>(Expression<Func<TSubSaga, Task>> methodExpression, string actorTypeName, string newActorId, string callbackMethodName = "")
+        where TSubSaga : ISagawayActor
+    {
+        _logger.LogInformation("Starting sub-saga with actor id {NewActorId} using method {CallbackMethodName}", newActorId, callbackMethodName);
+
+        // Use the method name of StartSubSagaWithContextAsync to handle the sub-saga dispatch
+        var callbackContext = CaptureCallbackContext(callbackMethodName);
+
+        // Extract method name and parameters from the expression
+        var methodCall = (MethodCallExpression)methodExpression.Body;
+        var methodName = methodCall.Method.Name;
+        var arguments = methodCall.Arguments.Select(a => Expression.Lambda(a).Compile().DynamicInvoke()).ToArray();
+
+        _logger.LogDebug("Extracted method {MethodName} with arguments for sub-saga", methodName);
+
+        // Prepare the SubSagaInvocationContext object
+        var invocationContext = new SubSagaInvocationContext
+        {
+            MethodName = methodName,  // The target method to invoke in the sub-saga
+            CallbackContext = callbackContext,
+            ParametersJson = JsonSerializer.Serialize(arguments, GetJsonSerializerOptions())
+        };
+
+        var invokeDispatcherParameters = new Dictionary<string, string>()
+        {
+            ["x-sagaway-dapr-callback-method-name"] = nameof(ProcessASubSagaCallAsync),
+            ["x-sagaway-dapr-actor-id"] = newActorId,
+            ["x-sagaway-dapr-actor-type"] = actorTypeName,
+            ["x-sagaway-dapr-message-dispatch-time"] = DateTime.UtcNow.ToString("o") // ISO 8601 format
+        };
+
+        _logger.LogInformation("Dispatching sub-saga invocation for method {MethodName}", methodName);
+
+        // Create a new DaprClient for the sub-saga invocation, so it will not use the preconfigured HttpClient with the default headers
+        var daprClientBuilder = new DaprClientBuilder();
+        var subSagaDaprClient = daprClientBuilder.Build(); // No custom headers for sub-saga
+
+        // Dispatch the sub-saga invocation with a single parameter (invocationContext)
+        await subSagaDaprClient.InvokeBindingAsync(
+            GetCallbackBindingName(),
+            "create",  // Binding operation
+            invocationContext,
+            invokeDispatcherParameters
+        );
+
+        _logger.LogInformation("Sub-saga invocation dispatched successfully for method {MethodName}", methodName);
+    }
+
+    public async Task ProcessASubSagaCallAsync(SubSagaInvocationContext context)
+    {
+        _logger.LogDebug("SubSagaStartAsync invoked with method {MethodName}", context.MethodName);
+
+        // Store the callback context in the actor's state
+        var mainSagaCallbackContext =
+            new JsonObject(context.CallbackContext.ToDictionary(kvp => kvp.Key, kvp => (JsonNode)kvp.Value)!);
+        await StateManager.SetStateAsync("MainSagaCallbackContext", mainSagaCallbackContext);
+
+        _logger.LogInformation("Stored MainSagaCallbackContext in actor state.");
+
+        // Deserialize the parameters from JSON
+        var parameterElements = JsonSerializer.Deserialize<JsonElement[]>(context.ParametersJson);
+        _logger.LogDebug("Deserialized parameters for method {MethodName}", context.MethodName);
+
+        // Use reflection to invoke the actual method on the sub-saga
+        MethodInfo? methodInfo = GetType().GetMethod(context.MethodName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        if (methodInfo == null)
+        {
+            _logger.LogCritical("Method {MethodName} not found in actor.", context.MethodName);
+            throw new InvalidOperationException($"Method {context.MethodName} not found in actor.");
+        }
+
+        // Get the parameter types for the target method
+        var parameterTypes = methodInfo.GetParameters().Select(p => p.ParameterType).ToArray();
+
+        // Handle case where parameters are null
+        object[] parameters;
+        if (parameterElements == null)
+        {
+            if (parameterTypes.Length > 0)
+            {
+                _logger.LogCritical("Method {MethodName} expects parameters, but none were provided.", context.MethodName);
+                throw new InvalidOperationException($"Method {context.MethodName} expects parameters, but none were provided.");
+            }
+            parameters = []; // No parameters required
+        }
+        else
+        {
+            // Convert the JSON parameters to the required types using dynamic deserialization
+            parameters = new object[parameterElements.Length];
+            for (int i = 0; i < parameterElements.Length; i++)
+            {
+                parameters[i] = ConvertJsonElementToType(parameterElements[i], parameterTypes[i]);
+            }
+        }
+
+        _logger.LogInformation("Invoking method {MethodName} on sub-saga.", context.MethodName);
+
+        // Call the target method with the converted parameters
+        var result = methodInfo.Invoke(this, parameters);
+
+        // If the method is asynchronous (returns a Task), await it
+        if (result is Task task)
+        {
+            await task;
+        }
+    }
+
+    private object ConvertJsonElementToType(JsonElement jsonElement, Type targetType)
+    {
+        // Use JsonSerializer to deserialize dynamically based on targetType
+        return JsonSerializer.Deserialize(jsonElement.GetRawText(), targetType, GetJsonSerializerOptions())
+               ?? throw new InvalidOperationException($"Failed to deserialize {jsonElement} to {targetType.Name}");
+    }
+
+    /// <summary>
+    /// Calls back the main saga with a result after the sub-saga completes its operation.
+    /// This method retrieves the stored callback context for the main saga and sends the result back to it.
+    /// </summary>
+    /// <typeparam name="T">The type of the result that will be sent back to the main saga.</typeparam>
+    /// <param name="result">The result object to send back to the main saga.</param>
+    /// <returns>A task representing the asynchronous operation of invoking the main saga callback.</returns>
+    /// <example>
+    /// Example usage in a sub-saga:
+    /// <code>
+    /// // Assume some result needs to be sent back to the main saga
+    /// var result = new MyResult { Value = "some value" };
+    /// await CallbackMainSagaAsync(result);
+    /// </code>
+    ///
+    /// Example usage in the main saga:
+    /// <code>
+    /// public async Task OnSubSagaCallbackAsync(MyResult result)
+    /// {
+    ///     // Handle the result from the sub-saga
+    ///     Console.WriteLine($"Received result: {result.Value}");
+    /// }
+    /// </code>
+    /// </example>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown if the callback context is not found in the state store.
+    /// </exception>
+    protected async Task CallbackMainSagaAsync<T>(T result)
+    {
+        _logger.LogDebug("CallbackMainSagaAsync invoked with result of type {Type}", typeof(T).Name);
+
+        // Retrieve the callback context from the state store
+        var callbackContext = await StateManager.GetStateAsync<JsonObject>("MainSagaCallbackContext");
+        if (callbackContext == null || string.IsNullOrEmpty(callbackContext.Root["x-sagaway-dapr-callback-method-name"]?.GetValue<string>()))
+        {
+            _logger.LogCritical("Main saga callback context not found in actor state. Forgot to pass it?");
+            throw new InvalidOperationException("Main saga callback context not found. Forgot to pass it?");
+        }
+
+        _logger.LogInformation("Retrieved callback context for MainSagaCallback.");
+
+        // Use the callback context to get the metadata for the binding
+        var callbackMetadata = callbackContext.ToDictionary(
+            kvp => kvp.Key,
+            kvp => kvp.Value!.ToString() ?? throw new InvalidOperationException($"Invalid value for {kvp.Key}")
+        );
+
+        // Create a new DaprClient for the sub-saga invocation
+        var daprClientBuilder = new DaprClientBuilder();
+        var daprClient = daprClientBuilder.Build(); // No custom headers for sub-saga
+        var callbackBinding = GetCallbackBindingName() ?? throw new InvalidOperationException("Callback binding name not found in callback context.");
+
+        // Call the main saga via Dapr binding with the result and callback metadata
+        await daprClient.InvokeBindingAsync(
+            callbackBinding,
+            "create", // or another operation
+            result,  // Send the payload with the object directly
+            callbackMetadata
+        );
+
+        _logger.LogInformation("Successfully invoked MainSagaCallback with the result.");
     }
 }

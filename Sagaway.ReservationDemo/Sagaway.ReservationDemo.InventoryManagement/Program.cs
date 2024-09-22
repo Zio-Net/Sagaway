@@ -55,7 +55,7 @@ if (app.Environment.IsDevelopment())
 
 app.MapPost("/inventory-queue", async (
         [FromBody] CarInventoryRequest request,
-        [FromHeader(Name = "x-sagaway-message-dispatch-time")] string messageDispatchTimeHeader,
+        [FromHeader(Name = "x-sagaway-dapr-message-dispatch-time")] string messageDispatchTimeHeader,
         [FromServices] ILogger<Program> logger,
         [FromServices] ICallbackBindingNameProvider callbackBindingNameProvider,
         [FromServices] DaprClient daprClient) =>
