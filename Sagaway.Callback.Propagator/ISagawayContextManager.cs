@@ -10,7 +10,14 @@ public interface ISagawayContextManager
     /// Gets the current Sagaway context as a base64 serialized string. 
     /// This context can be used to propagate across service boundaries.
     /// </summary>
-    string SagawayContext { get; }
+    string Context { get; }
+
+    /// <summary>
+    /// Gets the current Sagaway context with the custom metadata property contains the custom metadata
+    /// as a base64 serialized string.
+    /// This context can be used to propagate across service boundaries.
+    /// </summary>
+    string GetContextWithMetadata(string customMetadata = "");
 
     /// <summary>
     /// Applies a given Sagaway context to the current execution.
