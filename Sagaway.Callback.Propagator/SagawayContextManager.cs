@@ -5,7 +5,7 @@ namespace Sagaway.Callback.Propagator;
 
 public class SagawayContextManager : ISagawayContextManager
 {
-    private readonly JsonSerializerOptions _jsonSerializerOptions = new JsonSerializerOptions
+    private readonly JsonSerializerOptions _jsonSerializerOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
@@ -69,6 +69,24 @@ public class SagawayContextManager : ISagawayContextManager
         {
             throw new InvalidOperationException("Failed to apply the context", ex);
         }
+    }
+
+    public Dictionary<string, string> GetHeaders(SagawayContext? context)
+    {
+        context ??= HeaderPropagationMiddleware.SagawayContext.Value;
+
+        if (context is null)
+            throw new InvalidOperationException("There is no sagaway context to capture");
+
+        return new Dictionary<string, string>
+        {
+            ["x-sagaway-dapr-actor-id"] = context.ActorId ?? string.Empty,
+            ["x-sagaway-dapr-actor-type"] = context.ActorType ?? string.Empty,
+            ["x-sagaway-dapr-callback-binding-name"] = context.CallbackBindingName ?? string.Empty,
+            ["x-sagaway-dapr-callback-method-name"] = context.CallbackMethodName ?? string.Empty,
+            ["x-sagaway-dapr-message-dispatch-time"] = context.MessageDispatchTime ?? string.Empty,
+            ["x-sagaway-dapr-custom-metadata"] = context.Metadata ?? string.Empty
+        };
     }
 
     private string ConvertContextToBase64(SagawayContext context)

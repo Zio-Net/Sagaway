@@ -10,6 +10,7 @@ public interface ISagawayContextManager
     /// Gets the current Sagaway context as a base64 serialized string. 
     /// This context can be used to propagate across service boundaries.
     /// </summary>
+    /// <returns>The current Sagaway context as a base64 serialized string.</returns>
     string Context { get; }
 
     /// <summary>
@@ -17,7 +18,17 @@ public interface ISagawayContextManager
     /// as a base64 serialized string.
     /// This context can be used to propagate across service boundaries.
     /// </summary>
+    /// <param name="customMetadata">The custom metadata to include in the context.</param>
+    /// <returns>The current Sagaway context with the custom metadata as a base64 serialized string.</returns>
     string GetContextWithMetadata(string customMetadata = "");
+
+    /// <summary>
+    /// Gets the headers from the provided Sagaway context.
+    /// If the context is null, the current Sagaway call context is used.
+    /// </summary>
+    /// <param name="context">The Sagaway context.</param>
+    /// <returns>A dictionary of headers extracted from the Sagaway context.</returns>
+    Dictionary<string, string> GetHeaders(SagawayContext? context);
 
     /// <summary>
     /// Applies a given Sagaway context to the current execution.
