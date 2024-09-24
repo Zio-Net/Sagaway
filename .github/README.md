@@ -613,7 +613,7 @@ If you need to customize the DaprClient, use the `AddSagawayContextPropagator` f
 
 After mapping the APIs, add the: `app.UseSagawayContextPropagator();` 
 This function injects a middleware that keeps the incoming special headers in an AsyncCall object, making them available for the callback mechanism.
-
+You can also add your own custom metadata using the `customeMetadata` optional parameter that adds the `x-sagaway-dapr-custom-metadata` header.
 Now, the API can leverage the framework:
 
 ```csharp

@@ -416,15 +416,14 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     }
 
 
-
-
     /// <summary>
     /// Easy way to get the callback metadata
     /// </summary>
     /// <param name="callbackMethodName"></param>
+    /// <param name="customMetadata">Any additional metadata that can be flow with the call context</param>
     /// <returns>the target callback function metadata</returns>
     /// <exception cref="ArgumentException"></exception>
-    protected Dictionary<string, string> GetCallbackMetadata(string callbackMethodName)
+    protected Dictionary<string, string> GetCallbackMetadata(string callbackMethodName, string customMetadata = "")
     {
         if (string.IsNullOrEmpty(callbackMethodName))
         {
@@ -435,7 +434,8 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
         return new Dictionary<string, string>
         {
             { "x-sagaway-dapr-callback-method-name", callbackMethodName },
-            { "x-sagaway-dapr-message-dispatch-time", DateTime.UtcNow.ToString("o")} // ISO 8601 format
+            { "x-sagaway-dapr-message-dispatch-time", DateTime.UtcNow.ToString("o")}, // ISO 8601 format
+            { "x-sagaway-dapr-custom-metadata", customMetadata}
         };
     }
 
@@ -480,15 +480,17 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     /// Provide the ability to capture the callback context for the actor as a string.
     /// </summary>
     /// <param name="callbackMethodName">The callback function that will be dispatched by this context.</param>
+    /// <param name="customMetadata">Any additional metadata that can be flow with the call context</param>
     /// <returns>The callback context as a key,value dictionary</returns>
-    public IDictionary<string, string> CaptureCallbackContext(string callbackMethodName)
+    public IDictionary<string, string> CaptureCallbackContext(string callbackMethodName, string customMetadata = "")
     {
         var callbackContext = new Dictionary<string, string>()
         {
             ["x-sagaway-dapr-callback-method-name"] = callbackMethodName,
             ["x-sagaway-dapr-actor-id"] = ActorHost.Id.GetId(),
             ["x-sagaway-dapr-actor-type"] = ActorHost.ActorTypeInfo.ActorTypeName,
-            ["x-sagaway-dapr-message-dispatch-time"] = DateTime.UtcNow.ToString("o") // ISO 8601 format
+            ["x-sagaway-dapr-message-dispatch-time"] = DateTime.UtcNow.ToString("o"), // ISO 8601 format
+            ["x-sagaway-dapr-custom-metadata"] = customMetadata
         };
 
         // Return the serialized JSON string
@@ -506,6 +508,7 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     /// <param name="actorTypeName">The type name of the actor as added to the Dapr actor runtime</param>
     /// <param name="newActorId">The identity of the sub-saga actor</param>
     /// <param name="callbackMethodName">The name of the method in the main saga to call back once the sub-saga finishes its operation.</param>
+    /// <param name="customMetadata">Any additional metadata that can be flow with the call context</param>
     /// <returns>A task representing the asynchronous operation of invoking the sub-saga.</returns>
     /// <example>
     /// Example usage:
@@ -514,7 +517,8 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     /// </code>
     /// This will invoke the "DoSomethingAsync" method on the sub-saga and allow for a callback to the "MainSagaCallback" method on completion.
     /// </example>
-    protected async Task CallSubSagaAsync<TSubSaga>(Expression<Func<TSubSaga, Task>> methodExpression, string actorTypeName, string newActorId, string callbackMethodName = "")
+    protected async Task CallSubSagaAsync<TSubSaga>(Expression<Func<TSubSaga, Task>> methodExpression, string actorTypeName, 
+        string newActorId, string callbackMethodName = "", string customMetadata = "")
         where TSubSaga : ISagawayActor
     {
         _logger.LogInformation("Starting sub-saga with actor id {NewActorId} using method {CallbackMethodName}", newActorId, callbackMethodName);
@@ -542,7 +546,8 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
             ["x-sagaway-dapr-callback-method-name"] = nameof(ProcessASubSagaCallAsync),
             ["x-sagaway-dapr-actor-id"] = newActorId,
             ["x-sagaway-dapr-actor-type"] = actorTypeName,
-            ["x-sagaway-dapr-message-dispatch-time"] = DateTime.UtcNow.ToString("o") // ISO 8601 format
+            ["x-sagaway-dapr-message-dispatch-time"] = DateTime.UtcNow.ToString("o"), // ISO 8601 format
+            ["x-sagaway-dapr-custom-metadata"] = customMetadata
         };
 
         _logger.LogInformation("Dispatching sub-saga invocation for method {MethodName}", methodName);
