@@ -14,6 +14,7 @@ public static class SagawayContextPropagatorExtensions
 
     public static IServiceCollection AddSagawayContextPropagator(this IServiceCollection services)
     {
+        services.AddSingleton<ISagawayContextManager, SagawayContextManager>();
         return services.AddSingleton<ICallbackBindingNameProvider, CallbackBindingNameProvider>();
     }
 
