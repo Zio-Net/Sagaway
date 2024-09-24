@@ -51,8 +51,8 @@ HasRevert: False
 HasValidate: False
 HasRevertValidate: False
 
-Op1 Validate returns True
 Calling Op1: Success True
+Op1 Validate returns True
 Calling Op2: Success True
 OnSuccessCompletionCallback: Success.
 Run Log:
