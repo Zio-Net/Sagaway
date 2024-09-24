@@ -1,4 +1,6 @@
-﻿namespace Sagaway.Callback.Propagator;
+﻿using System.Net.Http.Headers;
+
+namespace Sagaway.Callback.Propagator;
 
 /// <summary>
 /// Defines the contract for managing the Sagaway context, providing methods
@@ -36,5 +38,13 @@ public interface ISagawayContextManager
     /// </summary>
     /// <param name="sagaContext">The serialized context string to be applied.</param>
     void ApplyContext(string sagaContext);
+
+
+    /// <summary>
+    /// Gets the Sagaway context from the provided headers.
+    /// </summary>
+    /// <param name="headers">The headers containing the Sagaway context information.</param>
+    /// <returns>The Sagaway context extracted from the headers.</returns>
+    SagawayContext GetSagawayContextFromHeaders(HttpHeaders headers);
 }
 
