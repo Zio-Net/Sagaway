@@ -62,9 +62,7 @@ public class SagawayContextManager : ISagawayContextManager
 
         try
         {
-            var jsonString = Encoding.UTF8.GetString(Convert.FromBase64String(sagaContext));
-            var context = JsonSerializer.Deserialize<SagawayContext>(jsonString, _jsonSerializerOptions) ??
-                          throw new InvalidOperationException("Can't deserialize Sagaway context");
+            var context = ConvertContextFromBase64(sagaContext);
 
             // Store the deserialized context in AsyncLocal via HeaderPropagationMiddleware
             HeaderPropagationMiddleware.SagawayContext.Value = context;
@@ -137,10 +135,29 @@ public class SagawayContextManager : ISagawayContextManager
         return new SagawayContext(actorId, actorType, callbackBindingName, callbackMethodName, messageDispatchTime, customMetadata);
     }
 
+    /// <summary>
+    /// Return the Sagaway context from the provided base64 string.
+    /// </summary>
+    /// <param name="base64String">The json string of the context converted to Base64</param>
+    /// <returns>The Sagaway call context</returns>
+    public SagawayContext GetSagawayContextFromBase64String(string base64String)
+    {
+        return ConvertContextFromBase64(base64String);
+    }
+
     private string ConvertContextToBase64(SagawayContext context)
     {
         var jsonString = JsonSerializer.Serialize(context, _jsonSerializerOptions);
         var base64String = Convert.ToBase64String(Encoding.UTF8.GetBytes(jsonString));
         return base64String;
+    }
+
+    private SagawayContext ConvertContextFromBase64(string base64Context)
+    {
+        var jsonString = Encoding.UTF8.GetString(Convert.FromBase64String(base64Context));
+        var context = JsonSerializer.Deserialize<SagawayContext>(jsonString, _jsonSerializerOptions) ??
+                      throw new InvalidOperationException("Can't deserialize Sagaway context");
+
+        return context;
     }
 }
