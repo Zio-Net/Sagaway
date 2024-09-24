@@ -392,11 +392,11 @@ public partial class Tests
                 await _saga!.InformDeactivatedAsync();
             }
             testOperation.CallDelays.TryGetValue(testOperation.CallCounter + 1, out var delay);
-            await Task.Delay(delay * 1000);
 
             isSuccess = testOperation.CallCounter >= testOperation.NumberOfFailures;
-
             sb.AppendLine($"Calling {testOperation.OperationNumber}: Success {isSuccess}");
+
+            await Task.Delay(delay * 1000);
         }
         finally
         {
@@ -435,10 +435,11 @@ public partial class Tests
                 throw new Exception($"Throwing exception on revert {testOperation.RevertCallCounter + 1}");
 
             testOperation.RevertCallDelay.TryGetValue(testOperation.RevertCallCounter + 1, out var delay);
-            await Task.Delay(delay * 1000);
-
+            
             isSuccess = testOperation.RevertCallCounter >= testOperation.RevertNumberOfFailures;
             sb.AppendLine($"Calling revert for {testOperation.OperationNumber}: Success {isSuccess}");
+
+            await Task.Delay(delay * 1000);
         }
         finally
         {

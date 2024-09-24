@@ -5,20 +5,46 @@ namespace Sagaway.Callback.Propagator;
 
 public class SagawayContextManager : ISagawayContextManager
 {
+    private readonly JsonSerializerOptions _jsonSerializerOptions = new JsonSerializerOptions
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+
     /// <summary>
     /// Gets the current Sagaway context from AsyncLocal as a Base64-encoded serialized string.
     /// </summary>
-    public string SagawayContext
+    public string Context
     {
         get
         {
             if (HeaderPropagationMiddleware.SagawayContext.Value == null)
                 throw new InvalidOperationException("There is no sagaway context to capture");
 
-            var jsonString = JsonSerializer.Serialize(HeaderPropagationMiddleware.SagawayContext.Value);
-            var base64String = Convert.ToBase64String(Encoding.UTF8.GetBytes(jsonString));
-            return base64String;
+            var context = ConvertContextToBase64(HeaderPropagationMiddleware.SagawayContext.Value);
+
+            return context;
         }
+    }
+
+    /// <summary>
+    /// Gets the current Sagaway context with the custom metadata property contains the custom metadata
+    /// as a base64 serialized string.
+    /// This context can be used to propagate across service boundaries.
+    /// </summary>
+    /// <remarks>As opposed the <see cref="Context"> if there is no active Sagaway context, a default header
+    /// with the provided metadata is returned</see></remarks>
+    public string GetContextWithMetadata(string customMetadata = "")
+    {
+        var context = (HeaderPropagationMiddleware.SagawayContext.Value ?? new SagawayContext())
+            with
+            {
+                Metadata = customMetadata
+            };
+
+
+        var result = ConvertContextToBase64(context);
+
+        return result;
     }
 
     /// <summary>
@@ -33,7 +59,7 @@ public class SagawayContextManager : ISagawayContextManager
         try
         {
             var jsonString = Encoding.UTF8.GetString(Convert.FromBase64String(sagaContext));
-            var context = JsonSerializer.Deserialize<SagawayContext>(jsonString) ?? 
+            var context = JsonSerializer.Deserialize<SagawayContext>(jsonString, _jsonSerializerOptions) ?? 
                           throw new InvalidOperationException("Can't deserialize Sagaway context");
 
             // Store the deserialized context in AsyncLocal via HeaderPropagationMiddleware
@@ -43,6 +69,12 @@ public class SagawayContextManager : ISagawayContextManager
         {
             throw new InvalidOperationException("Failed to apply the context", ex);
         }
+    }
 
+    private string ConvertContextToBase64(SagawayContext context)
+    {
+        var jsonString = JsonSerializer.Serialize(context, _jsonSerializerOptions);
+        var base64String = Convert.ToBase64String(Encoding.UTF8.GetBytes(jsonString));
+        return base64String;
     }
 }

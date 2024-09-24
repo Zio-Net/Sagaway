@@ -25,7 +25,9 @@ HasRevert: True
 HasValidate: True
 HasRevertValidate: False
 
+Calling Op1: Success False
 Op1 Validate returns False
+Calling Op1: Success False
 Op1 Validate returns False
 Calling revert for Op1: Success False
 Calling revert for Op1: Success False
@@ -50,7 +52,6 @@ Run Log:
 
 
 OnSagaCompleted: Id: test Status: RevertFailed
-Calling Op1: Success False
 
 *** Telemetry ***
 1: StartSaga - SagaID: test, Type: SagaOperations

@@ -129,14 +129,15 @@ HasRevert: False
 HasValidate: True
 HasRevertValidate: False
 
-Op1 Validate returns True
-Op2 Validate returns True
-Op3 Validate returns True
 Calling Op1: Success True
+Op1 Validate returns True
 Calling Op2: Success True
+Op2 Validate returns True
 Calling Op3: Success True
-Op4 Validate returns True
+Op3 Validate returns True
 Calling Op4: Success True
+Op4 Validate returns True
+Calling Op5: Success True
 Op5 Validate returns True
 OnSuccessCompletionCallback: Success.
 Run Log:
