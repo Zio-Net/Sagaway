@@ -46,5 +46,22 @@ public interface ISagawayContextManager
     /// <param name="headers">The headers containing the Sagaway context information.</param>
     /// <returns>The Sagaway context extracted from the headers.</returns>
     SagawayContext GetSagawayContextFromHeaders(HttpHeaders headers);
+
+
+    /// <summary>
+    /// A helper method to convert a base64 json string to a given type.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="base64String">The base64 of the json of the type</param>
+    /// <returns>An instance</returns>
+    T ConvertFromBase64<T>(string base64String);
+
+    /// <summary>
+    /// A helper method to convert a given instance to a base64 json string.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="instance">The source instance</param>
+    /// <returns></returns>
+    string ConvertToBase64<T>(T instance);
 }
 
