@@ -1,4 +1,4 @@
-﻿using System.Net.Http.Headers;
+﻿using Microsoft.AspNetCore.Http;
 
 namespace Sagaway.Callback.Propagator;
 
@@ -45,7 +45,7 @@ public interface ISagawayContextManager
     /// </summary>
     /// <param name="headers">The headers containing the Sagaway context information.</param>
     /// <returns>The Sagaway context extracted from the headers.</returns>
-    SagawayContext GetSagawayContextFromHeaders(HttpHeaders headers);
+    SagawayContext GetSagawayContextFromHeaders(IHeaderDictionary headers);
 
 
     /// <summary>
