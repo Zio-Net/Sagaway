@@ -1,4 +1,4 @@
-﻿using System.Net.Http.Headers;
+﻿using Microsoft.AspNetCore.Http;
 
 namespace Sagaway.Callback.Propagator;
 
@@ -39,14 +39,12 @@ public interface ISagawayContextManager
     /// <param name="sagaContext">The serialized context string to be applied.</param>
     void ApplyContext(string sagaContext);
 
-
     /// <summary>
     /// Gets the Sagaway context from the provided headers.
     /// </summary>
     /// <param name="headers">The headers containing the Sagaway context information.</param>
     /// <returns>The Sagaway context extracted from the headers.</returns>
-    SagawayContext GetSagawayContextFromHeaders(HttpHeaders headers);
-
+    SagawayContext GetSagawayContextFromHeaders(IHeaderDictionary headers);
 
     /// <summary>
     /// A helper method to convert a base64 json string to a given type.

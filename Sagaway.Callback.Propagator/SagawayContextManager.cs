@@ -1,4 +1,4 @@
-﻿using System.Net.Http.Headers;
+﻿using Microsoft.AspNetCore.Http;
 using System.Text;
 using System.Text.Json;
 
@@ -102,7 +102,7 @@ public class SagawayContextManager : ISagawayContextManager
     /// </summary>
     /// <param name="headers">The headers containing the Sagaway context information.</param>
     /// <returns>The Sagaway context extracted from the headers.</returns>
-    public SagawayContext GetSagawayContextFromHeaders(HttpHeaders headers)
+    public SagawayContext GetSagawayContextFromHeaders(IHeaderDictionary headers)
     {
         if (headers == null)
             throw new ArgumentNullException(nameof(headers));
@@ -114,22 +114,22 @@ public class SagawayContextManager : ISagawayContextManager
         string? messageDispatchTime = null;
         string? customMetadata = null;
 
-        if (headers.TryGetValues("x-sagaway-dapr-actor-id", out var actorIdValues))
+        if (headers.TryGetValue("x-sagaway-dapr-actor-id", out var actorIdValues))
             actorId = actorIdValues.FirstOrDefault();
 
-        if (headers.TryGetValues("x-sagaway-dapr-actor-type", out var actorTypeValues))
+        if (headers.TryGetValue("x-sagaway-dapr-actor-type", out var actorTypeValues))
             actorType = actorTypeValues.FirstOrDefault();
 
-        if (headers.TryGetValues("x-sagaway-dapr-callback-binding-name", out var callbackBindingNameValues))
+        if (headers.TryGetValue("x-sagaway-dapr-callback-binding-name", out var callbackBindingNameValues))
             callbackBindingName = callbackBindingNameValues.FirstOrDefault();
 
-        if (headers.TryGetValues("x-sagaway-dapr-callback-method-name", out var callbackMethodNameValues))
+        if (headers.TryGetValue("x-sagaway-dapr-callback-method-name", out var callbackMethodNameValues))
             callbackMethodName = callbackMethodNameValues.FirstOrDefault();
 
-        if (headers.TryGetValues("x-sagaway-dapr-message-dispatch-time", out var messageDispatchTimeValues))
+        if (headers.TryGetValue("x-sagaway-dapr-message-dispatch-time", out var messageDispatchTimeValues))
             messageDispatchTime = messageDispatchTimeValues.FirstOrDefault();
 
-        if (headers.TryGetValues("x-sagaway-dapr-custom-metadata", out var customMetadataValues))
+        if (headers.TryGetValue("x-sagaway-dapr-custom-metadata", out var customMetadataValues))
             customMetadata = customMetadataValues.FirstOrDefault();
 
         return new SagawayContext(actorId, actorType, callbackBindingName, callbackMethodName, messageDispatchTime, customMetadata);
