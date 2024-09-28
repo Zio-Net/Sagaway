@@ -31,6 +31,7 @@
 
   <ItemGroup>
     <None Include="../assets/package-icon.png" Pack="true" PackagePath="assets/" />
+    <None Include="../LICENSE" Pack="true" PackagePath="" />
   </ItemGroup>
 
   <ItemGroup>
