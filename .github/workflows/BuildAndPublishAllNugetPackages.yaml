@@ -59,7 +59,7 @@ jobs:
     - name: Upload NuGet Package as Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: independent-packages-${{ github.run_id }}
+        name: independent-package-${{ matrix.project | replace('/', '-') }}-${{ github.run_id }}-${{ github.run_attempt }}
         path: '**/*.nupkg'
 
   # Build dependent packages using the locally published packages
@@ -81,7 +81,7 @@ jobs:
     - name: Download Independent Packages
       uses: actions/download-artifact@v4
       with:
-        name: independent-packages-${{ needs.build_independent_packages.outputs.package_version }}-${{ github.run_id }}
+        path: .
 
     - name: Setup Local NuGet Feed
       run: |
@@ -95,19 +95,19 @@ jobs:
     - name: Build and Pack Dependent Packages
       run: |
         dotnet pack Sagaway.Hosts.DaprActorHost/Sagaway.Hosts.DaprActorHost.csproj -c Release \
-          -p:PackageVersion=${{ env.package_version }} \
+          -p:PackageVersion=${{ needs.build_independent_packages.outputs.package_version }} \
           -p:PackageReleaseNotes="See https://raw.githubusercontent.com/alonf/Sagaway/master/.github/README.md" \
           --include-symbols --include-source -p:SymbolPackageFormat=snupkg
 
         dotnet pack Sagaway.OpenTelemetry/Sagaway.OpenTelemetry.csproj -c Release \
-          -p:PackageVersion=${{ env.package_version }} \
+          -p:PackageVersion=${{ needs.build_independent_packages.outputs.package_version }} \
           -p:PackageReleaseNotes="See https://raw.githubusercontent.com/alonf/Sagaway/master/.github/README.md" \
           --include-symbols --include-source -p:SymbolPackageFormat=snupkg
 
     - name: Upload Dependent NuGet Packages as Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: dependent-packages-${{ github.run_id }}
+        name: dependent-packages-${{ github.run_id }}-${{ github.run_attempt }}
         path: '**/*.nupkg'
 
   # Publish all packages to NuGet.org
@@ -119,15 +119,10 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    - name: Download Independent Packages
+    - name: Download All Packages
       uses: actions/download-artifact@v4
       with:
-        name: independent-packages-${{ github.run_id }}
-
-    - name: Download Dependent Packages
-      uses: actions/download-artifact@v4
-      with:
-        name: dependent-packages-${{ github.run_id }}
+        path: .
 
     - name: Publish NuGet Packages
       run: |
