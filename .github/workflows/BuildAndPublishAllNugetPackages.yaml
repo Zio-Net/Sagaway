@@ -96,9 +96,15 @@ jobs:
       - name: Setup Local NuGet Feed
         run: |
           mkdir -p ./local-nuget
-          # Exclude the local-nuget directory to prevent copying files into themselves
+          # Exclude the local-nuget directory to prevent copying files into itself
           find . -path ./local-nuget -prune -o -name '*.nupkg' -exec cp {} ./local-nuget/ \;
-          dotnet nuget add source ./local-nuget --name LocalFeed
+          # Get the absolute path to the local-nuget directory
+          LOCAL_NUGET_PATH="$(pwd)/local-nuget"
+          # Add the local NuGet source using the absolute path
+          dotnet nuget add source "$LOCAL_NUGET_PATH" --name LocalFeed
+
+      - name: List NuGet Sources
+        run: dotnet nuget list source
 
       - name: Restore dependencies from all sources
         run: |
