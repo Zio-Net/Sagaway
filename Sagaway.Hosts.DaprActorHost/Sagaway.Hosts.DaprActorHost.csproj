@@ -17,6 +17,8 @@
     <EnableNETAnalyzers>True</EnableNETAnalyzers>
     <PackageVersion>1.0.0</PackageVersion>
     <PackageIcon>assets/package-icon.png</PackageIcon>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
   <!-- Default version if not overridden -->
     <UsePackages>false</UsePackages>
     <!-- Default to false; override in CI/CD or command line -->
