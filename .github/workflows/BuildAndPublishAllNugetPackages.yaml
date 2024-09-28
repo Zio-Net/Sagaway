@@ -96,13 +96,14 @@ jobs:
       - name: Setup Local NuGet Feed
         run: |
           mkdir -p ./local-nuget
+          # Exclude the local-nuget directory to prevent copying files into themselves
           find . -path ./local-nuget -prune -o -name '*.nupkg' -exec cp {} ./local-nuget/ \;
           dotnet nuget add source ./local-nuget --name LocalFeed
 
-      - name: Restore dependencies from local feed
+      - name: Restore dependencies from all sources
         run: |
-          dotnet restore Sagaway.Hosts.DaprActorHost/Sagaway.Hosts.DaprActorHost.csproj --source ./local-nuget
-          dotnet restore Sagaway.OpenTelemetry/Sagaway.OpenTelemetry.csproj --source ./local-nuget
+          dotnet restore Sagaway.Hosts.DaprActorHost/Sagaway.Hosts.DaprActorHost.csproj
+          dotnet restore Sagaway.OpenTelemetry/Sagaway.OpenTelemetry.csproj
 
       - name: Build and Pack Dependent Packages
         run: |
