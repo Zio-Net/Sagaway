@@ -48,6 +48,13 @@ jobs:
           echo "package_version=${{ github.event.inputs.package_version }}" >> $GITHUB_OUTPUT
         fi
 
+    - name: Sanitize Project Name
+      id: sanitize_project_name
+      shell: bash
+      run: |
+        sanitized_name="${{ matrix.project//\//- }}"
+        echo "SANITIZED_PROJECT_NAME=$sanitized_name" >> $GITHUB_ENV
+
     - name: Restore dependencies
       run: dotnet restore ${{ matrix.project }}
 
@@ -55,13 +62,13 @@ jobs:
       run: |
         dotnet pack ${{ matrix.project }} -c Release \
           -p:PackageVersion=${{ env.package_version }} \
-          -p:PackageReleaseNotes="See https://raw.githubusercontent.com/alonf/Sagaway/master/.github/README.md" \
+          -p:PackageReleaseNotes="See https://github.com/alonf/Sagaway/blob/master/.github/README.md" \
           --include-symbols --include-source -p:SymbolPackageFormat=snupkg
 
     - name: Upload NuGet Package as Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: "independent-packages-${{ replace(matrix.project, '/', '-') }}-${{ github.run_id }}-${{ github.job }}-${{ github.run_attempt }}"
+        name: "independent-packages-${{ env.SANITIZED_PROJECT_NAME }}-${{ github.run_id }}-${{ github.job }}-${{ github.run_attempt }}"
         path: '**/*.nupkg'
 
   # Build dependent packages using the locally published packages
@@ -83,7 +90,6 @@ jobs:
     - name: Download Independent Packages
       uses: actions/download-artifact@v4
       with:
-        name: "independent-packages-*"
         path: .
 
     - name: Setup Local NuGet Feed
@@ -99,39 +105,12 @@ jobs:
       run: |
         dotnet pack Sagaway.Hosts.DaprActorHost/Sagaway.Hosts.DaprActorHost.csproj -c Release \
           -p:PackageVersion=${{ needs.build_independent_packages.outputs.package_version }} \
-          -p:PackageReleaseNotes="See https://raw.githubusercontent.com/alonf/Sagaway/master/.github/README.md" \
+          -p:PackageReleaseNotes="See https://github.com/alonf/Sagaway/blob/master/.github/README.md" \
           --include-symbols --include-source -p:SymbolPackageFormat=snupkg
 
         dotnet pack Sagaway.OpenTelemetry/Sagaway.OpenTelemetry.csproj -c Release \
           -p:PackageVersion=${{ needs.build_independent_packages.outputs.package_version }} \
-          -p:PackageReleaseNotes="See https://raw.githubusercontent.com/alonf/Sagaway/master/.github/README.md" \
+          -p:PackageReleaseNotes="See https://github.com/alonf/Sagaway/blob/master/.github/README.md" \
           --include-symbols --include-source -p:SymbolPackageFormat=snupkg
 
-    - name: Upload Dependent NuGet Packages as Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: "dependent-packages-${{ github.run_id }}-${{ github.run_attempt }}"
-        path: '**/*.nupkg'
-
-  # Publish all packages to NuGet.org
-  publish_to_nuget:
-    needs: [build_independent_packages, build_dependent_packages]
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
-
-    - name: Download All Packages
-      uses: actions/download-artifact@v4
-      with:
-        name: "*"
-        path: .
-
-    - name: Publish NuGet Packages
-      run: |
-        dotnet nuget push '**/*.nupkg' --api-key ${{ secrets.NUGET_API_KEY }} \
-          --source https://api.nuget.org/v3/index.json --skip-duplicate
-
-        dotnet nuget push '**/*.snupkg' --api-key ${{ secrets.NUGET_API_KEY }} \
-          --source https://api.nuget.org/v3/index.json --skip-duplicate
+    - name: Upload Dependen
