@@ -38,12 +38,12 @@ jobs:
         if [ "${{ github.event.release.tag_name }}" ]; then
           version="${{ github.event.release.tag_name }}"
           if [[ $version == *-* ]]; then
-            echo "##[set-output name=package_version;]$version"
+            echo "package_version=$version" >> $GITHUB_ENV
           else
-            echo "##[set-output name=package_version;]${version##v}"
+            echo "package_version=${version##v}" >> $GITHUB_ENV
           fi
         else
-          echo "##[set-output name=package_version;]${{ github.event.inputs.package_version }}"
+          echo "package_version=${{ github.event.inputs.package_version }}" >> $GITHUB_ENV
         fi
 
     - name: Restore dependencies
@@ -52,7 +52,7 @@ jobs:
     - name: Build and Pack Independent Packages
       run: |
         dotnet pack ${{ matrix.project }} -c Release \
-          -p:PackageVersion=${{ steps.get-version.outputs.package_version }} \
+          -p:PackageVersion=${{ env.package_version }} \
           -p:PackageReleaseNotes="See https://raw.githubusercontent.com/alonf/Sagaway/master/.github/README.md" \
           --include-symbols --include-source -p:SymbolPackageFormat=snupkg
 
