@@ -17,6 +17,7 @@
     <EnableNETAnalyzers>True</EnableNETAnalyzers>
     <PackageVersion>1.0.0</PackageVersion>
     <PackageIcon>assets/package-icon.png</PackageIcon>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
   <!-- Default version if not overridden -->
     <UsePackages>false</UsePackages>
     <!-- Default to false; override in CI/CD or command line -->
@@ -33,6 +34,7 @@
 
   <ItemGroup>
     <None Include="../assets/package-icon.png" Pack="true" PackagePath="assets/" />
+    <None Include="../LICENSE" Pack="true" PackagePath="" />
   </ItemGroup>
 
 

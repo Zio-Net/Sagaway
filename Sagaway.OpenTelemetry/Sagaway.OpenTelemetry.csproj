@@ -8,10 +8,18 @@
     <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\$(AssemblyName).xml</DocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
     <PackageVersion>1.0.0</PackageVersion>
+    <Title>Sagaway OpenTelemetry Integration</Title>
+    <Authors>Alon Fliess</Authors>
+    <Company>ZioNet</Company>
+    <Description>OpenTelemetry integration for the Sagaway Saga Framework</Description>
+    <PackageProjectUrl>https://github.com/alonf/Sagaway</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile> <!-- Ensure the README file is included -->
+    
     <PackageIcon>assets/package-icon.png</PackageIcon>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    
     <!-- Default version if not overridden -->
     <UsePackages>false</UsePackages>
-    <!-- Default to false; override in CI/CD or command line -->
   </PropertyGroup>
 
   <PropertyGroup>
@@ -25,6 +33,7 @@
 
   <ItemGroup>
     <None Include="../assets/package-icon.png" Pack="true" PackagePath="assets/" />
+    <None Include="../LICENSE" Pack="true" PackagePath="" />
   </ItemGroup>
 
   <ItemGroup>
