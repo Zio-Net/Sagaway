@@ -146,8 +146,21 @@ jobs:
       - name: Download Independent Packages
         uses: actions/download-artifact@v4
         with:
-          name: independent-packages-*
-          path: ./independent-packages
+          name: "independent-packages-Sagaway-Sagaway.csproj-${{ github.run_id }}-build_independent_packages-${{ github.run_attempt }}"
+          path: ./independent-packages/Sagaway
+
+      - name: Download Independent Packages - Router
+        uses: actions/download-artifact@v4
+        with:
+          name: "independent-packages-Sagaway.Callback.Router-Sagaway.Callback.Router.csproj-${{ github.run_id }}-build_independent_packages-${{ github.run_attempt }}"
+          path: ./independent-packages/Router
+
+      - name: Download Independent Packages - Propagator
+        uses: actions/download-artifact@v4
+        with:
+          name: "independent-packages-Sagaway.Callback.Propagator-Sagaway.Callback.Propagator.csproj-${{ github.run_id }}-build_independent_packages-${{ github.run_attempt }}"
+          path: ./independent-packages/Propagator
+
 
       - name: Download Dependent Packages
         uses: actions/download-artifact@v4
@@ -164,12 +177,13 @@ jobs:
           cp ./dependent-packages/**/*.nupkg ./all-packages/ || true
           cp ./dependent-packages/**/*.snupkg ./all-packages/ || true
 
-          # Remove duplicate files based on filename
+          # Remove duplicates based on filename (only within the 'all-packages' directory)
           cd ./all-packages
           for file in *.nupkg; do
-            if [ -f "../$file" ]; then
-              echo "Removing duplicate package $file"
-              rm -f "../$file"
+            if [ -f "$file" ]; then
+              # If a duplicate is found, echo it (for logs) and delete it
+              echo "Duplicate package found: $file. Removing."
+              rm -f "$file"
             fi
           done
           cd ..
