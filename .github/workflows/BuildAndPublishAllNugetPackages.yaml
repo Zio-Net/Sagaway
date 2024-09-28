@@ -172,21 +172,16 @@ jobs:
         run: |
           # Combine all packages into a single directory
           mkdir -p ./all-packages
-          cp ./independent-packages/**/*.nupkg ./all-packages/ || true
-          cp ./independent-packages/**/*.snupkg ./all-packages/ || true
-          cp ./dependent-packages/**/*.nupkg ./all-packages/ || true
-          cp ./dependent-packages/**/*.snupkg ./all-packages/ || true
 
-          # Remove duplicates based on filename (only within the 'all-packages' directory)
-          cd ./all-packages
-          for file in *.nupkg; do
-            if [ -f "$file" ]; then
-              # If a duplicate is found, echo it (for logs) and delete it
-              echo "Duplicate package found: $file. Removing."
-              rm -f "$file"
-            fi
-          done
-          cd ..
+          # Copy independent packages using 'find'
+          find ./independent-packages -type f \( -name "*.nupkg" -o -name "*.snupkg" \) -exec cp {} ./all-packages/ \;
+
+          # Copy dependent packages using 'find'
+          find ./dependent-packages -type f \( -name "*.nupkg" -o -name "*.snupkg" \) -exec cp {} ./all-packages/ \;
+
+          # List all packages for debugging
+          echo "All packages in ./all-packages directory:"
+          ls -al ./all-packages
 
           # Push .nupkg files
           dotnet nuget push './all-packages/*.nupkg' --api-key ${{ secrets.NUGET_API_KEY }} \
@@ -198,3 +193,5 @@ jobs:
               --source https://api.nuget.org/v3/index.json --skip-duplicate
           else
             echo "No .snupkg files found to push."
+          fi
+
