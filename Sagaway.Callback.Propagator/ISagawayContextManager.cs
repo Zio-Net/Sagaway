@@ -44,7 +44,7 @@ public interface ISagawayContextManager
     /// </summary>
     /// <param name="headers">The headers containing the Sagaway context information.</param>
     /// <returns>The Sagaway context extracted from the headers.</returns>
-    SagawayContext GetSagawayContextFromHeaders(IHeaderDictionary headers);
+    SagawayContext GetSagawayContextFromHeaders(Dictionary<string, string?> headers);
 
     /// <summary>
     /// A helper method to convert a base64 json string to a given type.

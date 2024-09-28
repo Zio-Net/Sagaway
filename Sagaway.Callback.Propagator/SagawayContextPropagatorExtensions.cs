@@ -7,11 +7,13 @@ namespace Sagaway.Callback.Propagator;
 
 public static class SagawayContextPropagatorExtensions
 {
+    // ReSharper disable once UnusedMethodReturnValue.Global
     public static IApplicationBuilder UseSagawayContextPropagator(this IApplicationBuilder builder)
     {
         return builder.UseMiddleware<HeaderPropagationMiddleware>();
     }
 
+    // ReSharper disable once UnusedMethodReturnValue.Global
     public static IServiceCollection AddSagawayContextPropagator(this IServiceCollection services)
     {
         services.AddSingleton<ISagawayContextManager, SagawayContextManager>();
@@ -23,6 +25,7 @@ public static class SagawayContextPropagatorExtensions
         return builder.AddDapr(b => b.AddSagawayContextPropagator());
     }
 
+    // ReSharper disable once UnusedMethodReturnValue.Global
     public static DaprClientBuilder AddSagawayContextPropagator(this DaprClientBuilder builder, 
         Func<HttpMessageHandler, HttpClient>? httpClientProvider = null)
     {
