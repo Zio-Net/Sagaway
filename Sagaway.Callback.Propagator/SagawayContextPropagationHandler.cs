@@ -15,7 +15,19 @@ public class SagawayContextPropagationHandler : DelegatingHandler
         //propagate callback method name
         if (!string.IsNullOrEmpty(HeaderPropagationMiddleware.SagawayContext.Value?.CallbackMethodName))
             request.Headers.TryAddWithoutValidation("x-sagaway-dapr-callback-method-name", [HeaderPropagationMiddleware.SagawayContext.Value.CallbackMethodName]);
-        
+
+        //propagate message callback binding name
+        if (!string.IsNullOrEmpty(HeaderPropagationMiddleware.SagawayContext.Value?.CallbackBindingName))
+            request.Headers.TryAddWithoutValidation("x-sagaway-dapr-callback-binding-name", [HeaderPropagationMiddleware.SagawayContext.Value.CallbackBindingName]);
+
+        //propagate message dispatch time
+        if (!string.IsNullOrEmpty(HeaderPropagationMiddleware.SagawayContext.Value?.MessageDispatchTime))
+            request.Headers.TryAddWithoutValidation("x-sagaway-dapr-message-dispatch-time", [HeaderPropagationMiddleware.SagawayContext.Value.MessageDispatchTime]);
+
+        //propagate custom metadata
+        if (!string.IsNullOrEmpty(HeaderPropagationMiddleware.SagawayContext.Value?.Metadata))
+            request.Headers.TryAddWithoutValidation("x-sagaway-dapr-custom-metadata", [HeaderPropagationMiddleware.SagawayContext.Value.Metadata]);
+
         return await base.SendAsync(request, cancellationToken);
     }
 }
