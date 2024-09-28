@@ -51,8 +51,10 @@ jobs:
       - name: Sanitize Project Name
         id: sanitize_project_name
         shell: bash
+        env:
+          MATRIX_PROJECT: ${{ matrix.project }}
         run: |
-          sanitized_name="${{ matrix.project//\//- }}"
+          sanitized_name="${MATRIX_PROJECT//\//-}"
           echo "SANITIZED_PROJECT_NAME=$sanitized_name" >> $GITHUB_ENV
 
       - name: Restore dependencies
