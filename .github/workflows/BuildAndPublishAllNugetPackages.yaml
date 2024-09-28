@@ -22,95 +22,119 @@ jobs:
     outputs:
       package_version: ${{ steps.get-version.outputs.package_version }}
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
-      with:
-        fetch-depth: 0  # Ensure full git history for SourceLink
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Ensure full git history for SourceLink
 
-    - name: Setup .NET 8
-      uses: actions/setup-dotnet@v3
-      with:
-        dotnet-version: '8.0.x'
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
 
-    - name: Determine Package Version
-      id: get-version
-      run: |
-        if [ "${{ github.event.release.tag_name }}" ]; then
-          version="${{ github.event.release.tag_name }}"
-          if [[ $version == *-* ]]; then
-            echo "package_version=$version" >> $GITHUB_ENV
+      - name: Determine Package Version
+        id: get-version
+        run: |
+          if [ "${{ github.event.release.tag_name }}" ]; then
+            version="${{ github.event.release.tag_name }}"
+            if [[ $version == *-* ]]; then
+              echo "package_version=$version" >> $GITHUB_ENV
+            else
+              echo "package_version=${version##v}" >> $GITHUB_ENV
+            fi
+            echo "package_version=$version" >> $GITHUB_OUTPUT
           else
-            echo "package_version=${version##v}" >> $GITHUB_ENV
+            echo "package_version=${{ github.event.inputs.package_version }}" >> $GITHUB_ENV
+            echo "package_version=${{ github.event.inputs.package_version }}" >> $GITHUB_OUTPUT
           fi
-          echo "package_version=$version" >> $GITHUB_OUTPUT
-        else
-          echo "package_version=${{ github.event.inputs.package_version }}" >> $GITHUB_ENV
-          echo "package_version=${{ github.event.inputs.package_version }}" >> $GITHUB_OUTPUT
-        fi
 
-    - name: Sanitize Project Name
-      id: sanitize_project_name
-      shell: bash
-      run: |
-        sanitized_name="${{ matrix.project//\//- }}"
-        echo "SANITIZED_PROJECT_NAME=$sanitized_name" >> $GITHUB_ENV
+      - name: Sanitize Project Name
+        id: sanitize_project_name
+        shell: bash
+        run: |
+          sanitized_name="${{ matrix.project//\//- }}"
+          echo "SANITIZED_PROJECT_NAME=$sanitized_name" >> $GITHUB_ENV
 
-    - name: Restore dependencies
-      run: dotnet restore ${{ matrix.project }}
+      - name: Restore dependencies
+        run: dotnet restore ${{ matrix.project }}
 
-    - name: Build and Pack Independent Packages
-      run: |
-        dotnet pack ${{ matrix.project }} -c Release \
-          -p:PackageVersion=${{ env.package_version }} \
-          -p:PackageReleaseNotes="See https://github.com/alonf/Sagaway/blob/master/.github/README.md" \
-          --include-symbols --include-source -p:SymbolPackageFormat=snupkg
+      - name: Build and Pack Independent Packages
+        run: |
+          dotnet pack ${{ matrix.project }} -c Release \
+            -p:PackageVersion=${{ env.package_version }} \
+            -p:PackageReleaseNotes="See https://github.com/alonf/Sagaway/blob/master/.github/README.md" \
+            --include-symbols --include-source -p:SymbolPackageFormat=snupkg
 
-    - name: Upload NuGet Package as Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: "independent-packages-${{ env.SANITIZED_PROJECT_NAME }}-${{ github.run_id }}-${{ github.job }}-${{ github.run_attempt }}"
-        path: '**/*.nupkg'
+      - name: Upload NuGet Package as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: "independent-packages-${{ env.SANITIZED_PROJECT_NAME }}-${{ github.run_id }}-${{ github.job }}-${{ github.run_attempt }}"
+          path: '**/*.nupkg'
 
   # Build dependent packages using the locally published packages
   build_dependent_packages:
     needs: build_independent_packages
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
-      with:
-        fetch-depth: 0  # Ensure full git history for SourceLink
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Ensure full git history for SourceLink
 
-    - name: Setup .NET 8
-      uses: actions/setup-dotnet@v3
-      with:
-        dotnet-version: '8.0.x'
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
 
-    - name: Download Independent Packages
-      uses: actions/download-artifact@v4
-      with:
-        path: .
+      - name: Download Independent Packages
+        uses: actions/download-artifact@v4
+        with:
+          path: .
 
-    - name: Setup Local NuGet Feed
-      run: |
-        mkdir -p ./local-nuget
-        cp ./**/*.nupkg ./local-nuget/
-        dotnet nuget add source ./local-nuget --name LocalFeed
+      - name: Setup Local NuGet Feed
+        run: |
+          mkdir -p ./local-nuget
+          cp ./**/*.nupkg ./local-nuget/
+          dotnet nuget add source ./local-nuget --name LocalFeed
 
-    - name: Restore dependencies from local feed
-      run: dotnet restore --source ./local-nuget
+      - name: Restore dependencies from local feed
+        run: dotnet restore --source ./local-nuget
 
-    - name: Build and Pack Dependent Packages
-      run: |
-        dotnet pack Sagaway.Hosts.DaprActorHost/Sagaway.Hosts.DaprActorHost.csproj -c Release \
-          -p:PackageVersion=${{ needs.build_independent_packages.outputs.package_version }} \
-          -p:PackageReleaseNotes="See https://github.com/alonf/Sagaway/blob/master/.github/README.md" \
-          --include-symbols --include-source -p:SymbolPackageFormat=snupkg
+      - name: Build and Pack Dependent Packages
+        run: |
+          dotnet pack Sagaway.Hosts.DaprActorHost/Sagaway.Hosts.DaprActorHost.csproj -c Release \
+            -p:PackageVersion=${{ needs.build_independent_packages.outputs.package_version }} \
+            -p:PackageReleaseNotes="See https://github.com/alonf/Sagaway/blob/master/.github/README.md" \
+            --include-symbols --include-source -p:SymbolPackageFormat=snupkg
 
-        dotnet pack Sagaway.OpenTelemetry/Sagaway.OpenTelemetry.csproj -c Release \
-          -p:PackageVersion=${{ needs.build_independent_packages.outputs.package_version }} \
-          -p:PackageReleaseNotes="See https://github.com/alonf/Sagaway/blob/master/.github/README.md" \
-          --include-symbols --include-source -p:SymbolPackageFormat=snupkg
+          dotnet pack Sagaway.OpenTelemetry/Sagaway.OpenTelemetry.csproj -c Release \
+            -p:PackageVersion=${{ needs.build_independent_packages.outputs.package_version }} \
+            -p:PackageReleaseNotes="See https://github.com/alonf/Sagaway/blob/master/.github/README.md" \
+            --include-symbols --include-source -p:SymbolPackageFormat=snupkg
 
-    - name: Upload Dependen
+      - name: Upload Dependent NuGet Packages as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: "dependent-packages-${{ github.run_id }}-${{ github.run_attempt }}"
+          path: '**/*.nupkg'
+
+  # Publish all packages to NuGet.org
+  publish_to_nuget:
+    needs: [build_independent_packages, build_dependent_packages]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Download All Packages
+        uses: actions/download-artifact@v4
+        with:
+          path: .
+
+      - name: Publish NuGet Packages
+        run: |
+          dotnet nuget push '**/*.nupkg' --api-key ${{ secrets.NUGET_API_KEY }} \
+            --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+          dotnet nuget push '**/*.snupkg' --api-key ${{ secrets.NUGET_API_KEY }} \
+            --source https://api.nuget.org/v3/index.json --skip-duplicate
