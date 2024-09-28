@@ -830,6 +830,8 @@ Most of the code of the `DaprActorHost` is a delegation either to the underline 
 
 
 ### The Saga Core
+The Saga core is the heart of the Sagaway framework. It is a pure C# implementation that is independent of any hosting technology. The core is designed to be versatile and adaptable, capable of being integrated into various hosting environments while only necessitating that the host implements a specific interface. The core consists of two primary interfaces: `ISaga<TOperations>` and `ISagaSupport`.
+
 
 #### The Saga class
 
