@@ -64,6 +64,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "gihub", "gihub", "{7D12D337
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{B962A366-5569-4C6E-AE25-707750522035}"
 	ProjectSection(SolutionItems) = preProject
+		.github\workflows\BuildAndPublishAllNugetPackages.yaml = .github\workflows\BuildAndPublishAllNugetPackages.yaml
 		.github\workflows\BuildAndPushImages.yaml = .github\workflows\BuildAndPushImages.yaml
 		.github\workflows\IntegrationTest.yaml = .github\workflows\IntegrationTest.yaml
 		.github\workflows\PublishSagawayCallbackPropagatorNuGet.yaml = .github\workflows\PublishSagawayCallbackPropagatorNuGet.yaml
@@ -78,7 +79,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "assets", "assets", "{EFADD2
 		assets\ackage-icon.png = assets\ackage-icon.png
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sagaway.IntegrationTests.TestSubSagaCommunicationService", "Sagaway.IntegrationTests\Sagaway.IntegrationTests.TestSubSagaCommunicationService\Sagaway.IntegrationTests.TestSubSagaCommunicationService.csproj", "{D25065BB-282F-47CD-B2EB-4A2181860E7D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sagaway.IntegrationTests.TestSubSagaCommunicationService", "Sagaway.IntegrationTests\Sagaway.IntegrationTests.TestSubSagaCommunicationService\Sagaway.IntegrationTests.TestSubSagaCommunicationService.csproj", "{D25065BB-282F-47CD-B2EB-4A2181860E7D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
