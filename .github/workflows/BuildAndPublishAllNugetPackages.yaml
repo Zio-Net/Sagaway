@@ -47,7 +47,7 @@ jobs:
         fi
 
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore ${{ matrix.project }}
 
     - name: Build and Pack Independent Packages
       run: |
