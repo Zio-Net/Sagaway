@@ -130,32 +130,60 @@ jobs:
         with:
           name: "dependent-packages-${{ github.run_id }}-${{ github.run_attempt }}"
           path: |
-            **/*.nupkg
-            **/*.snupkg
+            Sagaway.Hosts.DaprActorHost/bin/Release/**/*.nupkg
+            Sagaway.Hosts.DaprActorHost/bin/Release/**/*.snupkg
+            Sagaway.OpenTelemetry/bin/Release/**/*.nupkg
+            Sagaway.OpenTelemetry/bin/Release/**/*.snupkg
+
 
   # Publish all packages to NuGet.org
-  publish_to_nuget:
-    needs: [build_independent_packages, build_dependent_packages]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+publish_to_nuget:
+   needs: [build_independent_packages, build_dependent_packages]
+   runs-on: ubuntu-latest
+   steps:
+     - name: Checkout repository
+       uses: actions/checkout@v4
 
-      - name: Download All Packages
-        uses: actions/download-artifact@v4
-        with:
-          path: .
+     - name: Download Independent Packages
+       uses: actions/download-artifact@v4
+       with:
+         name: independent-packages-*
+         path: ./independent-packages
 
-      - name: Publish NuGet Packages
-        run: |
-          # Push .nupkg files
-          find . -name "*.nupkg" | sort | uniq | xargs -I {} dotnet nuget push '{}' --api-key ${{ secrets.NUGET_API_KEY }} \
-            --source https://api.nuget.org/v3/index.json --skip-duplicate
+     - name: Download Dependent Packages
+       uses: actions/download-artifact@v4
+       with:
+         name: dependent-packages-*
+         path: ./dependent-packages
 
-          # Push .snupkg files if any exist
-          if ls **/*.snupkg 1> /dev/null 2>&1; then
-            find . -name "*.snupkg" | sort | uniq | xargs -I {} dotnet nuget push '{}' --api-key ${{ secrets.NUGET_API_KEY }} \
-              --source https://api.nuget.org/v3/index.json --skip-duplicate
-          else
-            echo "No .snupkg files found to push."
-          fi
+     - name: Publish NuGet Packages
+       run: |
+         # Combine all packages into a single directory
+         mkdir -p ./all-packages
+         cp ./independent-packages/**/*.nupkg ./all-packages/ || true
+         cp ./independent-packages/**/*.snupkg ./all-packages/ || true
+         cp ./dependent-packages/**/*.nupkg ./all-packages/ || true
+         cp ./dependent-packages/**/*.snupkg ./all-packages/ || true
+
+         # Remove duplicate files based on filename
+         cd ./all-packages
+         for file in *.nupkg; do
+           if [ -f "../$file" ]; then
+             echo "Removing duplicate package $file"
+             rm -f "../$file"
+           fi
+         done
+         cd ..
+ 
+         # Push .nupkg files
+         dotnet nuget push './all-packages/*.nupkg' --api-key ${{ secrets.NUGET_API_KEY }} \
+           --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+         # Push .snupkg files if any exist
+         if ls ./all-packages/*.snupkg 1> /dev/null 2>&1; then
+           dotnet nuget push './all-packages/*.snupkg' --api-key ${{ secrets.NUGET_API_KEY }} \
+             --source https://api.nuget.org/v3/index.json --skip-duplicate
+         else
+           echo "No .snupkg files found to push."
+         fi
+
