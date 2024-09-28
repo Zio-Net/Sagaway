@@ -148,8 +148,9 @@ public class SagawayContextManager : ISagawayContextManager
 
     public T ConvertFromBase64<T>(string base64String)
     {
-        var jsonStringEncoded = Encoding.UTF8.GetString(Convert.FromBase64String(base64String));
-        var jsonString = HttpUtility.UrlDecode(jsonStringEncoded);
+        var decodedBase64 = HttpUtility.UrlDecode(base64String);
+        var jsonString = Encoding.UTF8.GetString(Convert.FromBase64String(decodedBase64));
+
         var context = JsonSerializer.Deserialize<T>(jsonString, _jsonSerializerOptions) ??
                       throw new InvalidOperationException("Can't deserialize base64String json content");
 
