@@ -42,8 +42,10 @@ jobs:
           else
             echo "package_version=${version##v}" >> $GITHUB_ENV
           fi
+          echo "package_version=$version" >> $GITHUB_OUTPUT
         else
           echo "package_version=${{ github.event.inputs.package_version }}" >> $GITHUB_ENV
+          echo "package_version=${{ github.event.inputs.package_version }}" >> $GITHUB_OUTPUT
         fi
 
     - name: Restore dependencies
@@ -59,7 +61,7 @@ jobs:
     - name: Upload NuGet Package as Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: independent-packages-${{ replace(matrix.project, '/', '-') }}-${{ github.run_id }}-${{ github.job }}-${{ github.run_attempt }}
+        name: "independent-packages-${{ replace(matrix.project, '/', '-') }}-${{ github.run_id }}-${{ github.job }}-${{ github.run_attempt }}"
         path: '**/*.nupkg'
 
   # Build dependent packages using the locally published packages
@@ -81,6 +83,7 @@ jobs:
     - name: Download Independent Packages
       uses: actions/download-artifact@v4
       with:
+        name: "independent-packages-*"
         path: .
 
     - name: Setup Local NuGet Feed
@@ -107,7 +110,7 @@ jobs:
     - name: Upload Dependent NuGet Packages as Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: dependent-packages-${{ github.run_id }}-${{ github.run_attempt }}
+        name: "dependent-packages-${{ github.run_id }}-${{ github.run_attempt }}"
         path: '**/*.nupkg'
 
   # Publish all packages to NuGet.org
@@ -122,6 +125,7 @@ jobs:
     - name: Download All Packages
       uses: actions/download-artifact@v4
       with:
+        name: "*"
         path: .
 
     - name: Publish NuGet Packages
