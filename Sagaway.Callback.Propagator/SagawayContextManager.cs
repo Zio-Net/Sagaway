@@ -107,17 +107,15 @@ public class SagawayContextManager : ISagawayContextManager
         if (headers == null)
             throw new ArgumentNullException(nameof(headers));
 
-        headers.TryGetValue("x-sagaway-dapr-actor-id", out var actorId);
+        // Create a case-insensitive dictionary based on the provided headers
+        var caseInsensitiveHeaders = new Dictionary<string, string?>(headers, StringComparer.OrdinalIgnoreCase);
 
-        headers.TryGetValue("x-sagaway-dapr-actor-type", out var actorType);
-
-        headers.TryGetValue("x-sagaway-dapr-callback-binding-name", out var callbackBindingName);
-
-        headers.TryGetValue("x-sagaway-dapr-callback-method-name", out var callbackMethodName);
-
-        headers.TryGetValue("x-sagaway-dapr-message-dispatch-time", out var messageDispatchTime);
-
-        headers.TryGetValue("x-sagaway-dapr-custom-metadata", out var customMetadata);
+        caseInsensitiveHeaders.TryGetValue("x-sagaway-dapr-actor-id", out var actorId);
+        caseInsensitiveHeaders.TryGetValue("x-sagaway-dapr-actor-type", out var actorType);
+        caseInsensitiveHeaders.TryGetValue("x-sagaway-dapr-callback-binding-name", out var callbackBindingName);
+        caseInsensitiveHeaders.TryGetValue("x-sagaway-dapr-callback-method-name", out var callbackMethodName);
+        caseInsensitiveHeaders.TryGetValue("x-sagaway-dapr-message-dispatch-time", out var messageDispatchTime);
+        caseInsensitiveHeaders.TryGetValue("x-sagaway-dapr-custom-metadata", out var customMetadata);
 
         return new SagawayContext(actorId, actorType, callbackBindingName, callbackMethodName, messageDispatchTime, customMetadata);
     }
