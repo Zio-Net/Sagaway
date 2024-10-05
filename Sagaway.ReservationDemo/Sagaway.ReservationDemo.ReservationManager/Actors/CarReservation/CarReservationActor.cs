@@ -16,7 +16,7 @@ public class CarReservationActor : DaprActorHost<CarReservationActorOperations>,
     private ReservationInfo? _reservationInfo;
 
     // ReSharper disable once ConvertToPrimaryConstructor
-    public CarReservationActor(ActorHost host, ILogger<CarReservationActor> logger, IServiceProvider? serviceProvider)
+    public CarReservationActor(ActorHost host, ILogger<CarReservationActor> logger, IServiceProvider serviceProvider)
         : base(host, logger, serviceProvider)
     {
         _actorHost = host;

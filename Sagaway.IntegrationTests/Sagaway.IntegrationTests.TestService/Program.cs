@@ -19,7 +19,7 @@ builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
 // Register DaprClient that support Sagaway context propagator
-builder.Services.AddControllers().AddDaprWithSagawayContextPropagator().AddJsonOptions(options =>
+builder.Services.AddDaprWithSagawayContextPropagator().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: false));
@@ -42,7 +42,6 @@ builder.Services.AddOpenTelemetry().WithTracing(tracing =>
 });
 
 builder.Services.AddHealthChecks();
-builder.Services.AddSagawayContextPropagator();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 

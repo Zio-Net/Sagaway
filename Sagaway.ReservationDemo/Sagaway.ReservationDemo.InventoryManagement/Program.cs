@@ -17,7 +17,7 @@ builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
 // Register DaprClient
-builder.Services.AddControllers().AddDapr(b => b.AddSagawayContextPropagator()).AddJsonOptions(options =>
+builder.Services.AddDaprWithSagawayContextPropagator().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: false));
@@ -25,7 +25,6 @@ builder.Services.AddControllers().AddDapr(b => b.AddSagawayContextPropagator()).
 });
 
 builder.Services.AddHealthChecks();
-builder.Services.AddSagawayContextPropagator();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 

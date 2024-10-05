@@ -33,7 +33,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "components", "components", 
 		dapr\components\statestore.yaml = dapr\components\statestore.yaml
 		dapr\components\test-queue.yaml = dapr\components\test-queue.yaml
 		dapr\components\test-response-queue.yaml = dapr\components\test-response-queue.yaml
+		dapr\components\TestActorAQueue.yaml = dapr\components\TestActorAQueue.yaml
+		dapr\components\TestActorBQueue.yaml = dapr\components\TestActorBQueue.yaml
 		dapr\components\testcallback.yaml = dapr\components\testcallback.yaml
+		dapr\components\TestServiceAQueue.yaml = dapr\components\TestServiceAQueue.yaml
+		dapr\components\TestServiceBQueue.yaml = dapr\components\TestServiceBQueue.yaml
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sagaway.IntegrationTests.OrchestrationService", "Sagaway.IntegrationTests\Sagaway.IntegrationTests.OrchestrationService\Sagaway.IntegrationTests.OrchestrationService.csproj", "{EDCC72CE-2288-45E6-B035-1EE8F7342CDD}"
@@ -80,6 +84,22 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "assets", "assets", "{EFADD2
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sagaway.IntegrationTests.TestSubSagaCommunicationService", "Sagaway.IntegrationTests\Sagaway.IntegrationTests.TestSubSagaCommunicationService\Sagaway.IntegrationTests.TestSubSagaCommunicationService.csproj", "{D25065BB-282F-47CD-B2EB-4A2181860E7D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sagaway.Callback.Context", "Sagaway.Callback.Context\Sagaway.Callback.Context.csproj", "{4C1DE625-A727-480C-B9EE-97620C9BA276}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Sagaway.HostRoutingTests", "Sagaway.HostRoutingTests", "{7652B0AF-B802-424B-90B8-AF805EC4258E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sagaway.RoutingTests", "Sagaway.HostRoutingTests\Sagaway.RoutingTests\Sagaway.RoutingTests.csproj", "{AD8E6BE5-5797-47FF-AFE1-92A1D1DE2B01}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sagaway.Routing.TestActorA", "Sagaway.HostRoutingTests\Sagaway.Routing.TestActorA\Sagaway.Routing.TestActorA.csproj", "{DF54C354-6E99-4287-84A6-5CC6E7F92196}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sagaway.Routing.TestActorB", "Sagaway.HostRoutingTests\Sagaway.Routing.TestActorB\Sagaway.Routing.TestActorB.csproj", "{0DD89265-E598-4BD3-9AF4-FC04E9A8978C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sagaway.Routing.TestServiceA", "Sagaway.HostRoutingTests\Sagaway.Routing.TestServiceA\Sagaway.Routing.TestServiceA.csproj", "{A9A3428B-EE11-4C87-A50C-799AC9B20435}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sagaway.Routing.TestServiceB", "Sagaway.HostRoutingTests\Sagaway.Routing.TestServiceB\Sagaway.Routing.TestServiceB.csproj", "{EA659D67-4CD9-46BA-9174-47F777497687}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sagaway.Routing.Tracking", "Sagaway.HostRoutingTests\Sagaway.Routing.Tracking\Sagaway.Routing.Tracking.csproj", "{E41C5F98-181D-4B8A-AB22-BBFED6FB66B6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -147,6 +167,34 @@ Global
 		{D25065BB-282F-47CD-B2EB-4A2181860E7D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D25065BB-282F-47CD-B2EB-4A2181860E7D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D25065BB-282F-47CD-B2EB-4A2181860E7D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4C1DE625-A727-480C-B9EE-97620C9BA276}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4C1DE625-A727-480C-B9EE-97620C9BA276}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4C1DE625-A727-480C-B9EE-97620C9BA276}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4C1DE625-A727-480C-B9EE-97620C9BA276}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AD8E6BE5-5797-47FF-AFE1-92A1D1DE2B01}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AD8E6BE5-5797-47FF-AFE1-92A1D1DE2B01}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AD8E6BE5-5797-47FF-AFE1-92A1D1DE2B01}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AD8E6BE5-5797-47FF-AFE1-92A1D1DE2B01}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DF54C354-6E99-4287-84A6-5CC6E7F92196}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DF54C354-6E99-4287-84A6-5CC6E7F92196}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DF54C354-6E99-4287-84A6-5CC6E7F92196}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DF54C354-6E99-4287-84A6-5CC6E7F92196}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0DD89265-E598-4BD3-9AF4-FC04E9A8978C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0DD89265-E598-4BD3-9AF4-FC04E9A8978C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0DD89265-E598-4BD3-9AF4-FC04E9A8978C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0DD89265-E598-4BD3-9AF4-FC04E9A8978C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A9A3428B-EE11-4C87-A50C-799AC9B20435}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A9A3428B-EE11-4C87-A50C-799AC9B20435}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A9A3428B-EE11-4C87-A50C-799AC9B20435}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A9A3428B-EE11-4C87-A50C-799AC9B20435}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EA659D67-4CD9-46BA-9174-47F777497687}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EA659D67-4CD9-46BA-9174-47F777497687}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EA659D67-4CD9-46BA-9174-47F777497687}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EA659D67-4CD9-46BA-9174-47F777497687}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E41C5F98-181D-4B8A-AB22-BBFED6FB66B6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E41C5F98-181D-4B8A-AB22-BBFED6FB66B6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E41C5F98-181D-4B8A-AB22-BBFED6FB66B6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E41C5F98-181D-4B8A-AB22-BBFED6FB66B6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -158,6 +206,12 @@ Global
 		{568B0B6C-EBF1-4222-A51E-90CF5DA349AF} = {DBBB1856-3CF3-45F6-8284-627DF1BA9AB1}
 		{B962A366-5569-4C6E-AE25-707750522035} = {7D12D337-63BB-43AF-88EB-9AF71921AC6C}
 		{D25065BB-282F-47CD-B2EB-4A2181860E7D} = {DBBB1856-3CF3-45F6-8284-627DF1BA9AB1}
+		{AD8E6BE5-5797-47FF-AFE1-92A1D1DE2B01} = {7652B0AF-B802-424B-90B8-AF805EC4258E}
+		{DF54C354-6E99-4287-84A6-5CC6E7F92196} = {7652B0AF-B802-424B-90B8-AF805EC4258E}
+		{0DD89265-E598-4BD3-9AF4-FC04E9A8978C} = {7652B0AF-B802-424B-90B8-AF805EC4258E}
+		{A9A3428B-EE11-4C87-A50C-799AC9B20435} = {7652B0AF-B802-424B-90B8-AF805EC4258E}
+		{EA659D67-4CD9-46BA-9174-47F777497687} = {7652B0AF-B802-424B-90B8-AF805EC4258E}
+		{E41C5F98-181D-4B8A-AB22-BBFED6FB66B6} = {7652B0AF-B802-424B-90B8-AF805EC4258E}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {27AF5C62-89C5-4AE2-B5DD-7DC1D1DDA605}

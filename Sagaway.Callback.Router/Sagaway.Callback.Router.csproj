@@ -10,14 +10,22 @@
     <Title>Sagaway Callback Router Package</Title>
     <Authors>Alon Fliess</Authors>
     <Company>ZioNet</Company>
-    <Description>The callback router package of the Sagaway Saga Framework. Use by the service that routs the messages back to the Saga host actor</Description>
+    <Description>The callback router package of the Sagaway Saga Framework. Use by the service that routs the messages back to Saga host actor or a dependency injected service</Description>
     <PackageProjectUrl>https://github.com/alonf/Sagaway</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/alonf/Sagaway</RepositoryUrl>
     <EnableNETAnalyzers>True</EnableNETAnalyzers>
     <PackageIcon>assets/package-icon.png</PackageIcon>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <!-- Default version if not overridden -->
+    <UsePackages>false</UsePackages>
+    <!-- Default to false; override in CI/CD or command line -->
   </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <!-- For ASP.NET Core APIs -->
+  </ItemGroup>
 
   <PropertyGroup>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
@@ -40,14 +48,23 @@
     </None>
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Dapr.Client" Version="1.14.0" />
-        <PackageReference Include="Dapr.Actors.AspNetCore" Version="1.14.0" />
-        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
-          <PrivateAssets>all</PrivateAssets>
-          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
-        <PackageReference Include="Polly" Version="8.4.1" />
+  <!-- Conditionally include Project References -->
+  <ItemGroup Condition="'$(UsePackages)' == 'false'">
+    <ProjectReference Include="..\Sagaway.Callback.Context\Sagaway.Callback.Context.csproj" />
   </ItemGroup>
+
+  <!-- Conditionally include NuGet Package References -->
+  <ItemGroup Condition="'$(UsePackages)' == 'true'">
+    <PackageReference Include="Sagaway.Callback.Context" Version="$(PackageVersion)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
+        <PrivateAssets>all</PrivateAssets>
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      </PackageReference>
+      <PackageReference Include="Polly" Version="8.4.2" />
+  </ItemGroup>
+
 
 </Project>

@@ -10,13 +10,16 @@
     <Title>Sagaway Main Package</Title>
     <Authors>Alon Fliess</Authors>
     <Company>ZioNet</Company>
-    <Description>The callback propagator package of the Sagaway Saga Framework. Use by a participant remote service to propagate the context</Description>
+    <Description>The callback propagator package of the Sagaway Saga Framework. Used by a participant remote service to propagate the context</Description>
     <PackageProjectUrl>https://github.com/alonf/Sagaway</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/alonf/Sagaway</RepositoryUrl>
     <EnableNETAnalyzers>True</EnableNETAnalyzers>
     <PackageIcon>assets/package-icon.png</PackageIcon>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <!-- Default version if not overridden -->
+    <UsePackages>false</UsePackages>
+    <!-- Default to false; override in CI/CD or command line -->
   </PropertyGroup>
 
   <PropertyGroup>
@@ -40,6 +43,16 @@
     </None>
   </ItemGroup>
 
+  <!-- Conditionally include Project References -->
+  <ItemGroup Condition="'$(UsePackages)' == 'false'">
+    <ProjectReference Include="..\Sagaway.Callback.Context\Sagaway.Callback.Context.csproj" />
+  </ItemGroup>
+
+  <!-- Conditionally include NuGet Package References -->
+  <ItemGroup Condition="'$(UsePackages)' == 'true'">
+    <PackageReference Include="Sagaway.Callback.Context" Version="$(PackageVersion)" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Dapr.AspNetCore" Version="1.14.0" />
     <PackageReference Include="Dapr.Client" Version="1.14.0" />
@@ -48,4 +61,6 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
+
+
 </Project>

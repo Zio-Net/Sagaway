@@ -1,0 +1,6 @@
+@Sagaway.Routing.TestServiceA_HostAddress = http://localhost:5239
+
+GET {{Sagaway.Routing.TestServiceA_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

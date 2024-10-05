@@ -9,7 +9,7 @@ namespace Sagaway.IntegrationTests.TestSubSagaCommunicationService;
 public class MainSagaActor : DaprActorHost<MainSagaActorOperations>, IMainSagaActor
 {
     // ReSharper disable once ConvertToPrimaryConstructor
-    public MainSagaActor(ActorHost host, ILogger<MainSagaActor> logger, IServiceProvider? serviceProvider)
+    public MainSagaActor(ActorHost host, ILogger<MainSagaActor> logger, IServiceProvider serviceProvider)
         : base(host, logger, serviceProvider)
     {
     }

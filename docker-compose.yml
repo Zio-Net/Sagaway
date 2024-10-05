@@ -291,6 +291,91 @@ services:
       - testsubsagacommunicationservice
     network_mode: "service:testsubsagacommunicationservice"
 
+
+  ### TestActorA Service ###
+  testactora:
+    image: ${DOCKER_REGISTRY-}sagawaytestactora
+    build:
+      context: .
+      dockerfile: Sagaway.HostRoutingTests/Sagaway.Routing.TestActorA/Dockerfile
+    networks:
+      - sagaway-network
+    ports:
+      - "12100:80"
+    environment:
+      - ACTOR_TYPE=TestActorA
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://testactora:80
+      - AZURE__SignalR__ConnectionString=Endpoint=http://localhost:8888;Port=8888;AccessKey=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGH;Version=1.0;
+    depends_on:
+      - rabbitmq
+      - redis
+      - zipkin
+      - placement
+
+  testactora-dapr:
+    image: "daprio/daprd:1.14.4"
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 10
+        window: 120s
+    command: ["./daprd",
+     "-app-id", "testactora",
+     "-app-port", "80",
+     "-placement-host-address", "placement:50006",
+     "-dapr-http-port", "3500",
+     "-resources-path", "/dapr/components",
+     "-config", "/dapr/config.yaml"]
+    volumes:
+        - "./dapr/:/dapr"
+    depends_on:
+      - testactora
+    network_mode: "service:testactora"
+
+ ### TestServiceA Service ###
+  testservicea:
+    image: ${DOCKER_REGISTRY-}sagawaytestservicea
+    build:
+      context: .
+      dockerfile: Sagaway.HostRoutingTests/Sagaway.Routing.TestServiceA/Dockerfile
+    networks:
+      - sagaway-network
+    ports:
+      - "12101:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://testservicea:80
+      - AZURE__SignalR__ConnectionString=Endpoint=http://localhost:8888;Port=8888;AccessKey=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGH;Version=1.0;
+    depends_on:
+      - rabbitmq
+      - redis
+      - zipkin
+      - placement
+
+  testservicea-dapr:
+    image: "daprio/daprd:1.14.4"
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 10
+        window: 120s
+    command: ["./daprd",
+     "-app-id", "testservicea",
+     "-app-port", "80",
+     "-placement-host-address", "placement:50006",
+     "-dapr-http-port", "3500",
+     "-resources-path", "/dapr/components",
+     "-config", "/dapr/config.yaml"]
+    volumes:
+        - "./dapr/:/dapr"
+    depends_on:
+      - testservicea
+    network_mode: "service:testservicea"
+
+
 ############################
 # RabitMQ
 ############################

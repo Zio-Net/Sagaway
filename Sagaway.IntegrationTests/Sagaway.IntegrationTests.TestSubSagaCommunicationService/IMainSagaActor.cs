@@ -1,5 +1,5 @@
-using Dapr.Actors;
-using Sagaway.Callback.Router;
+using Sagaway.Hosts;
+using Sagaway.Hosts.DaprActorHost;
 
 namespace Sagaway.IntegrationTests.TestSubSagaCommunicationService;
 
