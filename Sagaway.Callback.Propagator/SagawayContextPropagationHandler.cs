@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Sagaway.Callback.Context;
 
@@ -11,21 +12,21 @@ namespace Sagaway.Callback.Propagator;
 /// </summary>
 public class SagawayContextPropagationHandler : DelegatingHandler
 {
-    private readonly ILogger<SagawayContextPropagationHandler> _logger;
     private readonly IServiceProvider _serviceProvider;
+    private readonly ILogger<SagawayContextPropagationHandler> _logger;
 
     // ReSharper disable once ConvertToPrimaryConstructor
     /// <summary>
     /// Initializes a new instance of the <see cref="SagawayContextPropagationHandler"/> class.
     /// </summary>
+    /// <param name="serviceProvider">The service provider</param>
     /// <param name="logger">The logger used to log information and errors.</param>
-    /// <param name="serviceProvider">The service provider to get the context manager that responsible for managing and retrieving Sagaway context.</param>
     public SagawayContextPropagationHandler(
-        ILogger<SagawayContextPropagationHandler> logger,
-        IServiceProvider serviceProvider)
+        IServiceProvider serviceProvider,
+        ILogger<SagawayContextPropagationHandler> logger)
     {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _serviceProvider = serviceProvider;
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     /// <summary>
@@ -39,11 +40,19 @@ public class SagawayContextPropagationHandler : DelegatingHandler
     {
         _logger.LogInformation("Propagating Sagaway context");
 
-        var sagawayContextManager = _serviceProvider.GetRequiredService<ISagawayContextManager>();
-        //If the request does not contain the sagaway context header (set by the Dapr InvokeBindingAsync downstream call, we assume an upstream call)
-        if (!request.Headers.Contains(sagawayContextManager.SagaWayContextHeaderKeyName))
+        var httpContextAccessor = _serviceProvider.GetRequiredService<IHttpContextAccessor>();
+        var sagawayContextManager = httpContextAccessor.HttpContext?.RequestServices.GetService<ISagawayContextManager>();
+        
+        if (sagawayContextManager is null)
         {
-            _logger.LogInformation("Sagaway context header is not found, Add Sagaway context header to the downstream call.");
+            _logger.LogWarning("Sagaway context manager is not found in the request services.");
+            return await base.SendAsync(request, cancellationToken);
+        }
+
+        //If the request does not contain the sagaway context header (set by the Dapr InvokeBindingAsync downstream call, we assume an upstream call)
+        //if (!request.Headers.Contains(sagawayContextManager.SagaWayContextHeaderKeyName))
+        //{
+        _logger.LogInformation("Sagaway context header is not found, Add Sagaway context header to the downstream call.");
             var sagawayContext = sagawayContextManager.GetUpStreamCallContext();
             
             foreach (var headers in sagawayContext)
@@ -54,7 +63,7 @@ public class SagawayContextPropagationHandler : DelegatingHandler
                 }
                 request.Headers.Add(headers.Key, headers.Value);
             }
-        }
+        //}
 
         return await base.SendAsync(request, cancellationToken);
     }

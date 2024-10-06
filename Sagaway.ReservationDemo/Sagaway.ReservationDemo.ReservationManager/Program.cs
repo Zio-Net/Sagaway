@@ -227,7 +227,6 @@ app.MapPost("/cancel", async (
 
 
 app.MapHealthChecks("/healthz");
-app.MapControllers();
 app.MapSubscribeHandler();
 app.UseRouting();
 

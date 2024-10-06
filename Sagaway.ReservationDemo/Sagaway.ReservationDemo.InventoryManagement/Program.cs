@@ -19,9 +19,9 @@ builder.Logging.AddDebug();
 // Register DaprClient
 builder.Services.AddDaprWithSagawayContextPropagator().AddJsonOptions(options =>
 {
-    options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: false));
-    options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+    options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: false));
+    options.SerializerOptions.PropertyNameCaseInsensitive = true;
 });
 
 builder.Services.AddHealthChecks();
@@ -277,7 +277,6 @@ app.MapGet("/reservation-state/{orderId}", async (
 
 app.MapHealthChecks("/healthz");
 app.UseSagawayContextPropagator();
-app.MapControllers();
 app.MapSubscribeHandler();
 app.UseRouting();
 

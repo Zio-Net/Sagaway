@@ -188,7 +188,6 @@ app.MapPost("/negotiate", async (
 
 app.UseCors("AllowAll");
 
-app.MapControllers();
 app.MapSubscribeHandler();
 app.UseRouting();
 app.MapActorsHandlers();

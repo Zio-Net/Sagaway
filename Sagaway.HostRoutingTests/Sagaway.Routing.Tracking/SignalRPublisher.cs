@@ -1,6 +1,5 @@
 using Dapr.Client;
 using Microsoft.Extensions.Logging;
-using System.Text.Json;
 
 namespace Sagaway.Routing.Tracking;
 
@@ -8,11 +7,6 @@ public class SignalRPublisher(ILogger<SignalRPublisher> logger, DaprClient daprC
 {
     public async Task PublishMessageToSignalRAsync(string testName, string? callChainResult)
     {
-        var jsonSerializationOptions = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        };
-
         var argument = new Argument
         {
             Sender = "dapr",

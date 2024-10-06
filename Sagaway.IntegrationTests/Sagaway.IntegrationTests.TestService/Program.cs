@@ -21,9 +21,9 @@ builder.Logging.AddDebug();
 // Register DaprClient that support Sagaway context propagator
 builder.Services.AddDaprWithSagawayContextPropagator().AddJsonOptions(options =>
 {
-    options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: false));
-    options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+    options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: false));
+    options.SerializerOptions.PropertyNameCaseInsensitive = true;
 });
 
 
@@ -193,7 +193,6 @@ app.MapGet("/test/{callId}", async ([FromRoute] Guid callId, [FromServices] Dapr
 
 app.MapHealthChecks("/healthz");
 app.UseSagawayContextPropagator();
-app.MapControllers();
 app.MapSubscribeHandler();
 app.UseRouting();
 

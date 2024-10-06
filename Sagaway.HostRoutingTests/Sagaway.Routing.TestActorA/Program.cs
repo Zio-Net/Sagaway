@@ -20,9 +20,9 @@ builder.Logging.AddDebug();
 // Register DaprClient
 builder.Services.AddDaprWithSagawayContextPropagator().AddJsonOptions(options =>
 {
-    options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: false));
-    options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+    options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: false));
+    options.SerializerOptions.PropertyNameCaseInsensitive = true;
 });
 
 builder.Services.AddActors(options =>
@@ -88,7 +88,6 @@ app.UseSagawayCallbackRouter("TestActorAQueue", async (
 
 
 app.MapHealthChecks("/healthz");
-app.MapControllers();
 app.MapSubscribeHandler();
 app.UseRouting();
 

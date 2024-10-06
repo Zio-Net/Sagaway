@@ -26,7 +26,41 @@
         "testservice-dapr": "StartWithoutDebugging",
         "signalr": "StartWithoutDebugging",
         "testsubsagacommunicationservice": "StartDebugging",
-        "testsubsagacommunicationservice-dapr": "StartWithoutDebugging"
+        "testsubsagacommunicationservice-dapr": "StartWithoutDebugging",
+        "testactora": "StartDebugging",
+        "testactora-dapr": "StartWithoutDebugging",
+        "testservicea": "StartDebugging",
+        "testservicea-dapr": "StartWithoutDebugging"
+      }
+    },
+    "CallChainTests": {
+      "commandName": "DockerCompose",
+      "commandVersion": "1.0",
+      "serviceActions": {
+        "billing-management": "DoNotStart",
+        "billing-management-dapr": "DoNotStart",
+        "booking-management": "DoNotStart",
+        "booking-management-dapr": "DoNotStart",
+        "dapr-dashboard": "StartWithoutDebugging",
+        "inventory-management": "DoNotStart",
+        "inventory-management-dapr": "DoNotStart",
+        "orchestrationservice": "DoNotStart",
+        "orchestrationservice-dapr": "DoNotStart",
+        "placement": "StartWithoutDebugging",
+        "rabbitmq": "StartWithoutDebugging",
+        "redis": "StartWithoutDebugging",
+        "reservation-manager": "DoNotStart",
+        "reservation-manager-dapr": "DoNotStart",
+        "signalr": "StartWithoutDebugging",
+        "testactora": "StartDebugging",
+        "testactora-dapr": "StartWithoutDebugging",
+        "testservice": "StartDebugging",
+        "testservicea": "StartDebugging",
+        "testservicea-dapr": "StartWithoutDebugging",
+        "testservice-dapr": "StartWithoutDebugging",
+        "testsubsagacommunicationservice": "DoNotStart",
+        "testsubsagacommunicationservice-dapr": "DoNotStart",
+        "zipkin": "StartWithoutDebugging"
       }
     }
   }

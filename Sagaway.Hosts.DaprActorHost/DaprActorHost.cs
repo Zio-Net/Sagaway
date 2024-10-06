@@ -443,6 +443,27 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     }
 
     /// <summary>
+    /// Retrieves the binding name of the caller service from the Sagaway context.
+    /// </summary>
+    /// <remarks>
+    /// This method accesses the Sagaway context via <see cref="ISagawayContextManager"/> 
+    /// to extract the caller service's binding name.
+    /// </remarks>
+    /// <returns>
+    /// The binding name of the caller service if available; otherwise, <c>null</c>.
+    /// </returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown if the <see cref="ISagawayContextManager"/> service is not registered.
+    /// </exception>
+    protected string? GetCallerServiceBindingName()
+    {
+        //get the caller service name from the context
+        var sagawayContextManager = _serviceProvider.GetRequiredService<ISagawayContextManager>();
+        var callerContext = sagawayContextManager.GetCallerContext();
+        return callerContext?.CallbackBindingName;
+    }
+
+    /// <summary>
     /// Return the saga log up to this point
     /// </summary>
     public string SagaLog => Saga?.SagaLog ?? "The Saga object is null";

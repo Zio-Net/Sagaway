@@ -257,7 +257,6 @@ public interface ICarReservationActor : IActor
 
 ```csharp
 app.MapHealthChecks("/healthz");
-app.MapControllers();
 app.MapSubscribeHandler();
 app.UseRouting();
 ```

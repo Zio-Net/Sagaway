@@ -101,7 +101,6 @@ app.MapGet("/billing-status/{reservationId}", ([FromRoute] Guid reservationId, [
     .WithOpenApi();
 
 app.MapHealthChecks("/healthz");
-app.MapControllers();
 app.MapSubscribeHandler();
 app.UseRouting();
 

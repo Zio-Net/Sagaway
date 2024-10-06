@@ -92,13 +92,13 @@ public class TestActorA : DaprActorHost<TestActorOperations>, ITestActorA
 
         if (string.IsNullOrEmpty(nextCall)) //no more downstream calls
         {
-            await DaprClient.InvokeBindingAsync(GetCallbackBindingName(), "create", _callChainInfo);
+            await DaprClient.InvokeBindingAsync(GetCallerServiceBindingName(), "create", _callChainInfo);
             return;
         }
 
         //else calling downstream
 
-        await DaprClient.InvokeBindingAsync(nextCall + "queue", "create", _callChainInfo,
+        await DaprClient.InvokeBindingAsync(nextCall + "Queue", "create", _callChainInfo,
             GetCallbackMetadata(nameof(OnResultAsync)));
 
     }

@@ -145,7 +145,6 @@ app.MapPost("/run-test", async (
 
 app.UseCors("AllowAll");
 
-app.MapControllers();
 app.MapSubscribeHandler();
 app.UseRouting();
 app.MapActorsHandlers();
