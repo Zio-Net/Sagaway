@@ -28,9 +28,9 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     where TEOperations : Enum
 {
     private readonly ILogger _logger;
-    private readonly ISagawayContextManager _sagawayContextManager;
     private readonly ITelemetryAdapter _telemetryAdapter;
     private readonly AsyncRetryPolicy _retryPolicy;
+    private readonly IServiceProvider _serviceProvider;
 
     /// <summary>
     /// Create a Dapr Actor host for the saga
@@ -46,10 +46,9 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     {
         ActorHost = host;
         _logger = logger;
-        _sagawayContextManager = serviceProvider.GetRequiredService<ISagawayContextManager>();
+        _serviceProvider = serviceProvider;
         _telemetryAdapter = serviceProvider.GetService<ITelemetryAdapter>() ?? new NullTelemetryAdapter();
         _retryPolicy = Policy.Handle<Exception>().WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
-        DaprClient = serviceProvider.GetRequiredService<DaprClient>();
     }
 
     /// <summary>
@@ -142,7 +141,7 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     /// Gets the Dapr client used for interacting with Dapr services such as invoking bindings, publishing events, 
     /// and performing state management within the actor.
     /// </summary>
-    protected DaprClient DaprClient { get; }
+    protected DaprClient DaprClient => _serviceProvider.GetRequiredService<DaprClient>();
 
 
     /// <summary>
@@ -436,7 +435,9 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
         var currentContext = SagawayContext.Create(ActorHost.Id.GetId(), ActorHost.ActorTypeInfo.ActorTypeName,
             GetCallbackBindingName(), callbackMethodName, customMetadata);
 
-        var callbackMetadata = _sagawayContextManager.GetDownStreamCallContext(currentContext);
+        var sagawayContextManager = _serviceProvider.GetRequiredService<ISagawayContextManager>();
+
+        var callbackMetadata = sagawayContextManager.GetDownStreamCallContext(currentContext);
 
         return callbackMetadata;
     }
@@ -527,7 +528,9 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
 
         var calleeActorContext = SagawayContext.Create(newActorId, actorTypeName, GetCallbackBindingName(), nameof(ProcessASubSagaCallAsync), invocationContext);
 
-        var callbackMetadata = _sagawayContextManager.GetDownStreamCallContext(currentContext, calleeActorContext);
+        var sagawayContextManager = _serviceProvider.GetRequiredService<ISagawayContextManager>();
+
+        var callbackMetadata = sagawayContextManager.GetDownStreamCallContext(currentContext, calleeActorContext);
 
 
         _logger.LogInformation("Dispatching sub-saga invocation for method {MethodName}", methodName);

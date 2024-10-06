@@ -78,7 +78,7 @@ app.UseSagawayCallbackRouter("TestActorAQueue", async (
         [FromServices] IActorProxyFactory actorProxyFactory,
         [FromServices] ILogger<Program> logger) =>
 {
-    logger.LogInformation("Received test request: {request}", request);
+        logger.LogInformation("Received test request: {request}", request);
 
     var actorAProxy = actorProxyFactory.CreateActorProxy<ITestActorA>(new ActorId("TestActorA_" + Guid.NewGuid()), "TestActorA");
     await actorAProxy.InvokeAsync(request);

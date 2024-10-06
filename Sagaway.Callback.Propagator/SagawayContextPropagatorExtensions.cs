@@ -81,10 +81,9 @@ public static class SagawayContextPropagatorExtensions
         {
             var serviceProvider = services.BuildServiceProvider();
             var logger = serviceProvider.GetRequiredService<ILogger<SagawayContextPropagationHandler>>();
-            var sagawayContextManager = serviceProvider.GetRequiredService<ISagawayContextManager>();
 
             // Wrap the provided HttpMessageHandler (or create default) with SagawayContextPropagationHandler
-            var propagationHandler = new SagawayContextPropagationHandler(logger, sagawayContextManager)
+            var propagationHandler = new SagawayContextPropagationHandler(logger, serviceProvider)
             {
                 InnerHandler = innerHandler // Use the user's provided handler or a default one
             };
