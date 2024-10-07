@@ -13,18 +13,23 @@ public class HeaderPropagationMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<HeaderPropagationMiddleware> _logger;
-    
+    private readonly ISagawayContextManager _sagawayContextManager;
+
+
     // ReSharper disable once ConvertToPrimaryConstructor
     /// <summary>
     /// Initializes a new instance of the <see cref="HeaderPropagationMiddleware"/> class.
     /// </summary>
     /// <param name="next">The next middleware in the pipeline.</param>
+    /// <param name="sagawayContextManager">The Sagaway context manager</param>
     /// <param name="logger">Logger instance for logging information and warnings.</param>
     /// <exception cref="ArgumentNullException">Thrown if any of the parameters are null.</exception>
     public HeaderPropagationMiddleware(RequestDelegate next,
+        ISagawayContextManager sagawayContextManager,
         ILogger<HeaderPropagationMiddleware> logger)
     {
         _next = next ?? throw new ArgumentNullException(nameof(next));
+        _sagawayContextManager = sagawayContextManager ?? throw new ArgumentNullException(nameof(sagawayContextManager));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -45,14 +50,11 @@ public class HeaderPropagationMiddleware
         if (context == null)
             throw new ArgumentNullException(nameof(context));
 
-        // Resolve the ISagawayContextManager within the request scope
-        var sagawayContextManager = context.RequestServices.GetRequiredService<ISagawayContextManager>();
-
         try
         {
-            CallbackBindingName = sagawayContextManager.SagaWayContextHeaderKeyName;
+            CallbackBindingName = _sagawayContextManager.SagaWayContextHeaderKeyName;
 
-            if (!context.Request.Headers.TryGetValue(sagawayContextManager.SagaWayContextHeaderKeyName,
+            if (!context.Request.Headers.TryGetValue(_sagawayContextManager.SagaWayContextHeaderKeyName,
                     out var sagawayCallContextValues))
             {
                 _logger.LogDebug("No Sagaway context header found in the request.");
@@ -69,7 +71,7 @@ public class HeaderPropagationMiddleware
             }
             
             _logger.LogInformation("Propagating context from header: {SagaWayContextHeader}", sagawayCallContext);
-            sagawayContextManager.SetContextFromIncomingRequest(sagawayCallContext);
+            _sagawayContextManager.SetContextFromIncomingRequest(sagawayCallContext);
         }
         finally
         {

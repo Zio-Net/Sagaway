@@ -14,7 +14,12 @@ namespace Sagaway.Callback.Context;
 public class SagawayContextManager : ISagawayContextManager
 {
     // ImmutableStack to manage multiple context layers for nested or downstream service calls.
-    private ImmutableStack<SagawayContext> _contextStack = ImmutableStack<SagawayContext>.Empty;
+    private readonly AsyncLocal<ImmutableStack<SagawayContext>> _contextStackAsyncLocal = new();
+
+    private ImmutableStack<SagawayContext> ContextStack =>
+        _contextStackAsyncLocal.Value ??
+        (_contextStackAsyncLocal.Value = ImmutableStack<SagawayContext>.Empty);
+
     private const string SagaWayContextHeader = "x-sagaway-dapr-context";
     private const string SagawayMessageDispatchTimeHeader = "x-sagaway-dapr-message-dispatch-time";
     private readonly string _callerId;
@@ -92,13 +97,13 @@ public class SagawayContextManager : ISagawayContextManager
     /// <returns>The caller's <see cref="SagawayContext"/> or null if the stack is empty.</returns>
     public SagawayContext? GetCallerContext()
     {
-        if (_contextStack.IsEmpty)
+        if (ContextStack.IsEmpty)
         {
             _logger.LogWarning("Context stack is empty. No caller context available.");
             return null;
         }
 
-        var callerContext = _contextStack.Peek();
+        var callerContext = ContextStack.Peek();
         _logger.LogInformation("Retrieved caller context: {CallerId}", callerContext.CallerId);
         return callerContext;
     }
@@ -130,7 +135,7 @@ public class SagawayContextManager : ISagawayContextManager
     {
         _logger.LogInformation("Cloning and adding new context layers for downstream call.");
 
-        var clonedStack = _contextStack;
+        var clonedStack = ContextStack;
 
         foreach (var newContext in newContexts)
         {
@@ -153,7 +158,7 @@ public class SagawayContextManager : ISagawayContextManager
     {
         _logger.LogInformation("Removing top context layer and cloning the stack.");
 
-        var clonedStack = _contextStack.Pop();
+        var clonedStack = ContextStack.Pop();
 
         var serializedStack = SerializeContextStack(clonedStack);
         _logger.LogDebug("Context stack after removing one layer: {SerializedStack}", serializedStack);
@@ -169,7 +174,7 @@ public class SagawayContextManager : ISagawayContextManager
     private string SerializeContextStack(ImmutableStack<SagawayContext>? stack = null)
     {
         // If no stack is provided, use the current stack
-        stack ??= _contextStack;
+        stack ??= ContextStack;
 
         _logger.LogDebug("Serializing context stack...");
 
@@ -210,7 +215,7 @@ public class SagawayContextManager : ISagawayContextManager
         var jsonContextStack = Encoding.UTF8.GetString(decompressedBytes);
 
         // Deserialize the JSON back to the ImmutableStack
-        _contextStack = JsonSerializer.Deserialize<ImmutableStack<SagawayContext>>(jsonContextStack, _jsonSerializerOptions)
+        _contextStackAsyncLocal.Value = JsonSerializer.Deserialize<ImmutableStack<SagawayContext>>(jsonContextStack, _jsonSerializerOptions)
                         ?? throw new InvalidOperationException("Failed to deserialize the context stack.");
 
         _logger.LogDebug("Context stack successfully deserialized and decompressed.");

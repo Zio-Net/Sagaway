@@ -1,10 +1,8 @@
 ﻿using Dapr.Client;
 using Grpc.Net.Client;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Http.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Options;
 using Sagaway.Callback.Context;
 
 namespace Sagaway.Callback.Propagator;
@@ -32,69 +30,70 @@ public static class SagawayContextPropagatorExtensions
     /// This includes setting up context managers, metadata providers, and dynamic callback invokers.
     /// </summary>
     /// <param name="services">The service collection to add the context propagators to.</param>
+    /// <param name="httpClientProvider">A function that can configure and provide the http client used by Dapr</param>
     /// <returns>The services instance to add additional services.</returns>
-    public static IServiceCollection AddDaprWithSagawayContextPropagator(this IServiceCollection services)
+    public static IServiceCollection AddDaprWithSagawayContextPropagator(this IServiceCollection services, 
+        Func<HttpMessageHandler, HttpClient>? httpClientProvider = null)
     {
-        services.AddHttpContextAccessor();
-
-        services.AddScoped<ISagawayContextManager, SagawayContextManager>();
+        services.AddSingleton<ISagawayContextManager, SagawayContextManager>();
 
         //add the caller id provider if the user had not provided one
-        services.TryAddScoped<ISagawayCallerIdProvider, SagawayCallerIdProvider>();
+        services.TryAddSingleton<ISagawayCallerIdProvider, SagawayCallerIdProvider>();
         
-        services.AddScoped<ISagawayCallbackMetadataProvider, SagawayCallbackMetadataProvider>();
+        services.AddSingleton<ISagawayCallbackMetadataProvider, SagawayCallbackMetadataProvider>();
 
         // Conditionally register ISagawayCallbackInvoker using dynamic to avoid direct package dependency
         RegisterCallbackInvokerIfExists(services);
 
 
         //for backward compatibility
-        services.AddScoped<ICallbackBindingNameProvider>(provider =>
+        services.AddSingleton<ICallbackBindingNameProvider>(provider =>
         {
             var callbackMetadataProvider = provider.GetRequiredService<ISagawayCallbackMetadataProvider>();
             return callbackMetadataProvider;
         });
 
-        services.AddScoped<ISagawayContextInformationProvider>(provider =>
+        services.AddSingleton<ISagawayContextInformationProvider>(provider =>
         {
             var callbackMetadataProvider = provider.GetRequiredService<ISagawayCallbackMetadataProvider>();
             return (callbackMetadataProvider as ISagawayContextInformationProvider)!;
         });
 
         // Register the SagawayContextPropagationHandler as a transient service
-        services.AddTransient<SagawayContextPropagationHandler>();
+        services.AddSingleton<SagawayContextPropagationHandler>();
 
         // Configure HttpClient with the SagawayContextPropagationHandler
         services.AddHttpClient("SagawayHttpClient")
             .AddHttpMessageHandler<SagawayContextPropagationHandler>();
 
-
         // Add Dapr client and configure it to use the named HttpClient
-        services.AddScoped<DaprClient>(provider =>
-        {
-            var daprClientBuilder = new DaprClientBuilder();
-
-            // Allow users to customize the DaprClientBuilder here
-            var jsonOptions = provider.GetRequiredService<IOptions<JsonOptions>>().Value;
-            daprClientBuilder.UseJsonSerializationOptions(jsonOptions.SerializerOptions);
-
-            // Get the named HttpClient from IHttpClientFactory
-            var httpClientFactory = provider.GetRequiredService<IHttpClientFactory>();
-            var httpClient = httpClientFactory.CreateClient("SagawayHttpClient");
-
-            // Configure DaprClientBuilder to use GrpcChannelOptions with the custom HttpClient
-            daprClientBuilder.UseGrpcChannelOptions(new GrpcChannelOptions
-            {
-                HttpClient = httpClient
-            });
-
-            return daprClientBuilder.Build();
-        });
-
-
+        services.AddDaprClient((provider, builder) => AddSagawayContextPropagator(provider, builder, httpClientProvider));
+        
         return services;
     }
 
+    private static void AddSagawayContextPropagator(IServiceProvider serviceProvider, DaprClientBuilder builder,
+        Func<HttpMessageHandler, HttpClient>? httpClientProvider = null)
+    {
+        httpClientProvider ??= _ =>
+        {
+            // Create an instance of the HttpClientHandler or your specific inner handler here
+            var innerHandler = new HttpClientHandler();
+
+            // Ensure SagawayContextPropagationHandler is properly chained
+            var propagationHandler = new SagawayContextPropagationHandler(serviceProvider)
+            {
+                InnerHandler = innerHandler
+            };
+            return new HttpClient(propagationHandler);
+        };
+
+        //add http middleware to propagate sagaway context
+        builder.UseGrpcChannelOptions(new GrpcChannelOptions()
+        {
+            HttpClient = httpClientProvider(new SagawayContextPropagationHandler(serviceProvider))
+        });
+    }
     /// <summary>
     /// Dynamically registers the `ISagawayCallbackInvoker` and its implementation if they exist
     /// in the loaded assemblies. This avoids direct package dependency while allowing the invoker to be registered.
@@ -117,7 +116,7 @@ public static class SagawayContextPropagatorExtensions
         {
             // Use reflection to call TryAddScoped<TService, TImplementation>
             var method = typeof(ServiceCollectionDescriptorExtensions)
-                .GetMethod(nameof(ServiceCollectionDescriptorExtensions.TryAddScoped), [typeof(IServiceCollection), typeof(Type), typeof(Type)
+                .GetMethod(nameof(ServiceCollectionDescriptorExtensions.TryAddSingleton), [typeof(IServiceCollection), typeof(Type), typeof(Type)
                 ]);
 
             if (method != null)
