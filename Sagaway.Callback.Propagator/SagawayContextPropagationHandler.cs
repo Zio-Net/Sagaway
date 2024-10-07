@@ -50,9 +50,9 @@ public class SagawayContextPropagationHandler : DelegatingHandler
         }
 
         //If the request does not contain the sagaway context header (set by the Dapr InvokeBindingAsync downstream call, we assume an upstream call)
-        //if (!request.Headers.Contains(sagawayContextManager.SagaWayContextHeaderKeyName))
-        //{
-        _logger.LogInformation("Sagaway context header is not found, Add Sagaway context header to the downstream call.");
+        if (!request.Headers.Contains(sagawayContextManager.SagaWayContextHeaderKeyName))
+        {
+            _logger.LogInformation("Sagaway context header is not found, Add Sagaway context header to the downstream call.");
             var sagawayContext = sagawayContextManager.GetUpStreamCallContext();
             
             foreach (var headers in sagawayContext)
@@ -63,7 +63,7 @@ public class SagawayContextPropagationHandler : DelegatingHandler
                 }
                 request.Headers.Add(headers.Key, headers.Value);
             }
-        //}
+        }
 
         return await base.SendAsync(request, cancellationToken);
     }

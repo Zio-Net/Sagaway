@@ -179,8 +179,11 @@ public class SagawayContextManager : ISagawayContextManager
 
         // Compress the serialized JSON
         using var outputStream = new MemoryStream();
-        using var gzipStream = new GZipStream(outputStream, CompressionMode.Compress);
-        gzipStream.Write(uncompressedBytes, 0, uncompressedBytes.Length);
+
+        using (var gzipStream = new GZipStream(outputStream, CompressionMode.Compress, leaveOpen: true))
+        {
+            gzipStream.Write(uncompressedBytes, 0, uncompressedBytes.Length);
+        }
 
         var compressedBytes = outputStream.ToArray();
         return Convert.ToBase64String(compressedBytes);

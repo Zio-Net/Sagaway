@@ -6,6 +6,6 @@ public static class TrackingRegistration
 {
     public static void RegisterTracking(this IServiceCollection services)
     {
-        services.AddSingleton<ISignalRPublisher, SignalRPublisher>();
+        services.AddScoped<ISignalRPublisher, SignalRPublisher>();
     }
 }

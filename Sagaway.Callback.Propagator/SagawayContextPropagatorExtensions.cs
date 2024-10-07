@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Sagaway.Callback.Context;
 
@@ -33,10 +32,8 @@ public static class SagawayContextPropagatorExtensions
     /// This includes setting up context managers, metadata providers, and dynamic callback invokers.
     /// </summary>
     /// <param name="services">The service collection to add the context propagators to.</param>
-    /// <param name="httpClientProvider">Optional function to provide a custom <see cref="HttpClient"/> factory.</param>
-    /// <returns>The MVC builder for chaining additional service configurations.</returns>
-    public static IServiceCollection AddDaprWithSagawayContextPropagator(this IServiceCollection services,
-        Func<HttpMessageHandler, HttpClient>? httpClientProvider = null)
+    /// <returns>The services instance to add additional services.</returns>
+    public static IServiceCollection AddDaprWithSagawayContextPropagator(this IServiceCollection services)
     {
         services.AddHttpContextAccessor();
 
@@ -64,47 +61,38 @@ public static class SagawayContextPropagatorExtensions
             return (callbackMetadataProvider as ISagawayContextInformationProvider)!;
         });
 
-        services.AddDaprClient((provider, daprClientBuilder) =>
-            AddSagawayContextPropagator(daprClientBuilder, provider, httpClientProvider));
+        // Register the SagawayContextPropagationHandler as a transient service
+        services.AddTransient<SagawayContextPropagationHandler>();
+
+        // Configure HttpClient with the SagawayContextPropagationHandler
+        services.AddHttpClient("SagawayHttpClient")
+            .AddHttpMessageHandler<SagawayContextPropagationHandler>();
+
+
+        // Add Dapr client and configure it to use the named HttpClient
+        services.AddScoped<DaprClient>(provider =>
+        {
+            var daprClientBuilder = new DaprClientBuilder();
+
+            // Allow users to customize the DaprClientBuilder here
+            var jsonOptions = provider.GetRequiredService<IOptions<JsonOptions>>().Value;
+            daprClientBuilder.UseJsonSerializationOptions(jsonOptions.SerializerOptions);
+
+            // Get the named HttpClient from IHttpClientFactory
+            var httpClientFactory = provider.GetRequiredService<IHttpClientFactory>();
+            var httpClient = httpClientFactory.CreateClient("SagawayHttpClient");
+
+            // Configure DaprClientBuilder to use GrpcChannelOptions with the custom HttpClient
+            daprClientBuilder.UseGrpcChannelOptions(new GrpcChannelOptions
+            {
+                HttpClient = httpClient
+            });
+
+            return daprClientBuilder.Build();
+        });
+
 
         return services;
-    }
-
-    // ReSharper disable once UnusedMethodReturnValue.Global
-    /// <summary>
-    /// Adds Sagaway context propagation to Dapr's gRPC channel options by wrapping the <see cref="HttpClient"/>
-    /// with a custom message handler that propagates the context.
-    /// </summary>
-    /// <param name="builder">The Dapr client builder.</param>
-    /// <param name="serviceProvider">The services provider</param>
-    /// <param name="httpClientProvider">Optional function to provide a custom <see cref="HttpClient"/> factory.</param>
-    private static void AddSagawayContextPropagator(
-        DaprClientBuilder builder,
-        IServiceProvider serviceProvider,
-        Func<HttpMessageHandler, HttpClient>? httpClientProvider = null)
-    {
-        // If user has provided a custom HttpClient factory, wrap it in SagawayContextPropagationHandler
-        httpClientProvider ??= innerHandler =>
-        {
-            var logger = serviceProvider.GetRequiredService<ILogger<SagawayContextPropagationHandler>>();
-
-            // Wrap the provided HttpMessageHandler (or create default) with SagawayContextPropagationHandler
-            var propagationHandler = new SagawayContextPropagationHandler(serviceProvider, logger)
-            {
-                InnerHandler = innerHandler // Use the user's provided handler or a default one
-            };
-
-            return new HttpClient(propagationHandler);
-        };
-
-        var jsonOptions = serviceProvider.GetRequiredService<IOptions<JsonOptions>>().Value;
-        builder.UseJsonSerializationOptions(jsonOptions.SerializerOptions);
-
-        // Configure Dapr's gRPC channel options to use the wrapped HttpClient
-        builder.UseGrpcChannelOptions(new GrpcChannelOptions
-        {
-            HttpClient = httpClientProvider(new HttpClientHandler())
-        });
     }
 
     /// <summary>

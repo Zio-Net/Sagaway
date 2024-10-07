@@ -34,7 +34,6 @@ public class TestServiceA(
 
     public async Task OnResultAsync(CallChainInfo result)
     {
-
         logger.LogInformation("Service A received result. Test {testName}  Call Chain instructions:{OriginalCallInstructions}  Actual test call chain so far: {CallChainHistory}, Left call chain: {callInstructions}",
             result.TestName, result.OriginalCallInstructions, result.CallChainHistory, result.CallInstructions);
         
