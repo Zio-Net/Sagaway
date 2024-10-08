@@ -81,11 +81,16 @@ public partial class Saga<TEOperations> where TEOperations : Enum
 
         public async Task RevertAsync()
         {
+            _logger.LogInformation("Reverting operation {Operation}", Operation.Operation);
+
             _currentAction = _sagaRevertAction;
             await _currentAction.CancelReminderIfOnAsync();
 
             if (Reverted || RevertFailed)
+            {
+                _logger.LogWarning("Operation {Operation} already reverted or revert failed", Operation.Operation);
                 return;
+            }
 
             await _sagaRevertAction.ExecuteAsync();
         }
@@ -143,6 +148,8 @@ public partial class Saga<TEOperations> where TEOperations : Enum
 
         public void StoreState(JsonObject json)
         {
+            _logger.LogTrace("Storing state for operation {Operation}", Operation.Operation);
+
             var op = Operation.Operation.ToString();
             json[op] = new JsonObject();
             json[op]!["started"] = _started;
@@ -163,7 +170,11 @@ public partial class Saga<TEOperations> where TEOperations : Enum
             {
                 var op = Operation.Operation.ToString();
                 if (!json.ContainsKey(op))
+                {
+                    _logger.LogTrace("No state found for operation {Operation}", Operation.Operation);
                     return;
+                }
+
                 //else
                 var opState = json[op] as JsonObject;
                 _started = opState!["started"]?.GetValue<bool>() ??
@@ -179,9 +190,12 @@ public partial class Saga<TEOperations> where TEOperations : Enum
 
                 var opRevertState = json[op + "Revert"] as JsonObject;
                 _sagaRevertAction.LoadState(opRevertState!);
+
+                _logger.LogTrace("State loaded for operation {Operation}", Operation.Operation);
             }
             catch (Exception e)
             {
+                _logger.LogError(e, "Error when loading operation state");
                 throw new CorruptedSagaStateException("Error when loading operation state", e);
             }
         }
@@ -200,6 +214,7 @@ public partial class Saga<TEOperations> where TEOperations : Enum
         {
             try
             {
+                _logger.LogDebug("Canceling possible reminder left for operation {Operation}", Operation.Operation);
                 await _sagaDoAction.CancelReminderIfOnAsync(true);
             }
             catch (Exception e)

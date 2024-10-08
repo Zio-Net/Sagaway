@@ -1,13 +1,14 @@
 ﻿using System.Text;
 using System.Text.Json;
 using System.Web;
+using Microsoft.Extensions.Logging;
 
 namespace Sagaway.Callback.Propagator;
 
 /// <summary>
 /// Manages the Sagaway context, providing methods to retrieve and apply the context across distributed services.
 /// </summary>
-public class SagawayContextManager : ISagawayContextManager
+public class SagawayContextManager(ILogger<SagawayContextManager> logger) : ISagawayContextManager
 {
     private readonly JsonSerializerOptions _jsonSerializerOptions = new()
     {
@@ -66,6 +67,8 @@ public class SagawayContextManager : ISagawayContextManager
 
             // Store the deserialized context in AsyncLocal via HeaderPropagationMiddleware
             HeaderPropagationMiddleware.SagawayContext.Value = context;
+
+            logger.LogDebug("Context applied successfully: {SagawayContext}", context);
         }
         catch (Exception ex)
         {

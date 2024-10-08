@@ -20,7 +20,6 @@ namespace Sagaway
 
             bool _isReminderOn;
             private int _retryCount;
-            private readonly SagaOperation _sagaOperation; //persisted in another class
             protected Saga<TEOperations> Saga => _saga; //persisted in another class
 
             //the operation has been executed successfully 
@@ -35,11 +34,13 @@ namespace Sagaway
             protected SagaAction(Saga<TEOperations> saga, SagaOperation sagaOperation, ILogger logger)
             {
                 _saga = saga;
-                _sagaOperation = sagaOperation;
+                SagaOperation = sagaOperation;
                 _logger = logger;
+
+                _logger.LogTrace("Initialized {OperationName} for saga {SagaId}", sagaOperation.Operation, saga._sagaUniqueId);
             }
 
-            protected SagaOperation SagaOperation => _sagaOperation;
+            protected SagaOperation SagaOperation { get; }
 
             protected abstract bool IsRevert { get; }
 
@@ -55,14 +56,14 @@ namespace Sagaway
             
             private string RevertText => IsRevert ? "Revert " : string.Empty;
 
-            private string ReminderName => $"{_sagaOperation.Operation}:Retry";
+            private string ReminderName => $"{SagaOperation.Operation}:Retry";
 
-            private string OperationName => $"{RevertText}{_sagaOperation.Operation}";
+            private string OperationName => $"{RevertText}{SagaOperation.Operation}";
             
             protected void LogAndRecord(string message)
             {
                 _logger.LogInformation(message);
-                _saga.RecordStep(_sagaOperation.Operation, message);
+                _saga.RecordStep(SagaOperation.Operation, message);
             }
 
             public void StoreState(JsonObject json)
@@ -89,12 +90,15 @@ namespace Sagaway
                 
                 if (retryInterval == default || MaxRetries == 0)
                 {
+                    _logger.LogDebug("No reminder needed for {OperationName} in saga {SagaId} as retry interval is default or max retries is 0.", OperationName, _saga._sagaUniqueId);
                     return default;
                 }
 
                 LogAndRecord($"Registering reminder {ReminderName} for {OperationName} with interval {retryInterval}");
                 await _saga._sagaSupportOperations.SetReminderAsync(ReminderName, retryInterval);
                 _isReminderOn = true;
+
+                _logger.LogTrace("Reminder {ReminderName} set for operation {OperationName} in saga {SagaId} with interval {RetryInterval}", ReminderName, OperationName, _saga._sagaUniqueId, retryInterval);
 
                 return retryInterval;
             }
@@ -127,7 +131,7 @@ namespace Sagaway
             {
                 if (_isReminderOn || forceCancel)
                 {
-                    _logger.LogInformation($"Canceling old reminder {ReminderName} for {OperationName}");
+                    _logger.LogInformation("Canceling old reminder {ReminderName} for {OperationName}", ReminderName, OperationName);
                     _isReminderOn = false;
                     await _saga._sagaSupportOperations.CancelReminderAsync(ReminderName);
                 }
@@ -137,23 +141,24 @@ namespace Sagaway
             {
                 if (Succeeded || Failed)
                 {
+                    _logger.LogDebug("Operation {OperationName} already succeeded or failed. No action needed.", OperationName);
                     return;
                 }
 
                 if (failFast)
                 {
-                    _logger.LogWarning($"The Operation {OperationName} Failed fast, reverting Saga");
+                    _logger.LogWarning("The Operation {OperationName} Failed fast, reverting Saga", OperationName);
                 }
                 else
                 {
-                    _logger.LogInformation($"Operation {OperationName} Failed");
+                    _logger.LogInformation("Operation {OperationName} Failed", OperationName);
                 }
 
                 _retryCount++;
                 if (!failFast && _retryCount <= MaxRetries)
                 {
                     LogAndRecord($"Retry {OperationName}. Retry count: {_retryCount}");
-                    await _saga.RecordRetryAttemptTelemetryAsync(_sagaOperation.Operation, _retryCount, IsRevert);
+                    await _saga.RecordRetryAttemptTelemetryAsync(SagaOperation.Operation, _retryCount, IsRevert);
 
                     await ExecuteAsync();
                     return;
@@ -161,7 +166,7 @@ namespace Sagaway
 
                 Failed = true;
                 LogAndRecord(failFast ? $"{OperationName} Failed Fast." : $"{OperationName} Failed. Retries exhausted.");
-                await _saga.RecordEndOperationTelemetry(_sagaOperation.Operation, 
+                await _saga.RecordEndOperationTelemetry(SagaOperation.Operation, 
                     IsRevert ? OperationOutcome.RevertFailed : OperationOutcome.Failed, IsRevert);
 
                 await OnActionFailureAsync();
@@ -173,6 +178,7 @@ namespace Sagaway
 
                 if (Succeeded || Failed)
                 {
+                    _logger.LogDebug("Operation {OperationName} already succeeded or failed. No action needed.", OperationName);
                     return;
                 }
 
@@ -180,7 +186,7 @@ namespace Sagaway
                 
                 Succeeded = true;
                 
-                await _saga.RecordEndOperationTelemetry(_sagaOperation.Operation, IsRevert ? OperationOutcome.Reverted : OperationOutcome.Succeeded, IsRevert);
+                await _saga.RecordEndOperationTelemetry(SagaOperation.Operation, IsRevert ? OperationOutcome.Reverted : OperationOutcome.Succeeded, IsRevert);
                 await _saga.CheckForCompletionAsync();
             }
 
@@ -193,6 +199,7 @@ namespace Sagaway
 
                 if (Succeeded || Failed)
                 {
+                    _logger.LogWarning("OnReminderAsync: Operation {OperationName} already succeeded or failed. No action needed.", OperationName);
                     return;
                 }
 
@@ -200,6 +207,8 @@ namespace Sagaway
                 {
                     //try to get the action state by calling a state check function if exists
                     var hasValidated = await ValidateAsync();
+
+                    _logger.LogTrace("OnReminderAsync: Operation {OperationName} validated: {HasValidated}", OperationName, hasValidated);
 
                     if (hasValidated)
                     {
