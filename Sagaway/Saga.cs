@@ -476,7 +476,7 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
 
         await _lock.LockAsync(async () =>
         {
-            while (ShouldRun())
+            if (ShouldRun())
             {
                 _logger.LogDebug("Finding all waiting operations for saga {SagaId}", _sagaUniqueId);
 
