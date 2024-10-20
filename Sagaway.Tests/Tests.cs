@@ -106,8 +106,11 @@ public partial class Tests
             // ReSharper disable once UnusedVariable
             var builder = Saga<Operations>.Create("test", new SagaTestHost(ReminderCallBack), _logger)
              .WithOnSuccessCompletionCallback(_ => { })
+             .WithOnSuccessCompletionCallbackAsync(_ => Task.CompletedTask)
              .WithOnRevertedCallback(_ => { })
+             .WithOnRevertedCallbackAsync(_ => Task.CompletedTask)
              .WithOnFailedRevertedCallback(_ => { })
+             .WithOnFailedRevertedCallbackAsync(_ => Task.CompletedTask)
              .Build();
         }
         catch (Exception ex)
@@ -128,7 +131,9 @@ public partial class Tests
             // ReSharper disable once UnusedVariable
             var builder = Saga<Operations>.Create("test", new SagaTestHost(ReminderCallBack), _logger)
              .WithOnRevertedCallback(_ => { })
+             .WithOnRevertedCallbackAsync(_ => Task.CompletedTask)
              .WithOnFailedRevertedCallback(_ => { })
+             .WithOnFailedRevertedCallbackAsync(_ => Task.CompletedTask)
              .WithOperation(Operations.Op1)
              .WithDoOperation(() => Task.CompletedTask)
              .Build();
@@ -151,7 +156,9 @@ public partial class Tests
             // ReSharper disable once UnusedVariable
             var builder = Saga<Operations>.Create("test", new SagaTestHost(ReminderCallBack), _logger)
              .WithOnSuccessCompletionCallback(_ => { })
+             .WithOnSuccessCompletionCallbackAsync(_ => Task.CompletedTask)
              .WithOnFailedRevertedCallback(_ => { })
+             .WithOnFailedRevertedCallbackAsync(_ => Task.CompletedTask)
              .WithOperation(Operations.Op1)
              .WithDoOperation(() => Task.CompletedTask)
              .Build();
@@ -174,7 +181,9 @@ public partial class Tests
             // ReSharper disable once UnusedVariable
             var builder = Saga<Operations>.Create("test", new SagaTestHost(ReminderCallBack), _logger)
              .WithOnSuccessCompletionCallback(_ => { })
+             .WithOnSuccessCompletionCallbackAsync(_ => Task.CompletedTask)
              .WithOnRevertedCallback(_ => { })
+             .WithOnRevertedCallbackAsync(_ => Task.CompletedTask)
              .WithOperation(Operations.Op1)
              .WithDoOperation(() => Task.CompletedTask)
              .Build();
@@ -197,8 +206,11 @@ public partial class Tests
             // ReSharper disable once UnusedVariable
             var builder = Saga<Operations>.Create("test", new SagaTestHost(ReminderCallBack), _logger)
              .WithOnSuccessCompletionCallback(_ => { })
+             .WithOnSuccessCompletionCallbackAsync(_ => Task.CompletedTask)
              .WithOnRevertedCallback(_ => { })
+             .WithOnRevertedCallbackAsync(_ => Task.CompletedTask)
              .WithOnFailedRevertedCallback(_ => { })
+             .WithOnFailedRevertedCallbackAsync(_ => Task.CompletedTask)
              .WithOperation(Operations.Op1)
              .Build();
         }
@@ -291,18 +303,54 @@ public partial class Tests
         var sb = new StringBuilder();
         sb.AppendLine($"Preparing test {testName}");
 
-        builder.WithOnSuccessCompletionCallback(log => sb.AppendLine($"OnSuccessCompletionCallback: Success.{Environment.NewLine}Run Log:{Environment.NewLine}" + log + Environment.NewLine));
+        // Register both synchronous and asynchronous callbacks with sb.AppendLine included directly
+        builder
+            .WithOnSuccessCompletionCallback(log =>
+            {
+                sb.AppendLine($"OnSuccessCompletionCallback: Success.{Environment.NewLine}Run Log:{Environment.NewLine}" + log + Environment.NewLine);
+            })
+            .WithOnSuccessCompletionCallbackAsync(async log =>
+            {
+                sb.AppendLine($"OnSuccessCompletionCallbackAsync: Success.{Environment.NewLine}Run Log:{Environment.NewLine}" + log + Environment.NewLine);
+                await Task.CompletedTask; // If no asynchronous operation, use Task.CompletedTask
+            });
 
         var buildOperations = BuildTestOperations(operations).ToList();
         
         if (buildOperations.Any(o => o.HasReportFail))
         {
-            builder.WithOnFailedCallback(log => sb.AppendLine($"OnFailCallback: Fail.{Environment.NewLine}Run Log:{Environment.NewLine}" + log + Environment.NewLine));
-        }
+            builder
+                .WithOnFailedCallback(log =>
+                {
+                    sb.AppendLine($"OnFailedCallback: Fail.{Environment.NewLine}Run Log:{Environment.NewLine}" + log + Environment.NewLine);
+                })
+                .WithOnFailedCallbackAsync(async log =>
+                {
+                    sb.AppendLine($"OnFailedCallbackAsync: Fail.{Environment.NewLine}Run Log:{Environment.NewLine}" + log + Environment.NewLine);
+                    await Task.CompletedTask;
+                });
+            }
         else
         {
-            builder.WithOnRevertedCallback(log => sb.AppendLine($"OnRevertedCallback: Reverted.{Environment.NewLine}Run Log:{Environment.NewLine}" + log + Environment.NewLine))
-            .WithOnFailedRevertedCallback(log => sb.AppendLine($"OnFailedRevertedCallback: FailedReverted.{Environment.NewLine}Run Log:{Environment.NewLine}" + log + Environment.NewLine));
+            builder
+                .WithOnRevertedCallback(log =>
+                {
+                    sb.AppendLine($"OnRevertedCallback: Reverted.{Environment.NewLine}Run Log:{Environment.NewLine}" + log + Environment.NewLine);
+                })
+                .WithOnRevertedCallbackAsync(async log =>
+                {
+                    sb.AppendLine($"OnRevertedCallbackAsync: Reverted.{Environment.NewLine}Run Log:{Environment.NewLine}" + log + Environment.NewLine);
+                    await Task.CompletedTask;
+                })
+                .WithOnFailedRevertedCallback(log =>
+                {
+                    sb.AppendLine($"OnFailedRevertedCallback: FailedReverted.{Environment.NewLine}Run Log:{Environment.NewLine}" + log + Environment.NewLine);
+                })
+                .WithOnFailedRevertedCallbackAsync(async log =>
+                {
+                    sb.AppendLine($"OnFailedRevertedCallbackAsync: FailedReverted.{Environment.NewLine}Run Log:{Environment.NewLine}" + log + Environment.NewLine);
+                    await Task.CompletedTask;
+                });
         }
 
         foreach (var testOperation in buildOperations)

@@ -14,10 +14,15 @@ public partial class Saga<TEOperations> where TEOperations : Enum
         private readonly ISagaSupport _sagaSupportOperations;
         private readonly ILogger _logger;
         private Action<string>? _onSuccessCompletionCallback;
+        private Func<string, Task>? _onSuccessCompletionCallbackAsync;
         private Action<string>? _onRevertedCallback;
+        private Func<string, Task>? _onRevertedCallbackAsync;
         private Action<string>? _onFailedRevertedCallback;
-        private readonly List<SagaOperation> _operations = new();
+        private Func<string, Task>? _onFailedRevertedCallbackAsync;
         private Action<string>? _onFailedCallback;
+        private Func<string, Task>? _onFailedCallbackAsync;
+        private readonly List<SagaOperation> _operations = new();
+       
 
         /// <summary>
         /// The saga fluent interface builder
@@ -43,6 +48,16 @@ public partial class Saga<TEOperations> where TEOperations : Enum
             return this;
         }
 
+        /// <summary>
+        /// Add an asynchronous action that is called on success completion of the saga
+        /// </summary>
+        /// <param name="onSuccessCompletionCallbackAsync">The asynchronous callback function. Receives the complete saga log</param>
+        /// <returns>The saga builder for fluent build</returns>
+        public SagaBuilder WithOnSuccessCompletionCallbackAsync(Func<string, Task> onSuccessCompletionCallbackAsync)
+        {
+                _onSuccessCompletionCallbackAsync = onSuccessCompletionCallbackAsync;
+                return this;
+        }
 
         /// <summary>
         /// Add an action that is called on a failure of the saga before any compensation is handle, if exists
@@ -52,6 +67,17 @@ public partial class Saga<TEOperations> where TEOperations : Enum
         public SagaBuilder WithOnFailedCallback(Action<string> onFailedCallback)
         {
             _onFailedCallback = onFailedCallback;
+            return this;
+        }
+
+        /// <summary>
+        /// Add an asynchronous action that is called on a failure of the saga before any compensation is handled, if exists
+        /// </summary>
+        /// <param name="onFailedCallbackAsync">The asynchronous callback function. Receives the partial saga log</param>
+        /// <returns>The saga builder for fluent build</returns>
+        public SagaBuilder WithOnFailedCallbackAsync(Func<string, Task> onFailedCallbackAsync)
+        {
+            _onFailedCallbackAsync = onFailedCallbackAsync;
             return this;
         }
 
@@ -69,6 +95,19 @@ public partial class Saga<TEOperations> where TEOperations : Enum
         }
 
         /// <summary>
+        /// Add an asynchronous action that is called on a failure of the saga after all compensations (reverts) are done
+        /// </summary>
+        /// <param name="onRevertedCallbackAsync">The asynchronous callback function. Receives the complete saga log</param>
+        /// <returns>The saga builder for fluent build</returns>
+        /// <remarks>At least one operation failed, all retries are done.  
+        /// The Saga has finished the compensation (revert) process</remarks>
+        public SagaBuilder WithOnRevertedCallbackAsync(Func<string, Task> onRevertedCallbackAsync)
+        {
+            _onRevertedCallbackAsync = onRevertedCallbackAsync;
+            return this;
+        }
+
+        /// <summary>
         /// Add an action that is called on a failure in reverting the saga when doing compensations
         /// </summary>
         /// <param name="onFailedRevertedCallback">The callback action. The function receives the saga log</param>
@@ -78,6 +117,19 @@ public partial class Saga<TEOperations> where TEOperations : Enum
         public SagaBuilder WithOnFailedRevertedCallback(Action<string> onFailedRevertedCallback)
         {
             _onFailedRevertedCallback = onFailedRevertedCallback;
+            return this;
+        }
+
+        /// <summary>
+        /// Add an asynchronous action that is called on a failure in reverting the saga when doing compensations
+        /// </summary>
+        /// <param name="onFailedRevertedCallbackAsync">The asynchronous callback function. Receives the saga log</param>
+        /// <returns>The saga builder for fluent build</returns>
+        /// <remarks>At least one operation failed, all retries are done, but at least one operation failed to revert.  
+        /// The Saga has finished the compensation (revert) process</remarks>
+        public SagaBuilder WithOnFailedRevertedCallbackAsync(Func<string, Task> onFailedRevertedCallbackAsync)
+        {
+            _onFailedRevertedCallbackAsync = onFailedRevertedCallbackAsync;
             return this;
         }
 
@@ -102,7 +154,19 @@ public partial class Saga<TEOperations> where TEOperations : Enum
         /// <returns>The saga instance</returns>
         public ISaga<TEOperations> Build()
         {
-            var saga = new Saga<TEOperations>(_logger, _sagaUniqueId, _sagaSupportOperations, _operations, _onSuccessCompletionCallback, _onFailedCallback ,_onRevertedCallback, _onFailedRevertedCallback);
+            var saga = new Saga<TEOperations>(
+                _logger, 
+                _sagaUniqueId, 
+                _sagaSupportOperations, 
+                _operations, 
+                _onSuccessCompletionCallback,
+                _onSuccessCompletionCallbackAsync,
+                _onFailedCallback,
+                _onFailedCallbackAsync,
+                _onRevertedCallback,
+                _onRevertedCallbackAsync, 
+                _onFailedRevertedCallback,
+                _onFailedRevertedCallbackAsync);
             return saga;
         }
     }

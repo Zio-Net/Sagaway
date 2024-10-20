@@ -27,10 +27,16 @@ public class CarReservationCancellationActor : DaprActorHost<CarCancelReservatio
     protected override ISaga<CarCancelReservationActorOperations> ReBuildSaga()
     {
         var saga = Saga<CarCancelReservationActorOperations>.Create(_actorHost.Id.ToString(), this, _logger)
-            .WithOnSuccessCompletionCallback(OnSuccessCompletionCallbackAsync)
-            .WithOnRevertedCallback(OnRevertedCallbackAsync)
-            .WithOnFailedRevertedCallback(OnFailedRevertedCallbackAsync)
-            .WithOnFailedCallback(OnFailedCallbackAsync)
+            // Synchronous Callbacks
+            .WithOnSuccessCompletionCallback(OnSuccessCompletionCallback)
+            .WithOnRevertedCallback(OnRevertedCallback)
+            .WithOnFailedRevertedCallback(OnFailedRevertedCallback)
+            .WithOnFailedCallback(OnFailedCallback)
+            // Asynchronous Callbacks
+            .WithOnSuccessCompletionCallbackAsync(OnSuccessCompletionCallbackAsync)
+            .WithOnRevertedCallbackAsync(OnRevertedCallbackAsync)
+            .WithOnFailedRevertedCallbackAsync(OnFailedRevertedCallbackAsync)
+            .WithOnFailedCallbackAsync(OnFailedCallbackAsync)
 
             .WithOperation(CarCancelReservationActorOperations.CancelBooking)
             .WithDoOperation(CancelCarBookingAsync)
@@ -356,38 +362,62 @@ public class CarReservationCancellationActor : DaprActorHost<CarCancelReservatio
 
     #region Saga Completion Methods
 
-    private async void OnFailedRevertedCallbackAsync(string sagaLog)
+    // Synchronous Callback Methods
+    private void OnSuccessCompletionCallback(string sagaLog)
     {
-        _logger.LogError("The car reservation cancelling has failed and left some unused resources.");
-        _logger.LogError("The car reservation cancelling log:" + Environment.NewLine + sagaLog);
-
-        await Task.CompletedTask;
-    }
-
-    private async void OnRevertedCallbackAsync(string sagaLog)
-    {
-        _logger.LogError("The car reservation cancelling has failed and all resources are deleted.");
-        _logger.LogError("The car reservation cancelling log:" + Environment.NewLine + sagaLog);
-
-        await Task.CompletedTask;
-    }
-
-    private async void OnFailedCallbackAsync(string sagaLog)
-    {
-        _logger.LogError("The car reservation cancelling has failed starting reverting resources.");
-        _logger.LogError("The car reservation cancelling log:" + Environment.NewLine + sagaLog);
-
-        await Task.CompletedTask;
-        //Option: Send a message to the customer
-    }
-
-    private async void OnSuccessCompletionCallbackAsync(string sagaLog)
-    {
-        _logger.LogInformation("The car reservation cancelling has succeeded.");
+        _logger.LogInformation("The car reservation cancelling has succeeded. (Synchronous Callback)");
         _logger.LogInformation("The car reservation cancelling log:" + Environment.NewLine + sagaLog);
+        // Optionally, send a message to the customer
+    }
 
-        await Task.CompletedTask;
-        //Option: Send a message to the customer
+    private void OnRevertedCallback(string sagaLog)
+    {
+        _logger.LogError("The car reservation cancelling has failed and all resources are deleted. (Synchronous Callback)");
+        _logger.LogError("The car reservation cancelling log:" + Environment.NewLine + sagaLog);
+    }
+
+    private void OnFailedRevertedCallback(string sagaLog)
+    {
+        _logger.LogError("The car reservation cancelling has failed and left some unused resources. (Synchronous Callback)");
+        _logger.LogError("The car reservation cancelling log:" + Environment.NewLine + sagaLog);
+    }
+
+    private void OnFailedCallback(string sagaLog)
+    {
+        _logger.LogError("The car reservation cancelling has failed starting reverting resources. (Synchronous Callback)");
+        _logger.LogError("The car reservation cancelling log:" + Environment.NewLine + sagaLog);
+        // Optionally, send a message to the customer
+    }
+
+    // Asynchronous Callback Methods
+    private Task OnSuccessCompletionCallbackAsync(string sagaLog)
+    {
+        _logger.LogInformation("The car reservation cancelling has succeeded. (Asynchronous Callback)");
+        _logger.LogInformation("The car reservation cancelling log:" + Environment.NewLine + sagaLog);
+        // Optionally, send a message to the customer
+        return Task.CompletedTask;
+    }
+
+    private Task OnRevertedCallbackAsync(string sagaLog)
+    {
+        _logger.LogError("The car reservation cancelling has failed and all resources are deleted. (Asynchronous Callback)");
+        _logger.LogError("The car reservation cancelling log:" + Environment.NewLine + sagaLog);
+        return Task.CompletedTask;
+    }
+
+    private Task OnFailedRevertedCallbackAsync(string sagaLog)
+    {
+        _logger.LogError("The car reservation cancelling has failed and left some unused resources. (Asynchronous Callback)");
+        _logger.LogError("The car reservation cancelling log:" + Environment.NewLine + sagaLog);
+        return Task.CompletedTask;
+    }
+
+    private Task OnFailedCallbackAsync(string sagaLog)
+    {
+        _logger.LogError("The car reservation cancelling has failed starting reverting resources. (Asynchronous Callback)");
+        _logger.LogError("The car reservation cancelling log:" + Environment.NewLine + sagaLog);
+        // Optionally, send a message to the customer
+        return Task.CompletedTask;
     }
 
     private async Task OnSagaCompletedAsync(object? _, SagaCompletionEventArgs e)

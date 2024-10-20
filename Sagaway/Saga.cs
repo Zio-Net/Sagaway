@@ -19,9 +19,13 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
     private ILogger _logger;
     private readonly ISagaSupport _sagaSupportOperations;
     private readonly Action<string>? _onSuccessCallback;
+    private readonly Func<string, Task>? _onSuccessCallbackAsync;
     private readonly Action<string>? _onFailedCallback;
+    private readonly Func<string, Task>? _onFailedCallbackAsync;
     private readonly Action<string>? _onRevertedCallback;
+    private readonly Func<string, Task>? _onRevertedCallbackAsync;
     private readonly Action<string>? _onRevertFailureCallback;
+    private readonly Func<string, Task>? _onRevertFailureCallbackAsync;
     private bool _deactivated;
     private readonly ILockWrapper _lock;
     private bool _resetSagaState;
@@ -166,8 +170,8 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
     #endregion //telemetry
 
     private Saga(ILogger logger, string sagaUniqueId, ISagaSupport sagaSupportOperations,
-        IReadOnlyList<SagaOperation> operations, Action<string>? onSuccessCallback, Action<string>? onFailedCallback,
-        Action<string>? onRevertedCallback, Action<string>? onRevertFailureCallback)
+        IReadOnlyList<SagaOperation> operations, Action<string>? onSuccessCallback, Func<string, Task>? onSuccessCallbackAsync, Action<string>? onFailedCallback,
+        Func<string, Task>? onFailedCallbackAsync, Action<string>? onRevertedCallback, Func<string, Task>? onRevertedCallbackAsync, Action<string>? onRevertFailureCallback,Func<string, Task>? onRevertFailureCallbackAsync)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
@@ -175,9 +179,13 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
         _sagaSupportOperations = sagaSupportOperations;
         _operations = operations.Select(o => new SagaOperationExecution(this, o, logger)).ToList();
         _onSuccessCallback = onSuccessCallback;
+        _onSuccessCallbackAsync = onSuccessCallbackAsync;
         _onFailedCallback = onFailedCallback;
+        _onFailedCallbackAsync = onFailedCallbackAsync;
         _onRevertedCallback = onRevertedCallback;
+        _onRevertedCallbackAsync = onRevertedCallbackAsync;
         _onRevertFailureCallback = onRevertFailureCallback;
+        _onRevertFailureCallbackAsync = onRevertFailureCallbackAsync;
         _lock = _sagaSupportOperations.CreateLock();
 
         _logger.LogInformation("Created new Saga instance with ID {SagaId}", _sagaUniqueId);
@@ -623,12 +631,21 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
         {
             //Failed is a transient state, so the saga is not done reverting,
             //We ensure that we call the onFailedCallback only once
-            if (Failed && _onFailedCallback != null && !_hasFailedReported)
+            if (Failed && !_hasFailedReported)
             {
                 _logger.LogDebug("Saga {_sagaUniqueId} failed, calling onFailedCallback.", _sagaUniqueId);
 
                 _hasFailedReported = true;
-                _onFailedCallback(recordedSteps);
+
+                if (_onFailedCallbackAsync != null)
+                {
+                    await _onFailedCallbackAsync(recordedSteps);
+                }
+                else if (_onFailedCallback != null)
+                {
+                    _onFailedCallback(recordedSteps);
+                }
+
                 await TelemetryAdapter.RecordCustomEventAsync(_telemetryContext, "SagaFailure");
             }
 
@@ -643,23 +660,44 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
             }
 
             //first handle completion notification
-            if (Succeeded && _onSuccessCallback != null)
+            if (Succeeded)
             {
                 _logger.LogTrace("Saga {_sagaUniqueId} is succeeded, calling onSuccessCallback.", _sagaUniqueId);
 
-                _onSuccessCallback(recordedSteps);
+                if (_onSuccessCallbackAsync != null)
+                {
+                    await _onSuccessCallbackAsync(recordedSteps);
+                }
+                else if (_onSuccessCallback != null)
+                {
+                    _onSuccessCallback(recordedSteps);
+                }
             }
-            else if (Reverted && _onRevertedCallback != null)
+            else if (Reverted)
             {
                 _logger.LogTrace("Saga {_sagaUniqueId} is reverted, calling onRevertedCallback.", _sagaUniqueId);
 
-                _onRevertedCallback(recordedSteps);
+                if (_onRevertedCallbackAsync != null)
+                {
+                    await _onRevertedCallbackAsync(recordedSteps);
+                }
+                else if (_onRevertedCallback != null)
+                {
+                    _onRevertedCallback(recordedSteps);
+                }
             }
-            else if (RevertFailed && _onRevertFailureCallback != null)
+            else if (RevertFailed)
             {
                 _logger.LogTrace("Saga {_sagaUniqueId} is revert failed, calling onRevertFailureCallback.", _sagaUniqueId);
 
-                _onRevertFailureCallback(recordedSteps);
+                if (_onRevertFailureCallbackAsync != null)
+                {
+                    await _onRevertFailureCallbackAsync(recordedSteps);
+                }
+                else if (_onRevertFailureCallback != null)
+                {
+                    _onRevertFailureCallback(recordedSteps);
+                }
             }
         }
         catch (Exception ex)

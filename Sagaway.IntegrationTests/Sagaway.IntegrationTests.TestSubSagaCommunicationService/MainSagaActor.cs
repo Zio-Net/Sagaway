@@ -17,10 +17,17 @@ public class MainSagaActor : DaprActorHost<MainSagaActorOperations>, IMainSagaAc
     protected override ISaga<MainSagaActorOperations> ReBuildSaga()
     {
         var sagaBuilder = Saga<MainSagaActorOperations>.Create(ActorHost.Id.ToString(), this, Logger)
-            .WithOnSuccessCompletionCallback(OnSuccessCompletionCallbackAsync)
-            .WithOnRevertedCallback(OnRevertedCallbackAsync)
-            .WithOnFailedRevertedCallback(OnFailedRevertedCallbackAsync)
-            .WithOnFailedCallback(OnFailedCallbackAsync)
+            // Synchronous Callbacks
+            .WithOnSuccessCompletionCallback(OnSuccessCompletionCallback)
+            .WithOnRevertedCallback(OnRevertedCallback)
+            .WithOnFailedRevertedCallback(OnFailedRevertedCallback)
+            .WithOnFailedCallback(OnFailedCallback)
+
+            // Asynchronous Callbacks
+            .WithOnSuccessCompletionCallbackAsync(OnSuccessCompletionCallbackAsync)
+            .WithOnRevertedCallbackAsync(OnRevertedCallbackAsync)
+            .WithOnFailedRevertedCallbackAsync(OnFailedRevertedCallbackAsync)
+            .WithOnFailedCallbackAsync(OnFailedCallbackAsync)
 
             .WithOperation(MainSagaActorOperations.CallSubSaga)
             .WithDoOperation(OnCallSubSagaAsync)
@@ -67,27 +74,52 @@ public class MainSagaActor : DaprActorHost<MainSagaActorOperations>, IMainSagaAc
         return Task.FromResult(_testResult);
     }
 
+    // Synchronous Callback Methods
+    private void OnSuccessCompletionCallback(string log)
+    {
+        Logger.LogInformation("MainSagaActor completed successfully. (Synchronous Callback)");
+    }
 
-    private void OnSuccessCompletionCallbackAsync(string obj)
+    private void OnRevertedCallback(string log)
+    {
+        Logger.LogInformation("MainSagaActor reverted successfully. (Synchronous Callback)");
+    }
+
+    private void OnFailedRevertedCallback(string log)
+    {
+        Logger.LogInformation("MainSagaActor failed to revert. (Synchronous Callback)");
+    }
+
+    private void OnFailedCallback(string log)
+    {
+        Logger.LogInformation("MainSagaActor failed. (Synchronous Callback)");
+    }
+
+    // Asynchronous Callback Methods
+    private async Task OnSuccessCompletionCallbackAsync(string log)
     {
         _testResult = TestResult.Succeeded;
-        Logger.LogInformation("MainSagaActor completed successfully.");
+        Logger.LogInformation("MainSagaActor completed successfully. (Asynchronous Callback)");
+        await Task.CompletedTask;
     }
 
-    private void OnRevertedCallbackAsync(string obj)
+    private async Task OnRevertedCallbackAsync(string log)
     {
-        Logger.LogInformation("MainSagaActor reverted successfully.");
+        Logger.LogInformation("MainSagaActor reverted successfully. (Asynchronous Callback)");
+        await Task.CompletedTask;
     }
 
-    private void OnFailedRevertedCallbackAsync(string obj)
+    private async Task OnFailedRevertedCallbackAsync(string log)
     {
-        Logger.LogInformation("MainSagaActor failed to revert.");
+        Logger.LogInformation("MainSagaActor failed to revert. (Asynchronous Callback)");
+        await Task.CompletedTask;
     }
 
-    private void OnFailedCallbackAsync(string obj)
+    private async Task OnFailedCallbackAsync(string log)
     {
         _testResult = TestResult.Failed;
-        Logger.LogInformation("MainSagaActor failed.");
+        Logger.LogInformation("MainSagaActor failed. (Asynchronous Callback)");
+        await Task.CompletedTask;
     }
 
     private async Task OnCallSubSagaAsync()

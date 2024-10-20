@@ -139,7 +139,7 @@ Calling Op4: Success True
 Op4 Validate returns True
 Calling Op5: Success True
 Op5 Validate returns True
-OnSuccessCompletionCallback: Success.
+OnSuccessCompletionCallbackAsync: Success.
 Run Log:
 [*time*][Op1]: Start Executing Op1
 [*time*][Op1]: Registering reminder Op1:Retry for Op1 with interval 00:00:02

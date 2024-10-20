@@ -62,7 +62,7 @@ Op2 Validate returns False
 Calling revert for Op2: Success False
 Calling revert for Op2: Success False
 Calling revert for Op2: Success False
-OnFailedRevertedCallback: FailedReverted.
+OnFailedRevertedCallbackAsync: FailedReverted.
 Run Log:
 [*time*][Op1]: Start Executing Op1
 [*time*][Op1]: Op1 Success
@@ -105,4 +105,5 @@ OnSagaCompleted: Id: test Status: RevertFailed
 11: RetryAttempt - SagaID: test, Operation: RevertOp2, Attempt: 2
 12: StartOperation - SagaID: test, Operation: RevertOp2
 13: EndOperation - SagaID: test, Operation: RevertOp2, Outcome: RevertFailed
-14: EndSaga - SagaID: test, Outcome: PartiallyReverted
+14: CustomEvent - SagaID: test, Event: SagaFailure, Properties: None
+15: EndSaga - SagaID: test, Outcome: PartiallyReverted
