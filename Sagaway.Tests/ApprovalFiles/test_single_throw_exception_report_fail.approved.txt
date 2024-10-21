@@ -25,7 +25,7 @@ HasRevert: False
 HasValidate: False
 HasRevertValidate: False
 
-OnFailCallback: Fail.
+OnFailedCallbackAsync: Fail.
 Run Log:
 [*time*][Op1]: Start Executing Op1
 [*time*][Op1]: Error when calling Op1. Error: Throwing exception on call 1. Retry in 00:00:00 seconds

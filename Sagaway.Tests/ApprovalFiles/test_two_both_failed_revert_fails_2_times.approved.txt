@@ -55,7 +55,7 @@ Calling Op1: Success False
 Calling revert for Op1: Success False
 Calling revert for Op1: Success False
 Calling revert for Op1: Success True
-OnRevertedCallback: Reverted.
+OnRevertedCallbackAsync: Reverted.
 Run Log:
 [*time*][Op1]: Start Executing Op1
 [*time*][Op1]: Op1 Failed. Retries exhausted.
@@ -83,4 +83,5 @@ OnSagaCompleted: Id: test Status: Reverted
 7: RetryAttempt - SagaID: test, Operation: RevertOp1, Attempt: 2
 8: StartOperation - SagaID: test, Operation: RevertOp1
 9: EndOperation - SagaID: test, Operation: RevertOp1, Outcome: Reverted
-10: EndSaga - SagaID: test, Outcome: Reverted
+10: CustomEvent - SagaID: test, Event: SagaFailure, Properties: None
+11: EndSaga - SagaID: test, Outcome: Reverted

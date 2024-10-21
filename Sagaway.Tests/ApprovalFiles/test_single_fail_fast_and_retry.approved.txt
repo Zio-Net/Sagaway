@@ -27,7 +27,7 @@ HasRevertValidate: False
 Set to fail fast
 
 Calling Op1: Success True
-OnRevertedCallback: Reverted.
+OnRevertedCallbackAsync: Reverted.
 Run Log:
 [*time*][Op1]: Start Executing Op1
 [*time*][Op1]: Registering reminder Op1:Retry for Op1 with interval 00:00:10
@@ -42,4 +42,5 @@ OnSagaCompleted: Id: test Status: Reverted
 1: StartSaga - SagaID: test, Type: SagaOperations
 2: StartOperation - SagaID: test, Operation: Op1
 3: EndOperation - SagaID: test, Operation: Op1, Outcome: Failed
-4: EndSaga - SagaID: test, Outcome: Reverted
+4: CustomEvent - SagaID: test, Event: SagaFailure, Properties: None
+5: EndSaga - SagaID: test, Outcome: Reverted

@@ -28,7 +28,7 @@ HasRevertValidate: False
 Calling Op1: Success True
 Calling Op1: Success True
 Op1 Validate returns False
-OnRevertedCallback: Reverted.
+OnRevertedCallbackAsync: Reverted.
 Run Log:
 [*time*][Op1]: Start Executing Op1
 [*time*][Op1]: Registering reminder Op1:Retry for Op1 with interval 00:00:02
@@ -53,4 +53,5 @@ OnSagaCompleted: Id: test Status: Reverted
 3: RetryAttempt - SagaID: test, Operation: Op1, Attempt: 1
 4: StartOperation - SagaID: test, Operation: Op1
 5: EndOperation - SagaID: test, Operation: Op1, Outcome: Failed
-6: EndSaga - SagaID: test, Outcome: Reverted
+6: CustomEvent - SagaID: test, Event: SagaFailure, Properties: None
+7: EndSaga - SagaID: test, Outcome: Reverted

@@ -33,10 +33,16 @@ public class TestActor : DaprActorHost<TestActorOperations>, ITestActor
         }
 
         var sagaBuilder = Saga<TestActorOperations>.Create(_actorHost.Id.ToString(), this, _logger)
-            .WithOnSuccessCompletionCallback(OnSuccessCompletionCallbackAsync)
-            .WithOnRevertedCallback(OnRevertedCallbackAsync)
-            .WithOnFailedRevertedCallback(OnFailedRevertedCallbackAsync)
-            .WithOnFailedCallback(OnFailedCallbackAsync);
+                // Synchronous Callbacks
+                .WithOnSuccessCompletionCallback(OnSuccessCompletionCallback)
+                .WithOnRevertedCallback(OnRevertedCallback)
+                .WithOnFailedRevertedCallback(OnFailedRevertedCallback)
+                .WithOnFailedCallback(OnFailedCallback)
+                // Asynchronous Callbacks
+                .WithOnSuccessCompletionCallbackAsync(OnSuccessCompletionCallbackAsync)
+                .WithOnRevertedCallbackAsync(OnRevertedCallbackAsync)
+                .WithOnFailedRevertedCallbackAsync(OnFailedRevertedCallbackAsync)
+                .WithOnFailedCallbackAsync(OnFailedCallbackAsync);
 
         if (_testInfo?.ServiceACall?.InUse ?? false)
         {
@@ -311,56 +317,91 @@ public class TestActor : DaprActorHost<TestActorOperations>, ITestActor
 
     #region Saga Completion Methods
 
-    private async void OnFailedRevertedCallbackAsync(string sagaLog)
+    // Synchronous Callback Methods
+    private void OnSuccessCompletionCallback(string sagaLog)
     {
-        _logger.LogError("The Test {TestName} has resulted a failure and left some unused resources. log: {sagaLog}", _testInfo!.TestName,
-            Environment.NewLine + sagaLog);
-
-        var testResult = new TestResult
-        {
-            TestInfo = _testInfo,
-            IsSuccess = false,
-            SagaLog = sagaLog
-        };
-
-        await PublishMessageToSignalRAsync(testResult);
-    }
-
-    private async void OnRevertedCallbackAsync(string sagaLog)
-    {
-        _logger.LogError("The Test {TestName} has resulted a failure. log: {sagaLog}", _testInfo!.TestName,
-            Environment.NewLine + sagaLog);
-
-        var testResult = new TestResult
-        {
-            TestInfo = _testInfo,
-            IsSuccess = false,
-            SagaLog = sagaLog
-        };
-
-        await PublishMessageToSignalRAsync(testResult);
-    }
-
-    private async void OnFailedCallbackAsync(string sagaLog)
-    {
-        _logger.LogError("The Test {TestName} has resulted a failure, starting reverting resources.", _testInfo!.TestName);
-
-        await Task.CompletedTask;
-    }
-
-    private async void OnSuccessCompletionCallbackAsync(string sagaLog)
-    {
-        _logger.LogError("The Test {TestName} has resulted a success. log: {sagaLog}", _testInfo!.TestName,
-            Environment.NewLine + sagaLog);
-
+        _logger.LogError("The Test {TestName} has resulted in success. (Synchronous Callback) log: {sagaLog}", _testInfo!.TestName, sagaLog);
         var testResult = new TestResult
         {
             TestInfo = _testInfo,
             IsSuccess = true,
             SagaLog = sagaLog
         };
+        Task.Run(() => PublishMessageToSignalRAsync(testResult));
+    }
 
+    private void OnRevertedCallback(string sagaLog)
+    {
+        _logger.LogError("The Test {TestName} has resulted in a failure. All resources are deleted. (Synchronous Callback) log: {sagaLog}", _testInfo!.TestName, sagaLog);
+        var testResult = new TestResult
+        {
+            TestInfo = _testInfo,
+            IsSuccess = false,
+            SagaLog = sagaLog
+        };
+        Task.Run(() => PublishMessageToSignalRAsync(testResult));
+    }
+
+    private void OnFailedRevertedCallback(string sagaLog)
+    {
+        _logger.LogError("The Test {TestName} has failed and left some unused resources. (Synchronous Callback) log: {sagaLog}", _testInfo!.TestName, sagaLog);
+        var testResult = new TestResult
+        {
+            TestInfo = _testInfo,
+            IsSuccess = false,
+            SagaLog = sagaLog
+        };
+        Task.Run(() => PublishMessageToSignalRAsync(testResult));
+    }
+
+    private void OnFailedCallback(string sagaLog)
+    {
+        _logger.LogError("The Test {TestName} has failed. Starting to revert resources. (Synchronous Callback)", _testInfo!.TestName);
+        // Optionally, send a message to the customer
+    }
+
+    // Asynchronous Callback Methods
+    private async Task OnSuccessCompletionCallbackAsync(string sagaLog)
+    {
+        _logger.LogError("The Test {TestName} has resulted in success. (Asynchronous Callback) log: {sagaLog}", _testInfo!.TestName, sagaLog);
+        var testResult = new TestResult
+        {
+            TestInfo = _testInfo,
+            IsSuccess = true,
+            SagaLog = sagaLog
+        };
         await PublishMessageToSignalRAsync(testResult);
+    }
+
+    private async Task OnRevertedCallbackAsync(string sagaLog)
+    {
+        _logger.LogError("The Test {TestName} has resulted in a failure. All resources are deleted. (Asynchronous Callback) log: {sagaLog}", _testInfo!.TestName, sagaLog);
+        var testResult = new TestResult
+        {
+            TestInfo = _testInfo,
+            IsSuccess = false,
+            SagaLog = sagaLog
+        };
+        await PublishMessageToSignalRAsync(testResult);
+    }
+
+    private async Task OnFailedRevertedCallbackAsync(string sagaLog)
+    {
+        _logger.LogError("The Test {TestName} has failed and left some unused resources. (Asynchronous Callback) log: {sagaLog}", _testInfo!.TestName, sagaLog);
+        var testResult = new TestResult
+        {
+            TestInfo = _testInfo,
+            IsSuccess = false,
+            SagaLog = sagaLog
+        };
+        await PublishMessageToSignalRAsync(testResult);
+    }
+
+    private async Task OnFailedCallbackAsync(string sagaLog)
+    {
+        _logger.LogError("The Test {TestName} has failed. Starting to revert resources. (Asynchronous Callback)", _testInfo!.TestName);
+        // Optionally, send a message to the customer
+        await Task.CompletedTask;
     }
 
     private async Task OnSagaCompletedAsync(object? _, SagaCompletionEventArgs e)

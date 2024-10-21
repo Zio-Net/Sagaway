@@ -80,7 +80,7 @@ HasRevertValidate: False
 Calling Op2: Success True
 Calling Op3: Success True
 Calling Op1: Success True
-OnSuccessCompletionCallback: Success.
+OnSuccessCompletionCallbackAsync: Success.
 Run Log:
 [*time*][Op2]: Start Executing Op2
 [*time*][Op2]: Op2 Success

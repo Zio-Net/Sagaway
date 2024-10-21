@@ -51,7 +51,7 @@ HasRevert: False
 HasValidate: False
 HasRevertValidate: False
 
-OnRevertedCallback: Reverted.
+OnRevertedCallbackAsync: Reverted.
 Run Log:
 [*time*][Op1]: Start Executing Op1
 [*time*][Op1]: Error when calling Op1. Error: Throwing exception on call 1. Retry in 00:00:00 seconds
@@ -69,4 +69,5 @@ OnSagaCompleted: Id: test Status: Reverted
 2: StartOperation - SagaID: test, Operation: Op1
 3: Exception - SagaID: test, Context: Error when calling Op1, Exception: Throwing exception on call 1
 4: EndOperation - SagaID: test, Operation: Op1, Outcome: Failed
-5: EndSaga - SagaID: test, Outcome: Reverted
+5: CustomEvent - SagaID: test, Event: SagaFailure, Properties: None
+6: EndSaga - SagaID: test, Outcome: Reverted

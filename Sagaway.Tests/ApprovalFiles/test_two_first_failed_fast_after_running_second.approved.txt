@@ -54,7 +54,7 @@ Set to fail fast
 
 Calling Op2: Success True
 Calling Op1: Success True
-OnRevertedCallback: Reverted.
+OnRevertedCallbackAsync: Reverted.
 Run Log:
 [*time*][Op2]: Start Executing Op2
 [*time*][Op2]: Op2 Success
@@ -74,4 +74,5 @@ OnSagaCompleted: Id: test Status: Reverted
 3: EndOperation - SagaID: test, Operation: Op2, Outcome: Succeeded
 4: StartOperation - SagaID: test, Operation: Op1
 5: EndOperation - SagaID: test, Operation: Op1, Outcome: Failed
-6: EndSaga - SagaID: test, Outcome: Reverted
+6: CustomEvent - SagaID: test, Event: SagaFailure, Properties: None
+7: EndSaga - SagaID: test, Outcome: Reverted

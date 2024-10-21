@@ -133,7 +133,7 @@ HasRevertValidate: False
 Calling Op1: Success True
 Calling Op2: Success True
 Calling Op3: Success True
-OnRevertedCallback: Reverted.
+OnRevertedCallbackAsync: Reverted.
 Run Log:
 [*time*][Op1]: Start Executing Op1
 [*time*][Op1]: Op1 Success
@@ -161,4 +161,5 @@ OnSagaCompleted: Id: test Status: Reverted
 5: EndOperation - SagaID: test, Operation: Op2, Outcome: Succeeded
 6: StartOperation - SagaID: test, Operation: Op3
 7: EndOperation - SagaID: test, Operation: Op3, Outcome: Failed
-8: EndSaga - SagaID: test, Outcome: Reverted
+8: CustomEvent - SagaID: test, Event: SagaFailure, Properties: None
+9: EndSaga - SagaID: test, Outcome: Reverted
