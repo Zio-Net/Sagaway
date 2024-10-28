@@ -127,26 +127,29 @@ namespace Sagaway
                     }
                 }
             }
-            
+
             public async Task CancelReminderIfOnAsync(bool forceCancel = false)
             {
-                if (_isReminderOn || forceCancel)
+                if (!_isReminderOn && !forceCancel)
                 {
-                    // Before canceling the operation-level reminder, set the saga-level reminder
-                    if (!forceCancel)
-                    {
-                        //we set the saga level reminder to the same timeout of the operation + 2 minutes 
-                        //The saga level reminder is a safety net for the case that we shut down in the middle after canceling the 
-                        //current operation reminder, before registering the next reminder
-                        await _saga.SetSagaLevelReminderAsync(GetRetryInterval(_retryCount) + TimeSpan.FromMinutes(2));
-                    }
-
-                    _logger.LogInformation("Canceling old reminder {ReminderName} for {OperationName}", ReminderName, OperationName);
-                    _isReminderOn = false;
-                    await _saga._sagaSupportOperations.CancelReminderAsync(ReminderName);
+                    return;
                 }
+
+
+                if (!forceCancel)
+                {
+                    //we set the saga level reminder to the same timeout of the operation + 2 minutes 
+                    //The saga level reminder is a safety net for the case that we shut down in the middle after canceling the 
+                    //current operation reminder, before registering the next reminder
+                    await _saga.SetSagaLevelReminderAsync(GetRetryInterval(_retryCount) + TimeSpan.FromMinutes(2));
+                }
+
+                _logger.LogInformation("Canceling old reminder {ReminderName} for {OperationName}", ReminderName,
+                    OperationName);
+                _isReminderOn = false;
+                await _saga._sagaSupportOperations.CancelReminderAsync(ReminderName);
             }
-            
+
             public async Task InformFailureOperationAsync(bool failFast)
             {
                 if (Succeeded || Failed)
