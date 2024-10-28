@@ -1,9 +1,11 @@
-﻿namespace Sagaway.Callback.Propagator;
+﻿using Microsoft.Extensions.Logging;
+
+namespace Sagaway.Callback.Propagator;
 
 using Microsoft.AspNetCore.Http;
 using System.Threading.Tasks;
 
-public class HeaderPropagationMiddleware(RequestDelegate next)
+public class HeaderPropagationMiddleware(ILogger<HeaderPropagationMiddleware> logger, RequestDelegate next)
 {
     // Using AsyncLocal to store the headers per request context
     public static readonly AsyncLocal<SagawayContext> SagawayContext = new();
@@ -22,8 +24,8 @@ public class HeaderPropagationMiddleware(RequestDelegate next)
             context.Request.Headers["x-sagaway-dapr-message-dispatch-time"],
             context.Request.Headers["x-sagaway-dapr-custom-metadata"]
         );
-    
-        
+
+        logger.LogDebug("Capture context in the HeaderPropagationMiddleware, Sagaway context: {SagawayContext}", SagawayContext.Value);
         // Call the next delegate/middleware in the pipeline
         await next(context);
     }

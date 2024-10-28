@@ -1,6 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-
-namespace Sagaway.Callback.Propagator;
+﻿namespace Sagaway.Callback.Propagator;
 
 /// <summary>
 /// Defines the contract for managing the Sagaway context, providing methods

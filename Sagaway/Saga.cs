@@ -197,7 +197,8 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
         IReadOnlyList<SagaOperation> operations, Action<string>? onSuccessCallback, Action<string>? onFailedCallback,
         Action<string>? onRevertedCallback, Action<string>? onRevertFailureCallback)
     {
-        _logger = logger;
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
         _sagaUniqueId = sagaUniqueId;
         _sagaSupportOperations = sagaSupportOperations;
         _operations = operations.Select(o => new SagaOperationExecution(this, o, logger)).ToList();
@@ -206,6 +207,8 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
         _onRevertedCallback = onRevertedCallback;
         _onRevertFailureCallback = onRevertFailureCallback;
         _lock = _sagaSupportOperations.CreateLock();
+
+        _logger.LogInformation("Created new Saga instance with ID {SagaId}", _sagaUniqueId);
 
         Validate();
         SetExecutableOperationDependencies();
@@ -317,6 +320,8 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
         bool isNew = false;
         bool completed = false;
         
+        _logger.LogTrace("Saga {_sagaUniqueId} is activated.", _sagaUniqueId);
+
         await _lock.LockAsync(async () =>
         {
             _deactivated = false;
@@ -331,7 +336,7 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
             }
             if (_done)
             {
-                _logger.LogInformation($"Saga {_sagaUniqueId} is already completed, no need to activate.");
+                _logger.LogInformation("Saga {_sagaUniqueId} is already completed, no need to activate.", _sagaUniqueId);
                 completed = true;
             }
         });
@@ -348,6 +353,8 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
     /// <returns>Async operation</returns>
     public async Task InformDeactivatedAsync()
     {
+        _logger.LogTrace("Saga {_sagaUniqueId} is deactivated.", _sagaUniqueId);
+
         await _lock.LockAsync(async () =>
         {
             try
@@ -416,7 +423,7 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error loading saga state {SagaStateName}", SagaName);
+            _logger.LogError(ex, "Error loading saga state {SagaName}", SagaName);
             _corruptedState = true;
             await CancelOperationRemindersAsync();
             throw new CorruptedSagaStateException($"[{SagaName}] Error loading Saga State, see inner exception. Important, check this problem, it can hurt reliability since a Saga process may stop in the middle!", ex);
@@ -444,6 +451,8 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
 
     private async Task StoreStateAsync()
     {
+        _logger.LogInformation("Storing state for saga {_sagaUniqueId}.", _sagaUniqueId);
+
         var json = new JsonObject();
 
         if (_resetSagaState)
@@ -490,24 +499,34 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
     /// <returns>Async method</returns>
     public async Task RunAsync()
     {
+        _logger.LogInformation("[{SagaName}]: (Re)Starting saga execution", SagaName);
         bool ShouldRun() => !_done && !_deactivated && (NotStarted || InProgress);
 
         await _lock.LockAsync(async () =>
         {
-            while (ShouldRun())
+            if (ShouldRun())
             {
+                _logger.LogDebug("Finding all waiting operations for saga {SagaId}", _sagaUniqueId);
+
                 var allWaitingOperations = _operations.Where(o => o.CanExecute).ToList();
 
                 if (!allWaitingOperations.Any() || allWaitingOperations.All(o => o.Failed))
+                {
+                    _logger.LogInformation("No operations to run, saga {SagaId} will exit until next activation", _sagaUniqueId);
                     return;
+                }
 
                 foreach (var operation in allWaitingOperations)
                 {
+                    _logger.LogDebug("Starting operation {Operation} in saga {SagaId}", operation.Operation.Operation, _sagaUniqueId);
+
                     await operation.StartExecuteAsync();
+
                     if (!ShouldRun())
                         break;
                 }
             }
+            _logger.LogInformation("Saga {SagaId} finished current execution, exiting until next activation", _sagaUniqueId);
         });
     }
 
@@ -543,10 +562,15 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
         if (!success && sagaFastOutcome == SagaFastOutcome.Success)
             throw new InvalidOperationException($"[{SagaName}] Cannot have fast success without success");
 
+        _logger.LogInformation("Saga {_sagaUniqueId} operation {Operation} reported outcome {Success}", _sagaUniqueId, operation, success);
+
         await _lock.LockAsync(async () =>
         {
             if (!InProgress)
+            {
+                _logger.LogWarning("Saga {_sagaUniqueId} is not in progress, ignoring operation outcome", _sagaUniqueId);
                 return;
+            }
 
             try
             {
@@ -586,6 +610,8 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
     /// <returns>Async operation</returns>
     public async Task ReportUndoOperationOutcomeAsync(TEOperations operation, bool success)
     {
+        _logger.LogInformation("Saga {_sagaUniqueId} operation {Operation} reported undo outcome {Success}", _sagaUniqueId, operation, success);
+
         await _lock.LockAsync(async () =>
         {
             if (!InProgress)
@@ -611,7 +637,7 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
 
     private async Task CheckForCompletionAsync()
     {
-        var recordedSteps = _stepRecorder.ToString();
+        
 
         try
         {
@@ -620,10 +646,13 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
             if (_done)
                 return;
 
+            var recordedSteps = _stepRecorder.ToString();
             //Failed is a transient state, so the saga is not done reverting,
             //We ensure that we call the onFailedCallback only once
             if (Failed && _onFailedCallback != null && !_hasFailedReported)
             {
+                _logger.LogDebug("Saga {_sagaUniqueId} failed, calling onFailedCallback.", _sagaUniqueId);
+
                 _hasFailedReported = true;
                 _onFailedCallback(recordedSteps);
                 await TelemetryAdapter.RecordCustomEventAsync(_telemetryContext, "SagaFailure");
@@ -631,6 +660,8 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
 
             if (Completed)
             {
+                _logger.LogInformation("Saga {_sagaUniqueId} is completed.", _sagaUniqueId);
+
                 _done = true;
                 var telemetryOutcome = Succeeded ? SagaOutcome.Succeeded :
                     Reverted ? SagaOutcome.Reverted : SagaOutcome.PartiallyReverted;
@@ -640,14 +671,20 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
             //first handle completion notification
             if (Succeeded && _onSuccessCallback != null)
             {
+                _logger.LogTrace("Saga {_sagaUniqueId} is succeeded, calling onSuccessCallback.", _sagaUniqueId);
+
                 _onSuccessCallback(recordedSteps);
             }
             else if (Reverted && _onRevertedCallback != null)
             {
+                _logger.LogTrace("Saga {_sagaUniqueId} is reverted, calling onRevertedCallback.", _sagaUniqueId);
+
                 _onRevertedCallback(recordedSteps);
             }
             else if (RevertFailed && _onRevertFailureCallback != null)
             {
+                _logger.LogTrace("Saga {_sagaUniqueId} is revert failed, calling onRevertFailureCallback.", _sagaUniqueId);
+
                 _onRevertFailureCallback(recordedSteps);
             }
         }
@@ -790,6 +827,8 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
     /// <returns>Async operation</returns>
     public async Task ResetSagaAsync()
     {
+        _logger.LogInformation("Resetting saga {_sagaUniqueId} state.", _sagaUniqueId);
+
         await _lock.LockAsync(async () =>
         {
             await Task.CompletedTask;
