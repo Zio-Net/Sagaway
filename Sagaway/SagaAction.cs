@@ -83,18 +83,20 @@ namespace Sagaway
 
             private async Task<TimeSpan> ResetReminderAsync()
             {
-                await CancelReminderIfOnAsync();
-
                 var retryInterval = GetRetryInterval(_retryCount);
                 
                 if (retryInterval == default || MaxRetries == 0)
                 {
+                    LogAndRecord($"No retry for {OperationName}. Not setting a reminder");
                     return default;
                 }
 
                 LogAndRecord($"Registering reminder {ReminderName} for {OperationName} with interval {retryInterval}");
                 await _saga._sagaSupportOperations.SetReminderAsync(ReminderName, retryInterval);
                 _isReminderOn = true;
+
+                // After setting the operation-level reminder, cancel the saga-level reminder
+                await _saga.CancelSagaLevelReminderAsync();
 
                 return retryInterval;
             }
@@ -127,7 +129,14 @@ namespace Sagaway
             {
                 if (_isReminderOn || forceCancel)
                 {
-                    _logger.LogInformation($"Canceling old reminder {ReminderName} for {OperationName}");
+                    // Before canceling the operation-level reminder, set the saga-level reminder
+                    if (!forceCancel)
+                    {
+                        //we set the saga level reminder to the same timeout of the operation
+                        await _saga.SetSagaLevelReminderAsync(GetRetryInterval(_retryCount));
+                    }
+
+                    _logger.LogInformation("Canceling old reminder {ReminderName} for {OperationName}", ReminderName, OperationName);
                     _isReminderOn = false;
                     await _saga._sagaSupportOperations.CancelReminderAsync(ReminderName);
                 }
@@ -142,11 +151,11 @@ namespace Sagaway
 
                 if (failFast)
                 {
-                    _logger.LogWarning($"The Operation {OperationName} Failed fast, reverting Saga");
+                    _logger.LogWarning("The Operation {OperationName} Failed fast, reverting Saga", OperationName);
                 }
                 else
                 {
-                    _logger.LogInformation($"Operation {OperationName} Failed");
+                    _logger.LogInformation("Operation {OperationName} Failed", OperationName);
                 }
 
                 _retryCount++;
@@ -164,35 +173,39 @@ namespace Sagaway
                 await _saga.RecordEndOperationTelemetry(_sagaOperation.Operation, 
                     IsRevert ? OperationOutcome.RevertFailed : OperationOutcome.Failed, IsRevert);
 
+                await CancelReminderIfOnAsync();
+
                 await OnActionFailureAsync();
             }
 
             public async Task InformSuccessOperationAsync()
             {
-                await CancelReminderIfOnAsync();
-
                 if (Succeeded || Failed)
                 {
+                    await CancelReminderIfOnAsync();
                     return;
                 }
 
                 LogAndRecord($"{OperationName} Success");
                 
                 Succeeded = true;
-                
+
+                await CancelReminderIfOnAsync();
+
                 await _saga.RecordEndOperationTelemetry(_sagaOperation.Operation, IsRevert ? OperationOutcome.Reverted : OperationOutcome.Succeeded, IsRevert);
                 await _saga.CheckForCompletionAsync();
+
             }
 
             public async Task OnReminderAsync()
             {
                 _isReminderOn = true;
-                await CancelReminderIfOnAsync();
 
                 LogAndRecord("Wake by a reminder");
 
                 if (Succeeded || Failed)
                 {
+                    await CancelReminderIfOnAsync();
                     return;
                 }
 

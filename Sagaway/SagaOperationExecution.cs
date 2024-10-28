@@ -82,10 +82,12 @@ public partial class Saga<TEOperations> where TEOperations : Enum
         public async Task RevertAsync()
         {
             _currentAction = _sagaRevertAction;
-            await _currentAction.CancelReminderIfOnAsync();
 
             if (Reverted || RevertFailed)
+            {
+                await _currentAction.CancelReminderIfOnAsync();
                 return;
+            }
 
             await _sagaRevertAction.ExecuteAsync();
         }
