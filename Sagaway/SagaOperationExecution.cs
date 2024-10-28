@@ -88,7 +88,7 @@ public partial class Saga<TEOperations> where TEOperations : Enum
             if (Reverted || RevertFailed)
             {
                 await _currentAction.CancelReminderIfOnAsync();
-            {
+
                 _logger.LogWarning("Operation {Operation} already reverted or revert failed", Operation.Operation);
                 return;
             }

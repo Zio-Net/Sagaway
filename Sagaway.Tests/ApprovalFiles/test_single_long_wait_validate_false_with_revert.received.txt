@@ -1,0 +1,63 @@
+﻿Preparing test test_single_long_wait_validate_false_with_revert
+OperationNumber: Op1
+Dependencies: 0
+MaxRetries: 1
+NumberOfFailures: 2
+CallDelay: 1 - 5
+RetryDelay: 2
+RevertMaxRetries: 2
+RevertNumberOfFailures: 1
+RevertCallDelay: empty
+RevertRetryDelay: 2
+ValidateFunctionResult: 1 - False
+RevertValidateFunctionResults: empty
+CallCounter: 0
+RevertCallCounter: 0
+ValidateCallCounter: 0
+RevertValidateCallCounter: 0
+Deactivate: empty
+ThrowException: empty
+ValidateThrowException: empty
+RevertThrowException: empty
+RevertValidateThrowException: empty
+HasReportFail: False
+HasRevert: True
+HasValidate: True
+HasRevertValidate: False
+
+Calling Op1: Success False
+Op1 Validate returns False
+Calling Op1: Success False
+Calling revert for Op1: Success False
+Calling revert for Op1: Success True
+OnRevertedCallback: Reverted.
+Run Log:
+[*time*][Op1]: Start Executing Op1
+[*time*][Op1]: Registering reminder Op1:Retry for Op1 with interval 00:00:02
+[*time*][Op1]: Wake by a reminder
+[*time*][Op1]: The validate function does not exist or raised an exception, retry Op1 action
+[*time*][Op1]: Retry Op1. Retry count: 1
+[*time*][Op1]: Start Executing Op1
+[*time*][Op1]: Registering reminder Op1:Retry for Op1 with interval 00:00:02
+[*time*][Op1]: Op1 Failed. Retries exhausted.
+[*time*][Op1]: Start Executing Revert Op1
+[*time*][Op1]: Registering reminder Op1:Retry for Revert Op1 with interval 00:00:02
+[*time*][Op1]: Retry Revert Op1. Retry count: 1
+[*time*][Op1]: Start Executing Revert Op1
+[*time*][Op1]: Registering reminder Op1:Retry for Revert Op1 with interval 00:00:02
+[*time*][Op1]: Revert Op1 Success
+
+
+OnSagaCompleted: Id: test Status: Reverted
+
+*** Telemetry ***
+1: StartSaga - SagaID: test, Type: SagaOperations
+2: StartOperation - SagaID: test, Operation: Op1
+3: RetryAttempt - SagaID: test, Operation: Op1, Attempt: 1
+4: StartOperation - SagaID: test, Operation: Op1
+5: EndOperation - SagaID: test, Operation: Op1, Outcome: Failed
+6: StartOperation - SagaID: test, Operation: RevertOp1
+7: RetryAttempt - SagaID: test, Operation: RevertOp1, Attempt: 1
+8: StartOperation - SagaID: test, Operation: RevertOp1
+9: EndOperation - SagaID: test, Operation: RevertOp1, Outcome: Reverted
+10: EndSaga - SagaID: test, Outcome: Reverted

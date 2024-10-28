@@ -1,0 +1,52 @@
+﻿Preparing test test_single_long_wait_validate_exception
+OperationNumber: Op1
+Dependencies: 0
+MaxRetries: 1
+NumberOfFailures: 0
+CallDelay: 1 - 5
+RetryDelay: 2
+RevertMaxRetries: 0
+RevertNumberOfFailures: 0
+RevertCallDelay: empty
+RevertRetryDelay: 0
+ValidateFunctionResult: 1 - True
+ValidateFunctionResult: 2 - True
+RevertValidateFunctionResults: empty
+CallCounter: 0
+RevertCallCounter: 0
+ValidateCallCounter: 0
+RevertValidateCallCounter: 0
+Deactivate: empty
+ThrowException: empty
+ValidateThrowException: 1
+RevertThrowException: empty
+RevertValidateThrowException: empty
+HasReportFail: False
+HasRevert: False
+HasValidate: True
+HasRevertValidate: False
+
+Calling Op1: Success True
+Calling Op1: Success True
+OnSuccessCompletionCallback: Success.
+Run Log:
+[*time*][Op1]: Start Executing Op1
+[*time*][Op1]: Registering reminder Op1:Retry for Op1 with interval 00:00:02
+[*time*][Op1]: Wake by a reminder
+[*time*][Op1]: Error when calling Op1 validate. Error: Throwing exception on validate 1.
+[*time*][Op1]: The validate function does not exist or raised an exception, retry Op1 action
+[*time*][Op1]: Retry Op1. Retry count: 1
+[*time*][Op1]: Start Executing Op1
+[*time*][Op1]: Registering reminder Op1:Retry for Op1 with interval 00:00:02
+[*time*][Op1]: Op1 Success
+
+
+OnSagaCompleted: Id: test Status: Succeeded
+
+*** Telemetry ***
+1: StartSaga - SagaID: test, Type: SagaOperations
+2: StartOperation - SagaID: test, Operation: Op1
+3: RetryAttempt - SagaID: test, Operation: Op1, Attempt: 1
+4: StartOperation - SagaID: test, Operation: Op1
+5: EndOperation - SagaID: test, Operation: Op1, Outcome: Succeeded
+6: EndSaga - SagaID: test, Outcome: Succeeded

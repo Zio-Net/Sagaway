@@ -500,7 +500,7 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
     public async Task RunAsync()
     {
         _logger.LogInformation("[{SagaName}]: (Re)Starting saga execution", SagaName);
-        bool ShouldRun() => !_done && !_deactivated && (NotStarted || InProgress);
+        bool ShouldRun() => !_deactivated && (NotStarted || InProgress);
 
         await _lock.LockAsync(async () =>
         {
@@ -637,8 +637,6 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
 
     private async Task CheckForCompletionAsync()
     {
-        
-
         try
         {
             //we use _done flag and not the Completed property to make sure we enter this function
@@ -646,7 +644,7 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
             if (_done)
                 return;
 
-            var recordedSteps = _stepRecorder.ToString();
+            
             //Failed is a transient state, so the saga is not done reverting,
             //We ensure that we call the onFailedCallback only once
             if (Failed && _onFailedCallback != null && !_hasFailedReported)
@@ -654,7 +652,7 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
                 _logger.LogDebug("Saga {_sagaUniqueId} failed, calling onFailedCallback.", _sagaUniqueId);
 
                 _hasFailedReported = true;
-                _onFailedCallback(recordedSteps);
+                _onFailedCallback(_stepRecorder.ToString());
                 await TelemetryAdapter.RecordCustomEventAsync(_telemetryContext, "SagaFailure");
             }
 
@@ -673,19 +671,19 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
             {
                 _logger.LogTrace("Saga {_sagaUniqueId} is succeeded, calling onSuccessCallback.", _sagaUniqueId);
 
-                _onSuccessCallback(recordedSteps);
+                _onSuccessCallback(_stepRecorder.ToString());
             }
             else if (Reverted && _onRevertedCallback != null)
             {
                 _logger.LogTrace("Saga {_sagaUniqueId} is reverted, calling onRevertedCallback.", _sagaUniqueId);
 
-                _onRevertedCallback(recordedSteps);
+                _onRevertedCallback(_stepRecorder.ToString());
             }
             else if (RevertFailed && _onRevertFailureCallback != null)
             {
                 _logger.LogTrace("Saga {_sagaUniqueId} is revert failed, calling onRevertFailureCallback.", _sagaUniqueId);
 
-                _onRevertFailureCallback(recordedSteps);
+                _onRevertFailureCallback(_stepRecorder.ToString());
             }
         }
         catch (Exception ex)
@@ -723,7 +721,7 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
         try
         {
             OnSagaCompleted?.Invoke(this,
-                new SagaCompletionEventArgs(_sagaUniqueId, sagaCompletionStatus, recordedSteps));
+                new SagaCompletionEventArgs(_sagaUniqueId, sagaCompletionStatus, _stepRecorder.ToString()));
         }
         catch (Exception e)
         {
