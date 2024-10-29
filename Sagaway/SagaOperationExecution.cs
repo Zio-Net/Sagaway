@@ -10,7 +10,6 @@ public partial class Saga<TEOperations> where TEOperations : Enum
     {
         #region Transient State - built on each activation
 
-        private readonly Saga<TEOperations> _saga;
         private IReadOnlyList<SagaOperationExecution>? _precondition;
         private readonly ILogger _logger;
 
@@ -28,7 +27,6 @@ public partial class Saga<TEOperations> where TEOperations : Enum
 
         public SagaOperationExecution(Saga<TEOperations> saga, SagaOperation operation, ILogger logger)
         {
-            _saga = saga;
             Operation = operation;
             _logger = logger;
 
@@ -63,12 +61,6 @@ public partial class Saga<TEOperations> where TEOperations : Enum
                                                 !_started && _precondition.All(o => o.Succeeded));
 
         public bool NotStarted => !_started;
-
-        protected void LogAndRecord(string message)
-        {
-            _logger.LogInformation(message);
-            _saga.RecordMessage(message);
-        }
 
         public async Task StartExecuteAsync()
         {

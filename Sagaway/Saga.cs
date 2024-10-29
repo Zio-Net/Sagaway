@@ -85,32 +85,7 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
     /// The Saga executed and finished either successfully or failed
     /// </summary>
     public bool Completed => !InProgress && Started;
-
-    #region Saga level reminder
-
-    // Method to set the saga-level reminder
-    private async Task SetSagaLevelReminderAsync(TimeSpan reminderTime)
-    {
-        if (!_isSagaReminderOn)
-        {
-            _logger.LogInformation("{SagaStateName}: Setting Saga-level reminder.", SagaName);
-            await _sagaSupportOperations.SetReminderAsync("SagaHeartbeatReminder", reminderTime);
-            _isSagaReminderOn = true;
-        }
-    }
-
-    // Method to cancel the saga-level reminder
-    private async Task CancelSagaLevelReminderAsync()
-    {
-        if (_isSagaReminderOn)
-        {
-            _logger.LogInformation("{SagaStateName}: Canceling Saga-level reminder.", SagaName);
-            await _sagaSupportOperations.CancelReminderAsync("SagaHeartbeatReminder");
-            _isSagaReminderOn = false;
-        }
-    }
-
-    #endregion
+   
     #region Telemetry
 
     private ITelemetryAdapter TelemetryAdapter => _sagaSupportOperations.TelemetryAdapter;
@@ -394,7 +369,6 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
             _done = json["done"]?.GetValue<bool>() ?? false;
             _isReverting = json["isReverting"]?.GetValue<bool>() ?? false;
             _hasFailedReported = json["hasFailedReported"]?.GetValue<bool>() ?? false;
-            _isSagaReminderOn = json["isSagaReminderOn"]?.GetValue<bool>() ?? false;
 
             _stepRecorder.Length = 0;
             _stepRecorder.Append(json["stepRecorder"]?.GetValue<string>() ?? string.Empty);

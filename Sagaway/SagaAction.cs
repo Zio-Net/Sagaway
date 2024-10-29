@@ -92,8 +92,6 @@ namespace Sagaway
                 LogAndRecord($"Registering reminder {ReminderName} for {OperationName} with interval {retryInterval}");
                 await _saga._sagaSupportOperations.SetReminderAsync(ReminderName, retryInterval);
 
-                // After setting the operation-level reminder, cancel the saga-level reminder
-                await _saga.CancelSagaLevelReminderAsync();
 
                 _logger.LogTrace("Reminder {ReminderName} set for operation {OperationName} in saga {SagaId} with interval {RetryInterval}", ReminderName, OperationName, _saga._sagaUniqueId, retryInterval);
 
