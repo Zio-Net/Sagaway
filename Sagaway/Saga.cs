@@ -40,9 +40,6 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
     private bool _hasFailedReported;
     private bool _isReverting;
     private readonly SagaTelemetryContext _telemetryContext;
-    
-    // Field to track if the saga-level reminder is on
-    private bool _isSagaReminderOn;
 
 
     #endregion //Persistent State
@@ -92,23 +89,15 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
     // Method to set the saga-level reminder
     private async Task SetSagaLevelReminderAsync(TimeSpan reminderTime)
     {
-        if (!_isSagaReminderOn)
-        {
-            _logger.LogInformation("{SagaStateName}: Setting Saga-level reminder.", SagaName);
-            await _sagaSupportOperations.SetReminderAsync("SagaHeartbeatReminder", reminderTime);
-            _isSagaReminderOn = true;
-        }
+        _logger.LogInformation("{SagaStateName}: Setting Saga-level reminder.", SagaName);
+        await _sagaSupportOperations.SetReminderAsync("SagaHeartbeatReminder", reminderTime);
     }
 
     // Method to cancel the saga-level reminder
     private async Task CancelSagaLevelReminderAsync()
     {
-        if (_isSagaReminderOn)
-        {
-            _logger.LogInformation("{SagaStateName}: Canceling Saga-level reminder.", SagaName);
-            await _sagaSupportOperations.CancelReminderAsync("SagaHeartbeatReminder");
-            _isSagaReminderOn = false;
-        }
+        _logger.LogInformation("{SagaStateName}: Canceling Saga-level reminder.", SagaName);
+        await _sagaSupportOperations.CancelReminderAsync("SagaHeartbeatReminder");
     }
 
     #endregion
@@ -395,7 +384,6 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
             _done = json["done"]?.GetValue<bool>() ?? false;
             _isReverting = json["isReverting"]?.GetValue<bool>() ?? false;
             _hasFailedReported = json["hasFailedReported"]?.GetValue<bool>() ?? false;
-            _isSagaReminderOn = json["isSagaReminderOn"]?.GetValue<bool>() ?? false;
 
             _stepRecorder.Length = 0;
             _stepRecorder.Append(json["stepRecorder"]?.GetValue<string>() ?? string.Empty);
@@ -474,7 +462,6 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
         json["isReverting"] = _isReverting;
         json["hasFailedReported"] = _hasFailedReported;
         json["stepRecorder"] = _stepRecorder.ToString();
-        json["isSagaReminderOn"] = _isSagaReminderOn;
 
         var telemetryStateStore = _telemetryStateStore.Aggregate(
             new StringBuilder(), (sb, pair) => sb.Append($"{pair.Key},{pair.Value}|"), sb => sb.ToString());

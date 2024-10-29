@@ -18,7 +18,6 @@ namespace Sagaway
 
             #region Persistent State - kept in the state store
 
-            bool _isReminderOn;
             private int _retryCount;
             protected Saga<TEOperations> Saga => _saga; //persisted in another class
 
@@ -68,7 +67,6 @@ namespace Sagaway
 
             public void StoreState(JsonObject json)
             {
-                json["isReminderOn"] = _isReminderOn;
                 json["retryCount"] = _retryCount;
                 json["succeeded"] = Succeeded;
                 json["failed"] = Failed;
@@ -76,7 +74,6 @@ namespace Sagaway
 
             public void LoadState(JsonObject json)
             {
-                _isReminderOn = json["isReminderOn"]?.GetValue<bool>() ?? throw new Exception("Error when loading state, missing isReminderOn entry");
                 _retryCount = json["retryCount"]?.GetValue<int>() ?? throw new Exception("Error when loading state, missing retryCount entry");
                 Succeeded = json["succeeded"]?.GetValue<bool>() ?? throw new Exception("Error when loading state, missing succeeded entry");
                 Failed = json["failed"]?.GetValue<bool>() ?? throw new Exception("Error when loading state, missing failed entry");
@@ -94,7 +91,6 @@ namespace Sagaway
 
                 LogAndRecord($"Registering reminder {ReminderName} for {OperationName} with interval {retryInterval}");
                 await _saga._sagaSupportOperations.SetReminderAsync(ReminderName, retryInterval);
-                _isReminderOn = true;
 
                 // After setting the operation-level reminder, cancel the saga-level reminder
                 await _saga.CancelSagaLevelReminderAsync();
@@ -119,7 +115,7 @@ namespace Sagaway
                     LogAndRecord($"Error when calling {OperationName}. Error: {ex.Message}. Retry in {retryInterval} seconds");
                     await _saga.RecordTelemetryExceptionAsync(ex, $"Error when calling {OperationName}");
 
-                    if (!_isReminderOn)
+                    if (retryInterval == default)
                     {
                         //no reminder and we failed. Take failure action right away
                         LogAndRecord($"No reminder set for {OperationName}. Taking failure action");
@@ -130,23 +126,14 @@ namespace Sagaway
 
             public async Task CancelReminderIfOnAsync(bool forceCancel = false)
             {
-                if (!_isReminderOn && !forceCancel)
-                {
-                    return;
-                }
-
-
-                if (!forceCancel)
-                {
-                    //we set the saga level reminder to the same timeout of the operation + 2 minutes 
-                    //The saga level reminder is a safety net for the case that we shut down in the middle after canceling the 
-                    //current operation reminder, before registering the next reminder
+                //we set the saga level reminder to the same timeout of the operation + 2 minutes 
+                //The saga level reminder is a safety net for the case that we shut down in the middle after canceling the 
+                //current operation reminder, before registering the next reminder
+                if (forceCancel)    
                     await _saga.SetSagaLevelReminderAsync(GetRetryInterval(_retryCount) + TimeSpan.FromMinutes(2));
-                }
-
+                
                 _logger.LogInformation("Canceling old reminder {ReminderName} for {OperationName}", ReminderName,
                     OperationName);
-                _isReminderOn = false;
                 await _saga._sagaSupportOperations.CancelReminderAsync(ReminderName);
             }
 
@@ -206,7 +193,6 @@ namespace Sagaway
 
             public async Task OnReminderAsync()
             {
-                _isReminderOn = true;
                 await CancelReminderIfOnAsync();
 
                 LogAndRecord("Wake by a reminder");
