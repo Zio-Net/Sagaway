@@ -27,7 +27,7 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
     private bool _resetSagaState;
     private bool _corruptedState; //use for flagging corrupted state, for the current call
 
-    private string SagaStateName => $"Saga_{_sagaUniqueId}";
+    private string SagaName => $"Saga_{_sagaUniqueId}";
 
     #endregion //Transient State
 
@@ -41,6 +41,9 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
     private bool _isReverting;
     private readonly SagaTelemetryContext _telemetryContext;
     
+    // Field to track if the saga-level reminder is on
+    private bool _isSagaReminderOn;
+
 
     #endregion //Persistent State
 
@@ -84,6 +87,31 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
     /// </summary>
     public bool Completed => !InProgress && Started;
 
+    #region Saga level reminder
+
+    // Method to set the saga-level reminder
+    private async Task SetSagaLevelReminderAsync(TimeSpan reminderTime)
+    {
+        if (!_isSagaReminderOn)
+        {
+            _logger.LogInformation("{SagaStateName}: Setting Saga-level reminder.", SagaName);
+            await _sagaSupportOperations.SetReminderAsync("SagaHeartbeatReminder", reminderTime);
+            _isSagaReminderOn = true;
+        }
+    }
+
+    // Method to cancel the saga-level reminder
+    private async Task CancelSagaLevelReminderAsync()
+    {
+        if (_isSagaReminderOn)
+        {
+            _logger.LogInformation("{SagaStateName}: Canceling Saga-level reminder.", SagaName);
+            await _sagaSupportOperations.CancelReminderAsync("SagaHeartbeatReminder");
+            _isSagaReminderOn = false;
+        }
+    }
+
+    #endregion
     #region Telemetry
 
     private ITelemetryAdapter TelemetryAdapter => _sagaSupportOperations.TelemetryAdapter;
@@ -96,7 +124,7 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Error recording start operation telemetry");
+            _logger.LogError(e, "{SagaStateName}: Error recording start operation telemetry", SagaName);
         }
     }
 
@@ -110,7 +138,7 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Error recording end operation telemetry");
+            _logger.LogError(e, "{SagaStateName}: Error recording end operation telemetry", SagaName);
         }
     }
 
@@ -123,7 +151,7 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Error recording retry attempt telemetry");
+            _logger.LogError(e, "{SagaStateName}: Error recording retry attempt telemetry", SagaName);
         }
     }
 
@@ -141,7 +169,7 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Error recording custom telemetry event");
+            _logger.LogError(e, "{SagaStateName}: Error recording custom telemetry event", SagaName);
         }
     }
 
@@ -159,7 +187,7 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Error recording exception");
+            _logger.LogError(e, "{SagaStateName}: Error recording exception", SagaName);
         }
     }
 
@@ -199,56 +227,56 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
         //saga unique id must be provided
         if (string.IsNullOrWhiteSpace(_sagaUniqueId))
         {
-            throw new ValidationException("A unique saga id must be provided for the Saga");
+            throw new ValidationException($"[{SagaName}] A unique saga id must be provided for the Saga");
         }
 
         //saga support must be provided
         if (_sagaSupportOperations == null)
         {
             throw new ValidationException(
-                $"A saga support type the implement the interface {nameof(ISagaSupport)} must be provided");
+                $"[{SagaName}] A saga support type the implement the interface {nameof(ISagaSupport)} must be provided");
         }
 
         //at least one operation must be provided
         if (_operations == null || _operations.Count == 0)
         {
-            throw new ValidationException("At least one operation must be provided");
+            throw new ValidationException($"[{SagaName}] At least one operation must be provided");
         }
 
         //for all provided operations, a do operation must be provided
         if (_operations.Any(o => o.Operation.DoOperationAsync == null))
         {
-            throw new ValidationException("All operation must set the Do function");
+            throw new ValidationException($"[{SagaName}] All operation must set the Do function");
         }
 
         if (_operations.Count == 0)
         {
-            throw new ValidationException("No operations are defined");
+            throw new ValidationException($"[{SagaName}] No operations are defined");
         }
 
         //must have a success callback
         if (_onSuccessCallback == null)
         {
-            throw new ValidationException("No on success callback is defined");
+            throw new ValidationException($"[{SagaName}] No on success callback is defined");
         }
 
         //must have a revert callback
         if (_onRevertedCallback == null && _onFailedCallback == null)
         {
-            throw new ValidationException("No on reverted or on failed callback is defined");
+            throw new ValidationException($"[{SagaName}] No on reverted or on failed callback is defined");
         }
 
         //must have a revert failure callback
         if (_onRevertFailureCallback == null && _onFailedCallback == null)
         {
-            throw new ValidationException("No on revert failure or on failed callback is defined");
+            throw new ValidationException($"[{SagaName}] No on revert failure or on failed callback is defined");
         }
 
         //for each operation that provided a validate function, a Retry number that is grater than 0 must be provided
         if (_operations.Any(o => o.Operation is { ValidateAsync: { }, MaxRetries: <= 0 }))
         {
             throw new ValidationException(
-                "Retry count must be greater than 0 for all operations that provide a validate function");
+                $"[{SagaName}] Retry count must be greater than 0 for all operations that provide a validate function");
         }
 
         //for each operation that provided a validate function, a positive  Retry Interval or retry function must be provided
@@ -256,7 +284,7 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
                 { ValidateAsync: not null, RetryInterval.TotalSeconds: <= 0, RetryIntervalFunction: null }))
         {
             throw new ValidationException(
-                "Retry interval must be greater than 0 or a retry delay function is provided for all operations that provide a validate function");
+                $"[{SagaName}] Retry interval must be greater than 0 or a retry delay function is provided for all operations that provide a validate function");
         }
     }
 
@@ -303,7 +331,7 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error loading saga state {SagaStateName}", SagaStateName);
+                _logger.LogError(ex, "Error loading saga state {SagaStateName}", SagaName);
                 throw;
             }
             if (_done)
@@ -337,7 +365,7 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error saving saga state {SagaStateName}", SagaStateName);
+                _logger.LogError(ex, "Error saving saga state {SagaStateName}", SagaName);
                 throw;
             }
         });
@@ -350,14 +378,14 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
     {
         try
         {
-            var json = await _sagaSupportOperations.LoadSagaAsync(SagaStateName);
+            var json = await _sagaSupportOperations.LoadSagaAsync(SagaName);
 
             //log the json as readable text
-            _logger.LogDebug("On loading state: Saga {SagaStateName} state: {json}", SagaStateName, json);
+            _logger.LogDebug($"On loading state: Saga {SagaName} state: {json}");
 
             if (json is null || json.Count == 0)
             {
-                _logger.LogInformation($"State {SagaStateName} is not found in persistence store, Assuming first run.");
+                _logger.LogInformation("State {SagaStateName} is not found in persistence store, Assuming first run.", SagaName);
                 return true;
             }
 
@@ -367,6 +395,7 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
             _done = json["done"]?.GetValue<bool>() ?? false;
             _isReverting = json["isReverting"]?.GetValue<bool>() ?? false;
             _hasFailedReported = json["hasFailedReported"]?.GetValue<bool>() ?? false;
+            _isSagaReminderOn = json["isSagaReminderOn"]?.GetValue<bool>() ?? false;
 
             _stepRecorder.Length = 0;
             _stepRecorder.Append(json["stepRecorder"]?.GetValue<string>() ?? string.Empty);
@@ -394,17 +423,16 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error loading saga state {SagaStateName}", SagaStateName);
+            _logger.LogError(ex, "Error loading saga state {SagaName}", SagaName);
             _corruptedState = true;
             await CancelOperationRemindersAsync();
-            throw new CorruptedSagaStateException("Error loading Saga State, see inner exception. Important, check this problem, it can hurt reliability since a Saga process may stop in the middle!", ex);
+            throw new CorruptedSagaStateException($"[{SagaName}] Error loading Saga State, see inner exception. Important, check this problem, it can hurt reliability since a Saga process may stop in the middle!", ex);
         }
     }
 
     private async Task CancelOperationRemindersAsync()
     {
-         _logger.LogInformation("Trying to cancel all reminders for saga {_sagaUniqueId}", _sagaUniqueId);
-
+         _logger.LogInformation("[{SagaName}] Trying to cancel all reminders for the saga", SagaName);
 
          foreach (var operation in _operations)
          {
@@ -415,8 +443,8 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
 
              catch (Exception e)
              {
-                 _logger.LogWarning(e,
-                     $"Error trying to cancel reminder for operation {operation.Operation.Operation} as a clean operation to prevent endless loop");
+                 _logger.LogWarning(e,"{SagaName} Error trying to cancel reminder for operation {operation} as a clean operation to prevent endless loop",
+                     SagaName, operation.Operation.Operation);
              }
          }
     }
@@ -430,9 +458,9 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
         if (_resetSagaState)
         {
             //store an empty state to reset the saga
-            await _sagaSupportOperations.SaveSagaStateAsync(SagaStateName, json);
+            await _sagaSupportOperations.SaveSagaStateAsync(SagaName, json);
             _resetSagaState = false;
-            _logger.LogInformation($"Saga {SagaStateName} state is reset.");
+            _logger.LogInformation("Saga {SagaName} state is reset.", SagaName);
             return;
 
         }
@@ -446,17 +474,18 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
         json["isReverting"] = _isReverting;
         json["hasFailedReported"] = _hasFailedReported;
         json["stepRecorder"] = _stepRecorder.ToString();
-        
+        json["isSagaReminderOn"] = _isSagaReminderOn;
+
         var telemetryStateStore = _telemetryStateStore.Aggregate(
             new StringBuilder(), (sb, pair) => sb.Append($"{pair.Key},{pair.Value}|"), sb => sb.ToString());
 
         if (!string.IsNullOrWhiteSpace(telemetryStateStore))
             json["telemetryStateStore"] = telemetryStateStore;
 
-        await _sagaSupportOperations.SaveSagaStateAsync(SagaStateName, json);
+        await _sagaSupportOperations.SaveSagaStateAsync(SagaName, json);
 
         //log the json as readable text
-        _logger.LogDebug("On storing state: Saga {SagaStateName} state: {json}", SagaStateName, json);
+        _logger.LogDebug("On storing state: Saga {SagaName} state: {json}", SagaName, json);
     }
 
     /// <summary>
@@ -470,8 +499,7 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
     /// <returns>Async method</returns>
     public async Task RunAsync()
     {
-        _logger.LogInformation("(Re)Starting saga {SagaId} execution", _sagaUniqueId);
-
+        _logger.LogInformation("[{SagaName}]: (Re)Starting saga execution", SagaName);
         bool ShouldRun() => !_deactivated && (NotStarted || InProgress);
 
         await _lock.LockAsync(async () =>
@@ -529,10 +557,10 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
         SagaFastOutcome sagaFastOutcome = SagaFastOutcome.None)
     {
         if (success && sagaFastOutcome == SagaFastOutcome.Failure)
-            throw new InvalidOperationException("Cannot have success and fail fast at the same time");
+            throw new InvalidOperationException($"[{SagaName}] Cannot have success and fail fast at the same time");
 
         if (!success && sagaFastOutcome == SagaFastOutcome.Success)
-            throw new InvalidOperationException("Cannot have fast success without success");
+            throw new InvalidOperationException($"[{SagaName}] Cannot have fast success without success");
 
         _logger.LogInformation("Saga {_sagaUniqueId} operation {Operation} reported outcome {Success}", _sagaUniqueId, operation, success);
 
@@ -609,18 +637,14 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
 
     private async Task CheckForCompletionAsync()
     {
-         //we use _done flag and not the Completed property to make sure we enter this function
-        //for the last time when the saga is done
-        if (_done)
-        {
-            _logger.LogInformation($"Saga {_sagaUniqueId} is already done.");
-            return;
-        }
-
-        var recordedSteps = _stepRecorder.ToString();
-
         try
         {
+            //we use _done flag and not the Completed property to make sure we enter this function
+            //for the last time when the saga is done, we also call the cancel all reminder in the finally block
+            if (_done)
+                return;
+
+            
             //Failed is a transient state, so the saga is not done reverting,
             //We ensure that we call the onFailedCallback only once
             if (Failed && _onFailedCallback != null && !_hasFailedReported)
@@ -628,7 +652,7 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
                 _logger.LogDebug("Saga {_sagaUniqueId} failed, calling onFailedCallback.", _sagaUniqueId);
 
                 _hasFailedReported = true;
-                _onFailedCallback(recordedSteps);
+                _onFailedCallback(_stepRecorder.ToString());
                 await TelemetryAdapter.RecordCustomEventAsync(_telemetryContext, "SagaFailure");
             }
 
@@ -647,24 +671,24 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
             {
                 _logger.LogTrace("Saga {_sagaUniqueId} is succeeded, calling onSuccessCallback.", _sagaUniqueId);
 
-                _onSuccessCallback(recordedSteps);
+                _onSuccessCallback(_stepRecorder.ToString());
             }
             else if (Reverted && _onRevertedCallback != null)
             {
                 _logger.LogTrace("Saga {_sagaUniqueId} is reverted, calling onRevertedCallback.", _sagaUniqueId);
 
-                _onRevertedCallback(recordedSteps);
+                _onRevertedCallback(_stepRecorder.ToString());
             }
             else if (RevertFailed && _onRevertFailureCallback != null)
             {
                 _logger.LogTrace("Saga {_sagaUniqueId} is revert failed, calling onRevertFailureCallback.", _sagaUniqueId);
 
-                _onRevertFailureCallback(recordedSteps);
+                _onRevertFailureCallback(_stepRecorder.ToString());
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error calling report result callback");
+            _logger.LogError(ex, "[{SagaName}] Error calling report result callback", SagaName);
         }
         finally
         {
@@ -674,19 +698,22 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
                 {
                     await sagaOperationExecution.CancelPossibleReminderIfOnAsync();
                 }
+
+                // Cancel the saga-level reminder
+                await CancelSagaLevelReminderAsync();
             }
         }
 
         if (!_done) //saga completed
         {
-            _logger.LogInformation("Saga {_sagaUniqueId} is still in progress.", _sagaUniqueId);
+            _logger.LogInformation("[{SagaName}] Saga is still in progress.", SagaName);
             return;
         }
 
         //saga is done
 
-        _logger.LogInformation("Saga {_sagaUniqueId} completed with status: {status} ", _sagaUniqueId,
-                               (Succeeded ? "Success" : Reverted ? "Reverted" : "RevertFailed"));
+        _logger.LogInformation("[{SagaName}] completed with status: " +
+                               (Succeeded ? "Success" : Reverted ? "Reverted" : "RevertFailed"), SagaName);
 
         SagaCompletionStatus sagaCompletionStatus = Succeeded ? SagaCompletionStatus.Succeeded :
             Reverted ? SagaCompletionStatus.Reverted : SagaCompletionStatus.RevertFailed;
@@ -694,7 +721,7 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
         try
         {
             OnSagaCompleted?.Invoke(this,
-                new SagaCompletionEventArgs(_sagaUniqueId, sagaCompletionStatus, recordedSteps));
+                new SagaCompletionEventArgs(_sagaUniqueId, sagaCompletionStatus, _stepRecorder.ToString()));
         }
         catch (Exception e)
         {
@@ -722,7 +749,7 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
     {
         if (_isReverting)
         {
-            _logger.LogInformation("Saga {_sagaUniqueId} is already in reverting state.", _sagaUniqueId);
+            _logger.LogInformation("[{SagaName}] is already in reverting state.", SagaName);
             return;
         }
 
@@ -755,7 +782,7 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
         if (_corruptedState)
         {
             await _sagaSupportOperations.CancelReminderAsync(reminder);
-            _logger.LogWarning("Saga state is corrupted, skipping reminder handling.");
+            _logger.LogWarning("[{SagaName}] Saga state is corrupted, skipping reminder handling.", SagaName);
             return;
         }
 
@@ -768,13 +795,21 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
                     await InformActivatedAsync();
                 }
 
+                if (reminder == "SagaHeartbeatReminder")
+                {
+                    _logger.LogInformation("[{SagaName}] Saga heartbeat reminder received.", SagaName);
+                    await RunAsync();
+                    return;
+                }
+
                 var operationName = reminder.Split(':')[0];
                 var operation = _operations.Single(o => o.Operation.Operation.ToString().Equals(operationName));
+                
                 await operation.OnReminderAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error handling reminder {reminder}, canceling reminder.", reminder);
+                _logger.LogError(ex, $"[{SagaName}] Error handling reminder {reminder}, canceling reminder.");
                 await _sagaSupportOperations.CancelReminderAsync(reminder);
             }
             finally

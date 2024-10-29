@@ -84,8 +84,6 @@ namespace Sagaway
 
             private async Task<TimeSpan> ResetReminderAsync()
             {
-                await CancelReminderIfOnAsync();
-
                 var retryInterval = GetRetryInterval(_retryCount);
                 
                 if (retryInterval == default || MaxRetries == 0)
@@ -97,6 +95,9 @@ namespace Sagaway
                 LogAndRecord($"Registering reminder {ReminderName} for {OperationName} with interval {retryInterval}");
                 await _saga._sagaSupportOperations.SetReminderAsync(ReminderName, retryInterval);
                 _isReminderOn = true;
+
+                // After setting the operation-level reminder, cancel the saga-level reminder
+                await _saga.CancelSagaLevelReminderAsync();
 
                 _logger.LogTrace("Reminder {ReminderName} set for operation {OperationName} in saga {SagaId} with interval {RetryInterval}", ReminderName, OperationName, _saga._sagaUniqueId, retryInterval);
 
@@ -126,17 +127,29 @@ namespace Sagaway
                     }
                 }
             }
-            
+
             public async Task CancelReminderIfOnAsync(bool forceCancel = false)
             {
-                if (_isReminderOn || forceCancel)
+                if (!_isReminderOn && !forceCancel)
                 {
-                    _logger.LogInformation("Canceling old reminder {ReminderName} for {OperationName}", ReminderName, OperationName);
-                    _isReminderOn = false;
-                    await _saga._sagaSupportOperations.CancelReminderAsync(ReminderName);
+                    return;
                 }
+
+
+                if (!forceCancel)
+                {
+                    //we set the saga level reminder to the same timeout of the operation + 2 minutes 
+                    //The saga level reminder is a safety net for the case that we shut down in the middle after canceling the 
+                    //current operation reminder, before registering the next reminder
+                    await _saga.SetSagaLevelReminderAsync(GetRetryInterval(_retryCount) + TimeSpan.FromMinutes(2));
+                }
+
+                _logger.LogInformation("Canceling old reminder {ReminderName} for {OperationName}", ReminderName,
+                    OperationName);
+                _isReminderOn = false;
+                await _saga._sagaSupportOperations.CancelReminderAsync(ReminderName);
             }
-            
+
             public async Task InformFailureOperationAsync(bool failFast)
             {
                 if (Succeeded || Failed)
@@ -185,9 +198,10 @@ namespace Sagaway
                 LogAndRecord($"{OperationName} Success");
                 
                 Succeeded = true;
-                
+
                 await _saga.RecordEndOperationTelemetry(SagaOperation.Operation, IsRevert ? OperationOutcome.Reverted : OperationOutcome.Succeeded, IsRevert);
                 await _saga.CheckForCompletionAsync();
+
             }
 
             public async Task OnReminderAsync()

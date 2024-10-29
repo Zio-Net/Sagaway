@@ -1,2 +1,2 @@
 ﻿TestValidationOperationNoDoOperation
-All operation must set the Do function
+[Saga_test] All operation must set the Do function

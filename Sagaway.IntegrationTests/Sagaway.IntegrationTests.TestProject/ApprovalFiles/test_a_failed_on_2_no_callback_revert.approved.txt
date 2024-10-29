@@ -20,6 +20,7 @@ The Saga is activated.
 [*time*][CallA]: Registering reminder CallA:Retry for Revert CallA with interval 00:00:05
 The Saga is deactivated.
 The Saga is activated.
+[*time*][CallA]: Wake by a reminder
 [*time*][CallA]: Revert CallA Success
 
 Open Telemetry:
@@ -145,8 +146,8 @@ Open Telemetry:
     }
   },
   {
-    "TraceId": "id-1",
-    "ParentId": "id-15",
+    "TraceId": "id-15",
+    "ParentId": "id-16",
     "Kind": "SERVER",
     "Name": "name-4",
     "LocalEndpoint": {

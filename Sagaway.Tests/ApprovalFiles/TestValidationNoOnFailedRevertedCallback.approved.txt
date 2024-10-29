@@ -1,2 +1,2 @@
 ﻿TestValidationNoOnFailedRevertedCallback
-No on revert failure or on failed callback is defined
+[Saga_test] No on revert failure or on failed callback is defined
