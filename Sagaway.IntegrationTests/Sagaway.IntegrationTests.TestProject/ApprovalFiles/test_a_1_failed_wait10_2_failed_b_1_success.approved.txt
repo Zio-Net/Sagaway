@@ -2,14 +2,14 @@
 Result: False
 Saga Log:
 [*time*][CallA]: Start Executing CallA
-[*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:30
+[*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:10
 [*time*][CallB]: Start Executing CallB
-[*time*][CallB]: Registering reminder CallB:Retry for CallB with interval 00:00:30
+[*time*][CallB]: Registering reminder CallB:Retry for CallB with interval 00:00:15
 The Saga is deactivated.
 The Saga is activated.
 [*time*][CallA]: Retry CallA. Retry count: 1
 [*time*][CallA]: Start Executing CallA
-[*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:30
+[*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:10
 The Saga is deactivated.
 The Saga is activated.
 [*time*][CallB]: CallB Success
@@ -17,7 +17,7 @@ The Saga is deactivated.
 The Saga is activated.
 [*time*][CallA]: Retry CallA. Retry count: 2
 [*time*][CallA]: Start Executing CallA
-[*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:30
+[*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:10
 The Saga is deactivated.
 The Saga is activated.
 [*time*][CallA]: CallA Failed. Retries exhausted.
