@@ -27,6 +27,7 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
     private bool _resetSagaState;
     private bool _corruptedState; //use for flagging corrupted state, for the current call
 
+
     private string SagaName => $"Saga_{_sagaUniqueId}";
 
     #endregion //Transient State
@@ -84,23 +85,6 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
     /// </summary>
     public bool Completed => !InProgress && Started;
 
-    #region Saga level reminder
-
-    // Method to set the saga-level reminder
-    private async Task SetSagaLevelReminderAsync(TimeSpan reminderTime)
-    {
-        _logger.LogInformation("{SagaStateName}: Setting Saga-level reminder.", SagaName);
-        await _sagaSupportOperations.SetReminderAsync("SagaHeartbeatReminder", reminderTime);
-    }
-
-    // Method to cancel the saga-level reminder
-    private async Task CancelSagaLevelReminderAsync()
-    {
-        _logger.LogInformation("{SagaStateName}: Canceling Saga-level reminder.", SagaName);
-        await _sagaSupportOperations.CancelReminderAsync("SagaHeartbeatReminder");
-    }
-
-    #endregion
     #region Telemetry
 
     private ITelemetryAdapter TelemetryAdapter => _sagaSupportOperations.TelemetryAdapter;
@@ -113,7 +97,7 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "{SagaStateName}: Error recording start operation telemetry", SagaName);
+            _logger.LogError(e, "{SagaName}: Error recording start operation telemetry", SagaName);
         }
     }
 
@@ -127,7 +111,7 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "{SagaStateName}: Error recording end operation telemetry", SagaName);
+            _logger.LogError(e, "{SagaName}: Error recording end operation telemetry", SagaName);
         }
     }
 
@@ -140,7 +124,7 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "{SagaStateName}: Error recording retry attempt telemetry", SagaName);
+            _logger.LogError(e, "{SagaName}: Error recording retry attempt telemetry", SagaName);
         }
     }
 
@@ -158,7 +142,7 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "{SagaStateName}: Error recording custom telemetry event", SagaName);
+            _logger.LogError(e, "{SagaName}: Error recording custom telemetry event", SagaName);
         }
     }
 
@@ -176,7 +160,7 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "{SagaStateName}: Error recording exception", SagaName);
+            _logger.LogError(e, "{SagaName}: Error recording exception", SagaName);
         }
     }
 
@@ -320,7 +304,7 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error loading saga state {SagaStateName}", SagaName);
+                _logger.LogError(ex, "Error loading saga state {SagaName}", SagaName);
                 throw;
             }
             if (_done)
@@ -354,7 +338,7 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error saving saga state {SagaStateName}", SagaName);
+                _logger.LogError(ex, "Error saving saga state {SagaName}", SagaName);
                 throw;
             }
         });
@@ -374,7 +358,7 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
 
             if (json is null || json.Count == 0)
             {
-                _logger.LogInformation("State {SagaStateName} is not found in persistence store, Assuming first run.", SagaName);
+                _logger.LogInformation("State {SagaName} is not found in persistence store, Assuming first run.", SagaName);
                 return true;
             }
 
@@ -681,13 +665,7 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
         {
             if (_done) //cancel all possible left reminders
             {
-                foreach (var sagaOperationExecution in _operations)
-                {
-                    await sagaOperationExecution.CancelPossibleReminderIfOnAsync();
-                }
-
-                // Cancel the saga-level reminder
-                await CancelSagaLevelReminderAsync();
+                await CancelOperationRemindersAsync();
             }
         }
 
@@ -782,22 +760,22 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
                     await InformActivatedAsync();
                 }
 
-                if (reminder == "SagaHeartbeatReminder")
+                var operationName = reminder.Split(':')[0];
+                var operation = _operations.FirstOrDefault(o => o.Operation.Operation.ToString().Equals(operationName));
+
+                if (operation == null)
                 {
-                    _logger.LogInformation("[{SagaName}] Saga heartbeat reminder received.", SagaName);
-                    await RunAsync();
+                    _logger.LogWarning("[{SagaName}] Reminder {ReminderName} for {OperationName}: Operation is not found, canceling reminder.", 
+                        SagaName, reminder, operationName);
+                    await _sagaSupportOperations.CancelReminderAsync(reminder);
                     return;
                 }
-
-                var operationName = reminder.Split(':')[0];
-                var operation = _operations.Single(o => o.Operation.Operation.ToString().Equals(operationName));
                 
                 await operation.OnReminderAsync();
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"[{SagaName}] Error handling reminder {reminder}, canceling reminder.");
-                await _sagaSupportOperations.CancelReminderAsync(reminder);
             }
             finally
             {

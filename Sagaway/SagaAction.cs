@@ -92,9 +92,6 @@ namespace Sagaway
                 LogAndRecord($"Registering reminder {ReminderName} for {OperationName} with interval {retryInterval}");
                 await _saga._sagaSupportOperations.SetReminderAsync(ReminderName, retryInterval);
 
-                // After setting the operation-level reminder, cancel the saga-level reminder
-                await _saga.CancelSagaLevelReminderAsync();
-
                 _logger.LogTrace("Reminder {ReminderName} set for operation {OperationName} in saga {SagaId} with interval {RetryInterval}", ReminderName, OperationName, _saga._sagaUniqueId, retryInterval);
 
                 return retryInterval;
@@ -124,15 +121,9 @@ namespace Sagaway
                 }
             }
 
-            public async Task CancelReminderIfOnAsync(bool forceCancel = false)
+            public async Task CancelReminderIfOnAsync()
             {
-                //we set the saga level reminder to the same timeout of the operation + 2 minutes 
-                //The saga level reminder is a safety net for the case that we shut down in the middle after canceling the 
-                //current operation reminder, before registering the next reminder
-                if (forceCancel)    
-                    await _saga.SetSagaLevelReminderAsync(GetRetryInterval(_retryCount) + TimeSpan.FromMinutes(2));
-                
-                _logger.LogInformation("Canceling old reminder {ReminderName} for {OperationName}", ReminderName,
+                _logger.LogInformation("Canceling old reminder {ReminderName} for {OperationName} if on.", ReminderName,
                     OperationName);
                 await _saga._sagaSupportOperations.CancelReminderAsync(ReminderName);
             }
@@ -141,7 +132,9 @@ namespace Sagaway
             {
                 if (Succeeded || Failed)
                 {
-                    _logger.LogDebug("Operation {OperationName} already succeeded or failed. No action needed.", OperationName);
+                    await CancelReminderIfOnAsync();
+                    _logger.LogInformation("InformFailureOperationAsync: Operation {OperationName} already {result}. No action needed.", 
+                        OperationName, Succeeded ? "succeeded" : "failed");
                     return;
                 }
 
@@ -174,11 +167,12 @@ namespace Sagaway
 
             public async Task InformSuccessOperationAsync()
             {
-                await CancelReminderIfOnAsync();
-
                 if (Succeeded || Failed)
                 {
-                    _logger.LogDebug("Operation {OperationName} already succeeded or failed. No action needed.", OperationName);
+                    await CancelReminderIfOnAsync();
+
+                    _logger.LogInformation("InformSuccessOperationAsync: Operation {OperationName} already {result}. No action needed.",
+                        OperationName, Succeeded ? "succeeded" : "failed");
                     return;
                 }
 
@@ -193,13 +187,12 @@ namespace Sagaway
 
             public async Task OnReminderAsync()
             {
-                await CancelReminderIfOnAsync();
-
                 LogAndRecord("Wake by a reminder");
 
                 if (Succeeded || Failed)
                 {
-                    _logger.LogWarning("OnReminderAsync: Operation {OperationName} already succeeded or failed. No action needed.", OperationName);
+                    await CancelReminderIfOnAsync();
+                    _logger.LogInformation("OnReminderAsync: Operation {OperationName} finished as {result}. No action needed.", OperationName, Succeeded ? "succeeded" : "failed");
                     return;
                 }
 

@@ -18,7 +18,12 @@ class SagaTestHost : ISagaSupport
 
     public async Task CancelReminderAsync(string reminderName)
     {
-        await _reminders[reminderName].DisposeAsync();
+        if (!_reminders.TryGetValue(reminderName, out var reminder))
+        {
+            return;
+        }
+
+        await reminder.DisposeAsync();
         _reminders.Remove(reminderName);
     }
 
