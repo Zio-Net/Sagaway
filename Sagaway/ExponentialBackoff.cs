@@ -47,14 +47,18 @@ public static class ExponentialBackoff
     private static Func<int, TimeSpan> GetExponentialBackoffFunc(TimeSpan maxDelay, TimeSpan initialDelay,
         Func<double, TimeSpan> unitOfTime, double jitterFactor)
     {
+        var unitInSeconds = unitOfTime(1).TotalSeconds;
+        var initialDelayUnits = initialDelay.TotalSeconds / unitInSeconds;
+        var maxDelayUnits = maxDelay.TotalSeconds / unitInSeconds;
+
         return retryCount =>
         {
-            var exponentialDelay = Math.Pow(2, retryCount) + initialDelay.TotalSeconds / unitOfTime(1).TotalSeconds;
-            var jitter =
-                (Random.NextDouble() * 2 - 1) * jitterFactor; // Random between -jitterFactor and +jitterFactor
-            var calculatedDelay = Math.Min(maxDelay.TotalSeconds, exponentialDelay * (1 + jitter));
-            var finalDelaySeconds = Math.Max(initialDelay.TotalSeconds, calculatedDelay);
-            return TimeSpan.FromSeconds(finalDelaySeconds);
+            var exponentialDelayUnits = Math.Pow(2, retryCount) + initialDelayUnits;
+            var jitter = (Random.NextDouble() * 2 - 1) * jitterFactor; // Random between -jitterFactor and +jitterFactor
+            var calculatedDelayUnits = Math.Min(maxDelayUnits, exponentialDelayUnits * (1 + jitter));
+            var finalDelayUnits = Math.Max(initialDelayUnits, calculatedDelayUnits);
+            return unitOfTime(finalDelayUnits);
         };
     }
+
 }
