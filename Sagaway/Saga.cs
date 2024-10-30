@@ -700,11 +700,6 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
         AppendRecordStep($"[{operation}]: {step}");
     }
 
-    private void RecordMessage(string message)
-    {
-        AppendRecordStep($"{message}[{_sagaUniqueId}]");
-    }
-
     private void AppendRecordStep(string message)
     {
         var time = DateTimeOffset.UtcNow.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
@@ -759,13 +754,6 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
                 if (_deactivated)
                 {
                     await InformActivatedAsync();
-                }
-
-                if (reminder == "SagaHeartbeatReminder")
-                {
-                    _logger.LogInformation("[{SagaName}] Saga heartbeat reminder received.", SagaName);
-                    await RunAsync();
-                    return;
                 }
 
                 var operationName = reminder.Split(':')[0];

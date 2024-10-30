@@ -3,7 +3,7 @@
 The Saga is deactivated.
 The Saga is activated.
 [*time*][CallA]: Wake by a reminder
-[*time*][CallA]: The validate function does not exist or raised an exception, retry CallA action
+[*time*][CallA]: OnReminderAsync: Validation for CallA returned false, retrying action.
 [*time*][CallA]: Retry CallA. Retry count: 1
 [*time*][CallA]: Start Executing CallA
 [*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:03
@@ -26,7 +26,7 @@ The Saga is activated.
 The Saga is deactivated.
 The Saga is activated.
 [*time*][CallA]: Wake by a reminder
-[*time*][CallA]: The validate function does not exist or raised an exception, retry CallA action
+[*time*][CallA]: OnReminderAsync: Validation for CallA returned false, retrying action.
 [*time*][CallA]: Retry CallA. Retry count: 2
 [*time*][CallA]: Start Executing CallA
 [*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:01
@@ -40,12 +40,13 @@ The Saga is activated.
 The Saga is deactivated.
 The Saga is activated.
 [*time*][CallA]: Wake by a reminder
-[*time*][CallA]: The validate function does not exist or raised an exception, retry CallA action
+[*time*][CallA]: OnReminderAsync: Validation for CallA returned false, retrying action.
 [*time*][CallA]: CallA Failed. Retries exhausted.
 [*time*][CallA]: Start Executing Revert CallA
 [*time*][CallA]: Registering reminder CallA:Retry for Revert CallA with interval 00:00:01
 The Saga is deactivated.
 The Saga is activated.
 [*time*][CallA]: Wake by a reminder
+[*time*][CallA]: OnReminderAsync: Revert CallA passed validation successfully.
 [*time*][CallA]: Revert CallA Success
 

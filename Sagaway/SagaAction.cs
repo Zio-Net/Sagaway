@@ -51,7 +51,7 @@ namespace Sagaway
 
             protected abstract Task OnActionFailureAsync();
             
-            protected abstract Task<bool> ValidateAsync();
+            protected abstract Task<bool?> ValidateAsync();
             
             private string RevertText => IsRevert ? "Revert " : string.Empty;
 
@@ -188,8 +188,6 @@ namespace Sagaway
 
             public async Task OnReminderAsync()
             {
-                LogAndRecord("Wake by a reminder");
-
                 if (Succeeded || Failed)
                 {
                     await CancelReminderIfOnAsync();
@@ -197,26 +195,38 @@ namespace Sagaway
                     return;
                 }
 
+                LogAndRecord("Wake by a reminder");
+
                 try
                 {
                     //try to get the action state by calling a state check function if exists
                     var hasValidated = await ValidateAsync();
 
-                    _logger.LogTrace("OnReminderAsync: Operation {OperationName} validated: {HasValidated}", OperationName, hasValidated);
+                    _logger.LogInformation("OnReminderAsync: Operation {OperationName} validated: {HasValidated}", OperationName, hasValidated);
 
-                    if (hasValidated)
+                    if (hasValidated == null)
                     {
+                        LogAndRecord($"OnReminderAsync: No validate function defined for {OperationName}, cannot proceed. Marking as failed.");
+                        await InformFailureOperationAsync(false);
+                        return;
+                    }
+
+                    if (hasValidated == true)
+                    {
+                        LogAndRecord($"OnReminderAsync: {OperationName} passed validation successfully.");
                         await InformSuccessOperationAsync();
                         return;
                     }
+                    //else the validation returned false
+                    
+                    LogAndRecord($"OnReminderAsync: Validation for {OperationName} returned false, retrying action.");
+                    await InformFailureOperationAsync(false);
                 }
                 catch (Exception ex)
                 {
-                    LogAndRecord($"Error when calling {OperationName} validate. Error: {ex.Message}.");
+                    LogAndRecord($"OnReminderAsync: Error when calling {OperationName} validate. Error: {ex.Message}.");
+                    await InformFailureOperationAsync(false);
                 }
-                //the state is unknown, retry action
-                LogAndRecord($"The validate function does not exist or raised an exception, retry {OperationName} action");
-                await InformFailureOperationAsync(false);
             }
             
             public void MarkSucceeded()
