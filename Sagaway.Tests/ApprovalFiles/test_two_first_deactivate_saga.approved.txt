@@ -61,6 +61,7 @@ Run Log:
 The Saga is deactivated.
 The Saga is activated.
 [*time*][Op1]: Wake by a reminder
+[*time*][Op1]: OnReminderAsync: Op1 passed validation successfully.
 [*time*][Op1]: Op1 Success
 [*time*][Op2]: Start Executing Op2
 [*time*][Op2]: Op2 Success

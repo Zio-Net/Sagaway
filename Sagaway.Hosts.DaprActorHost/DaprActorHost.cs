@@ -12,6 +12,7 @@ using Sagaway.Telemetry;
 using System.Diagnostics;
 using System.Linq.Expressions;
 using System.Text;
+using Dapr;
 using Polly;
 using Polly.Retry;
 
@@ -218,10 +219,24 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     /// <returns>Async operation</returns>
     async Task ISagaSupport.CancelReminderAsync(string reminderName)
     {
-        await _retryPolicy.ExecuteAsync(async () =>
+        try
         {
-            await UnregisterReminderAsync(reminderName);
-        });
+            await _retryPolicy.ExecuteAsync(async () =>
+            {
+                try
+                {
+                    await UnregisterReminderAsync(reminderName);
+                }
+                catch (DaprApiException daprException) when (daprException.Message.Contains("412"))
+                {
+                    _logger.LogWarning("Error 412: Reminder {ReminderName}. ignoring", reminderName);
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Reminder {ReminderName} not found, ignoring", reminderName);
+        }
     }
 
     /// <summary>

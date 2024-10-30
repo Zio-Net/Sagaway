@@ -43,7 +43,7 @@ public class IntegrationTests
     [InlineData("test_a_success_on_2_no_callback", true, 2, 5, "2,2", 2)]
     [InlineData("test_a_failed_on_2_no_callback", true, 2, 5, "2,2", -1)]
     [InlineData("test_a_failed_on_2_no_callback_revert", true, 2, 5, "2,2", -1, "", true, 2, 5, "2,2", 1)]
-    [InlineData("test_a_success_on_3_no_callback_b_success_on_4",true,5,8,"",3,"false,false,false",false,0,0,"",0,"",true,5,8,"",4)]
+    [InlineData("test_a_success_on_3_no_callback_b_success_on_4",true,5,2,"",3,"false,false,false",false,0,0,"",0,"",true,5,5,"",4)]
 
     public async Task TestSagaAsync(
         string testName, 
