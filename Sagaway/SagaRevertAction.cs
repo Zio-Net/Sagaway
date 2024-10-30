@@ -37,10 +37,14 @@ namespace Sagaway
                 await Saga.CheckForCompletionAsync();
                 await Task.CompletedTask;
             }
-            
-            protected override async Task<bool> ValidateAsync()
+
+            protected override async Task<bool?> ValidateAsync()
             {
-                return await (SagaOperation.RevertValidateAsync?.Invoke() ?? Task.FromResult(false));
+                if (SagaOperation.RevertValidateAsync != null)
+                {
+                    return await SagaOperation.RevertValidateAsync();
+                }
+                return null;
             }
         }
     }

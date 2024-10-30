@@ -27,7 +27,7 @@ HasRevertValidate: False
 
 OperationNumber: Op2
 Dependencies: 0
-MaxRetries: 1
+MaxRetries: 2
 NumberOfFailures: 2
 CallDelay: 1 - 5
 CallDelay: 2 - 5
@@ -59,6 +59,7 @@ Calling Op2: Success False
 Op2 Validate returns False
 Calling Op2: Success False
 Op2 Validate returns False
+Calling Op2: Success False
 Calling revert for Op2: Success False
 Calling revert for Op2: Success False
 Calling revert for Op2: Success False
@@ -69,12 +70,15 @@ Run Log:
 [*time*][Op2]: Start Executing Op2
 [*time*][Op2]: Registering reminder Op2:Retry for Op2 with interval 00:00:02
 [*time*][Op2]: Wake by a reminder
-[*time*][Op2]: The validate function does not exist or raised an exception, retry Op2 action
+[*time*][Op2]: OnReminderAsync: Validation for Op2 returned false, retrying action.
 [*time*][Op2]: Retry Op2. Retry count: 1
 [*time*][Op2]: Start Executing Op2
 [*time*][Op2]: Registering reminder Op2:Retry for Op2 with interval 00:00:02
 [*time*][Op2]: Wake by a reminder
-[*time*][Op2]: The validate function does not exist or raised an exception, retry Op2 action
+[*time*][Op2]: OnReminderAsync: Validation for Op2 returned false, retrying action.
+[*time*][Op2]: Retry Op2. Retry count: 2
+[*time*][Op2]: Start Executing Op2
+[*time*][Op2]: Registering reminder Op2:Retry for Op2 with interval 00:00:02
 [*time*][Op2]: Op2 Failed. Retries exhausted.
 [*time*][Op1]: Start Executing Revert Op1
 [*time*][Op1]: No undo operation for Op1. Marking as reverted
@@ -98,11 +102,13 @@ OnSagaCompleted: Id: test Status: RevertFailed
 4: StartOperation - SagaID: test, Operation: Op2
 5: RetryAttempt - SagaID: test, Operation: Op2, Attempt: 1
 6: StartOperation - SagaID: test, Operation: Op2
-7: EndOperation - SagaID: test, Operation: Op2, Outcome: Failed
-8: StartOperation - SagaID: test, Operation: RevertOp2
-9: RetryAttempt - SagaID: test, Operation: RevertOp2, Attempt: 1
+7: RetryAttempt - SagaID: test, Operation: Op2, Attempt: 2
+8: StartOperation - SagaID: test, Operation: Op2
+9: EndOperation - SagaID: test, Operation: Op2, Outcome: Failed
 10: StartOperation - SagaID: test, Operation: RevertOp2
-11: RetryAttempt - SagaID: test, Operation: RevertOp2, Attempt: 2
+11: RetryAttempt - SagaID: test, Operation: RevertOp2, Attempt: 1
 12: StartOperation - SagaID: test, Operation: RevertOp2
-13: EndOperation - SagaID: test, Operation: RevertOp2, Outcome: RevertFailed
-14: EndSaga - SagaID: test, Outcome: PartiallyReverted
+13: RetryAttempt - SagaID: test, Operation: RevertOp2, Attempt: 2
+14: StartOperation - SagaID: test, Operation: RevertOp2
+15: EndOperation - SagaID: test, Operation: RevertOp2, Outcome: RevertFailed
+16: EndSaga - SagaID: test, Outcome: PartiallyReverted

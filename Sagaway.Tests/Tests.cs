@@ -49,6 +49,7 @@ public partial class Tests
     readonly ILogger<Tests> _logger;
     private readonly ITestOutputHelper _testOutputHelper;
     private ISaga<Operations>? _saga;
+    private int _isSagaActiveFlag = 0; // 0 = inactive, 1 = active
 
     // ReSharper disable once ConvertToPrimaryConstructor
     public Tests(ILogger<Tests> logger, ITestOutputHelper testOutputHelper)
@@ -60,19 +61,28 @@ public partial class Tests
     private async Task ReminderCallBack(string reminder)
     {
         if (_saga != null)
+        {
+            await ActivateSagaAsync();
             await _saga.ReportReminderAsync(reminder);
+        }
     }
 
     private async Task InformOpFinished(Operations op, bool isSuccess, SagaFastOutcome sagaFastOutcome)
     {
         if (_saga != null)
+        {
+            await ActivateSagaAsync();
             await _saga.ReportOperationOutcomeAsync(op, isSuccess, sagaFastOutcome);
+        }
     }
 
     private async Task InformRevertOpFinished(Operations op, bool isSuccess)
     {
         if (_saga != null)
+        {
+            await ActivateSagaAsync();
             await _saga.ReportUndoOperationOutcomeAsync(op, isSuccess);
+        }
     }
 
 
@@ -261,8 +271,8 @@ public partial class Tests
     [InlineData("test_two_ops_throw_exception_on_second", "O1", "O2|T1")]
     [InlineData("test_two_throw_exception_and_retry", "O1|T1|R1|RW2", "O2|T1|R1|RW4")]
     [InlineData("test_two_throw_exception_twice_and_retry_three_times", "O1|T1|T2|R3|RW1", "O2|T1|T2|R3|W1.3|RW4")]
-    [InlineData("test_two_long_wait_validate_exception", "O1|R1|RW2|W1.5|VT1|V1.S")]
-    [InlineData("test_two_long_wait_validate_false_with_revert_exception", "O1", "O2|R1|RW2|F2|W1.5|W2.5|RRW2|V1.F|V2.F|UR2|UF3|RVT1|RVT2")]
+    [InlineData("test_two_long_wait_validate_exception", "O1|R2|RW2|W1.5|VT1|V2.S", "O2|D1|R2|RW2|W2.0|V1.F|V2.S")]
+    [InlineData("test_two_long_wait_validate_false_with_revert_exception", "O1", "O2|R2|RW2|F2|W1.5|W2.5|RRW2|V1.F|V2.F|UR2|UF3|RVT1|RVT2")]
     public async Task TestTwoAsync(string testName, string op1, string op2 = "")
     {
         await TestRunAsync(testName, op1, op2);
@@ -271,8 +281,8 @@ public partial class Tests
     [Theory]
     [Trait("Saga", "Five Operations")]
     [InlineData("test_five_success", "O1", "O2", "O3", "O4", "O5")]
-    [InlineData("test_five_deactivated_each", "O1|S1|R2|RW1|W1.10|V1.S", "O2|S1|R2|RW3|W1.10|V1.S", "O3|S1|R2|RW5|W1.10|V1.S", "O4|S1|R2|RW7|W1.10|V1.S", "O5|S1|R2|RW9|W1.10|V1.S")]
-    [InlineData("test_five_deactivated_each_exponential_wait", "O1|S1|R2|RWe|W1.10|V1.S", "O2|S1|R2|RWe|W1.10|V1.S", "O3|S1|R2|RWe|W1.10|V1.S", "O4|S1|R2|RWe|W1.10|V1.S", "O5|S1|R2|RWe|W1.10|V1.S")]
+    [InlineData("test_five_deactivated_each", "O1|S1|R2|RW2|W1.1|V1.S", "O2|S1|R2|RW5|W1.4|V1.S", "O3|S1|R2|RW8|W1.7|V1.S", "O4|S1|R2|RW11|W1.10|V1.S", "O5|S1|R2|RW14|W1.13|V1.S")]
+    [InlineData("test_five_deactivated_each_exponential_wait", "O1|S1|R2|RW2|W1.1|V1.S", "O2|S1|R2|RW5|W1.4|V1.S", "O3|S1|R2|RW8|W1.7|V1.S", "O4|S1|R2|RW11|W1.10|V1.S", "O5|S1|R2|RW14|W1.1|V1.S")]
     [InlineData("test_five_throw_on_fifth", "O1", "O2", "O3", "O4", "O5|T1")]
     [InlineData("test_five_throw_on_fifth_report_failure", "O1|RF", "O2|W1.1", "O3|W1.2", "O4|W1.3", "O5|W1.4|T1")]
     [InlineData("test_five_failfast_on_third", "O1", "O2|W1.1", "O3|W1.2|FF", "O4|W1.3", "O5|W1.4")]
@@ -312,7 +322,7 @@ public partial class Tests
         _saga = builder.Build();
         _saga.OnSagaCompleted += (_, args) => sb.AppendLine($"OnSagaCompleted: Id: {args.SagaId} Status: {args.Status}");
 
-        await _saga.InformActivatedAsync();
+        await ActivateSagaAsync();
         await _saga!.RunAsync();
 
         var stopWatch = new Stopwatch();
@@ -336,6 +346,24 @@ public partial class Tests
         Approvals.RegisterDefaultNamerCreation(() => new AprovalNamer(testName));
         ApprovalVerifyWithDump.Verify(sb.ToString(), _testOutputHelper, RemoveDynamic);
     }
+
+    private async Task ActivateSagaAsync()
+    {
+        if (Interlocked.Exchange(ref _isSagaActiveFlag, 1) == 0)
+        {
+            await _saga!.InformActivatedAsync();
+        }
+    }
+
+    private async Task DeactivateSagaAsync()
+    {
+        // If _isSagaActiveFlag is 1, set it to 0 and proceed with deactivation
+        if (Interlocked.Exchange(ref _isSagaActiveFlag, 0) == 1)
+        {
+            await _saga!.InformDeactivatedAsync();
+        }
+    }
+
     private void AddSagaToBuilder(TestOperationInput testOperation, Saga<Operations>.SagaBuilder builder, StringBuilder sb)
     {
         sb.AppendLine(testOperation.ToString());
@@ -389,7 +417,7 @@ public partial class Tests
 
             if (testOperation.Deactivate.Contains(testOperation.CallCounter + 1))
             {
-                await _saga!.InformDeactivatedAsync();
+                await DeactivateSagaAsync();
             }
             testOperation.CallDelays.TryGetValue(testOperation.CallCounter + 1, out var delay);
 
@@ -406,6 +434,7 @@ public partial class Tests
         var sagaFastOutput = testOperation.HasFailFast ? SagaFastOutcome.Failure : testOperation.HasFastSuccess ? SagaFastOutcome.Success : SagaFastOutcome.None;
         await InformOpFinished(testOperation.OperationNumber, isSuccess && !testOperation.HasFailFast, sagaFastOutput);
     }
+
     private static async Task<bool> Validate(StringBuilder sb, TestOperationInput testOperation)
     {
         try

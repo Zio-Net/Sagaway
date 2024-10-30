@@ -11,6 +11,8 @@ using Sagaway.Hosts.DaprActorHost;
 using Sagaway.Telemetry;
 using System.Diagnostics;
 using System.Linq.Expressions;
+using System.Text;
+using Dapr;
 using Polly;
 using Polly.Retry;
 
@@ -48,6 +50,8 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
         _telemetryAdapter = serviceProvider?.GetService<ITelemetryAdapter>() ?? new NullTelemetryAdapter();
         //todo: provide a way to configure the retry policy
         _retryPolicy = Policy.Handle<Exception>().WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
+
+        _logger.LogInformation("Dapr Actor host created for actor id: {Id}", Id);
     }
 
     /// <summary>
@@ -190,7 +194,6 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     /// <returns></returns>
     protected async Task SagaRunAsync()
     {
-        //Saga ??= ReBuildSaga();
         await Saga!.RunAsync();
     }
 
@@ -216,10 +219,24 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     /// <returns>Async operation</returns>
     async Task ISagaSupport.CancelReminderAsync(string reminderName)
     {
-        await _retryPolicy.ExecuteAsync(async () =>
+        try
         {
-            await UnregisterReminderAsync(reminderName);
-        });
+            await _retryPolicy.ExecuteAsync(async () =>
+            {
+                try
+                {
+                    await UnregisterReminderAsync(reminderName);
+                }
+                catch (DaprApiException daprException) when (daprException.Message.Contains("412"))
+                {
+                    _logger.LogWarning("Error 412: Reminder {ReminderName}. ignoring", reminderName);
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Reminder {ReminderName} not found, ignoring", reminderName);
+        }
     }
 
     /// <summary>
@@ -265,7 +282,7 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
             var stateJsonText = await StateManager.TryGetStateAsync<string>(sagaId);
             if (!stateJsonText.HasValue)
             {
-                _logger.LogInformation($"Saga state not found for saga id: {sagaId}, assuming a new saga");
+                _logger.LogInformation("Saga state not found for saga id: {sagaId}, assuming a new saga", sagaId);
                 return null;
             }
 
@@ -369,7 +386,7 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
                     BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
                 if (methodInfo == null)
                 {
-                    _logger.LogError($"Method {methodName} not found in actor {this.GetType().Name}.");
+                    _logger.LogError("Method {methodName} not found in actor {TypeName}.", methodName, GetType().Name);
                     throw new InvalidOperationException($"Method {methodName} not found.");
                 }
 
@@ -377,7 +394,7 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
                 var parameters = methodInfo.GetParameters();
                 if (parameters.Length != 1)
                 {
-                    _logger.LogError($"Method {methodName} does not accept exactly one parameter.");
+                    _logger.LogError("Method {methodName} does not accept exactly one parameter.", methodName);
                     throw new InvalidOperationException(
                         $"Method {methodName} signature mismatch: expected exactly one parameter.");
                 }
@@ -388,8 +405,8 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
                 var parameter = JsonSerializer.Deserialize(payloadJson, parameterType, GetJsonSerializerOptions());
                 if (parameter == null)
                 {
-                    _logger.LogError(
-                        $"Unable to deserialize payload to type {parameterType.Name} for method {methodName}.");
+                    _logger.LogError("Unable to deserialize payload to type {parameterTypeName} for method {methodName}.", 
+                        parameterType.Name, methodName);
                     throw new InvalidOperationException($"Payload deserialization failed for method {methodName}.");
                 }
 
@@ -404,12 +421,12 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
             }
             catch (TargetInvocationException tie)
             {
-                _logger.LogError(tie, $"Error invoking method {methodName}.");
+                _logger.LogError(tie, "Error invoking method {methodName}.", methodName);
                 throw tie.InnerException ?? tie;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error dispatching callback to method {methodName}.");
+                _logger.LogError(ex, "Error dispatching callback to method {methodName}.", methodName);
                 throw;
             }
         });
@@ -493,6 +510,8 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
             ["x-sagaway-dapr-custom-metadata"] = customMetadata
         };
 
+        LogDebugContext("capture callback context", callbackContext);
+        
         // Return the serialized JSON string
         return callbackContext;
     }
@@ -549,6 +568,8 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
             ["x-sagaway-dapr-message-dispatch-time"] = DateTime.UtcNow.ToString("o"), // ISO 8601 format
             ["x-sagaway-dapr-custom-metadata"] = customMetadata
         };
+
+        LogDebugContext("Sub Saga call context", invokeDispatcherParameters);
 
         _logger.LogInformation("Dispatching sub-saga invocation for method {MethodName}", methodName);
 
@@ -694,5 +715,21 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
         );
 
         _logger.LogInformation("Successfully invoked MainSagaCallback with the result.");
+    }
+
+    private void LogDebugContext(string message, IDictionary<string, string> context)
+    {
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine();
+            foreach (var kvp in context)
+            {
+                sb.AppendLine($" {kvp.Key}={kvp.Value}");
+            }
+
+            _logger.LogDebug("{message}, context: {context}",
+                message, sb.ToString());
+        }
     }
 }

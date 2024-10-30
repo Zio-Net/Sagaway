@@ -10,7 +10,6 @@ public partial class Saga<TEOperations> where TEOperations : Enum
     {
         #region Transient State - built on each activation
 
-        private readonly Saga<TEOperations> _saga;
         private IReadOnlyList<SagaOperationExecution>? _precondition;
         private readonly ILogger _logger;
 
@@ -28,7 +27,6 @@ public partial class Saga<TEOperations> where TEOperations : Enum
 
         public SagaOperationExecution(Saga<TEOperations> saga, SagaOperation operation, ILogger logger)
         {
-            _saga = saga;
             Operation = operation;
             _logger = logger;
 
@@ -64,12 +62,6 @@ public partial class Saga<TEOperations> where TEOperations : Enum
 
         public bool NotStarted => !_started;
 
-        protected void LogAndRecord(string message)
-        {
-            _logger.LogInformation(message);
-            _saga.RecordMessage(message);
-        }
-
         public async Task StartExecuteAsync()
         {
             if (_started)
@@ -81,11 +73,17 @@ public partial class Saga<TEOperations> where TEOperations : Enum
 
         public async Task RevertAsync()
         {
+            _logger.LogInformation("Reverting operation {Operation}", Operation.Operation);
+
             _currentAction = _sagaRevertAction;
-            await _currentAction.CancelReminderIfOnAsync();
 
             if (Reverted || RevertFailed)
+            {
+                await _currentAction.CancelReminderIfOnAsync();
+
+                _logger.LogInformation("RevertAsync: Operation {Operation} already reverted or revert failed", Operation.Operation);
                 return;
+            }
 
             await _sagaRevertAction.ExecuteAsync();
         }
@@ -143,6 +141,8 @@ public partial class Saga<TEOperations> where TEOperations : Enum
 
         public void StoreState(JsonObject json)
         {
+            _logger.LogTrace("Storing state for operation {Operation}", Operation.Operation);
+
             var op = Operation.Operation.ToString();
             json[op] = new JsonObject();
             json[op]!["started"] = _started;
@@ -163,7 +163,11 @@ public partial class Saga<TEOperations> where TEOperations : Enum
             {
                 var op = Operation.Operation.ToString();
                 if (!json.ContainsKey(op))
+                {
+                    _logger.LogTrace("No state found for operation {Operation}", Operation.Operation);
                     return;
+                }
+
                 //else
                 var opState = json[op] as JsonObject;
                 _started = opState!["started"]?.GetValue<bool>() ??
@@ -179,9 +183,12 @@ public partial class Saga<TEOperations> where TEOperations : Enum
 
                 var opRevertState = json[op + "Revert"] as JsonObject;
                 _sagaRevertAction.LoadState(opRevertState!);
+
+                _logger.LogTrace("State loaded for operation {Operation}", Operation.Operation);
             }
             catch (Exception e)
             {
+                _logger.LogError(e, "Error when loading operation state");
                 throw new CorruptedSagaStateException("Error when loading operation state", e);
             }
         }
@@ -200,7 +207,8 @@ public partial class Saga<TEOperations> where TEOperations : Enum
         {
             try
             {
-                await _sagaDoAction.CancelReminderIfOnAsync(true);
+                _logger.LogInformation("Canceling possible reminder left for operation {Operation}", Operation.Operation);
+                await _sagaDoAction.CancelReminderIfOnAsync();
             }
             catch (Exception e)
             {

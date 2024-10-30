@@ -33,7 +33,7 @@ public class IntegrationTests
     [InlineData("test_3_errors_then_success", true,4,10,"", 4)]
     [InlineData("test_1_errors_revert", true,1,0,"", -1, "", true,1, 0, "", 1)]
     [InlineData("test_a_1_success_b_1_success", true, 1, 0, "", 1, "", false, 1, 0, "", 1, "true", true, 1, 0, "", 1, "")]
-    [InlineData("test_a_1_failed_wait10_2_failed_b_1_success", true, 2, 30, "10,10", -1, "", false, 0, 0, "", 1, "true", true, 1, 30, "", 1, "", true)]
+    [InlineData("test_a_1_failed_wait10_2_failed_b_1_success", true, 2, 10, "4,4", -1, "", false, 0, 0, "", 1, "true", true, 1, 15, "", 1, "", true)]
     [InlineData("test_a_1_failed_wait5_2_success_b_1_failed_wait5_2_failed", true, 2, 10, "5,5", 2, "", false, 2, 10, "5,5", -1, "", true, 2, 30, "5,5", -1, "")]
     [InlineData("test_a_1_success_no_callback", true, 1, 5, "1", 1,"false,false")]
     [InlineData("test_a_1_failed_no_callback", true, 1, 5, "1", -1,"false")]
@@ -43,7 +43,7 @@ public class IntegrationTests
     [InlineData("test_a_success_on_2_no_callback", true, 2, 5, "2,2", 2)]
     [InlineData("test_a_failed_on_2_no_callback", true, 2, 5, "2,2", -1)]
     [InlineData("test_a_failed_on_2_no_callback_revert", true, 2, 5, "2,2", -1, "", true, 2, 5, "2,2", 1)]
-    [InlineData("test_a_success_on_3_no_callback_b_success_on_4",true,5,8,"",3,"false,false,false",false,0,0,"",0,"",true,5,8,"",4)]
+    [InlineData("test_a_success_on_3_no_callback_b_success_on_4",true,5,2,"",3,"false,false,false",false,0,0,"",0,"",true,5,5,"",4)]
 
     public async Task TestSagaAsync(
         string testName, 
