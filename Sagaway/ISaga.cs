@@ -60,8 +60,9 @@ public interface ISaga<in TEOperations> where TEOperations : Enum
     /// <summary>
     /// Implementer should call this method to inform an activated event
     /// </summary>
+    /// <param name="afterLoadCallback">Callback will be called after saga state loaded, before restarting execution</param>
     /// <returns>Async operation</returns>
-    Task InformActivatedAsync();
+    Task InformActivatedAsync(Func<Task>? afterLoadCallback = null);
 
     /// <summary>
     /// Implementer should call this method to inform a deactivated event

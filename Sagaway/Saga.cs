@@ -289,7 +289,7 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
     /// Handles the activated event
     /// </summary>
     /// <returns>Async operation</returns>
-    public async Task InformActivatedAsync()
+    public async Task InformActivatedAsync(Func<Task>? afterLoadCallback = null)
     {
         bool isNew = false;
         bool completed = false;
@@ -302,10 +302,14 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
             try
             {
                 isNew = await LoadStateAsync();
+
+                await AfterLoadCallbackInvokeAsync(afterLoadCallback);
+
+                await CheckForCompletionAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error loading saga state {SagaName}", SagaName);
+                _logger.LogError(ex, "Error informing activated {SagaName}", SagaName);
                 throw;
             }
             if (_done)
@@ -319,6 +323,20 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
             return;
 
         await TelemetryAdapter.StartSagaAsync(_telemetryContext, isNew);
+    }
+
+    private async Task AfterLoadCallbackInvokeAsync(Func<Task>? afterLoadCallback)
+    {
+        try
+        {
+            if (afterLoadCallback is not null)
+                await afterLoadCallback();
+        }
+        catch (Exception)
+        {
+            _logger.LogError("Error calling afterLoadCallback (like OnActivateSagaAsync) {SagaName}", SagaName);
+            throw;
+        }
     }
 
     /// <summary>
@@ -391,7 +409,6 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
                 }
             }
 
-            await CheckForCompletionAsync();
             return false; //new saga
         }
         catch (Exception ex)
@@ -686,12 +703,20 @@ public partial class Saga<TEOperations> : ISagaReset, ISaga<TEOperations> where 
 
         try
         {
-            OnSagaCompleted?.Invoke(this,
-                new SagaCompletionEventArgs(_sagaUniqueId, sagaCompletionStatus, _stepRecorder.ToString()));
+            if (OnSagaCompleted != null)
+            {
+                var handlerTasks = OnSagaCompleted
+                    .GetInvocationList()
+                    .Cast<EventHandler<SagaCompletionEventArgs>>()
+                    .Select(handler => Task.Run(() => handler.Invoke(this, 
+                        new SagaCompletionEventArgs(_sagaUniqueId, sagaCompletionStatus, _stepRecorder.ToString()))));
+
+                await Task.WhenAll(handlerTasks);
+            }
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Error calling OnSagaCompleted event");
+            _logger.LogError(e, "Error calling OnSagaCompleted events");
         }
     }
 
