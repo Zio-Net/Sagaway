@@ -103,12 +103,11 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
         {
             Saga = null; //just in case
             Saga = ReBuildSaga();
-            await Saga.InformActivatedAsync();
-            await OnActivateSagaAsync();
+            await Saga.InformActivatedAsync(OnActivateSagaAsync);
 
             _logger.LogInformation("Saga rebuilt and activated for actor id: {ActorId}", Id);
         }
-        catch (CorruptedSagaStateException ex)
+        catch (Exception ex)
         {
             if (actorMethodContext.CallType == ActorCallType.ReminderMethod)
             {
