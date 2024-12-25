@@ -12,12 +12,16 @@ The Saga is activated.
 [*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:10
 The Saga is deactivated.
 The Saga is activated.
-[*time*][CallB]: CallB Success
-The Saga is deactivated.
-The Saga is activated.
+[*time*][CallA]: Wake by a reminder
+[*time*][CallA]: OnReminderAsync: Validation for CallA returned false, retrying action.
 [*time*][CallA]: Retry CallA. Retry count: 2
 [*time*][CallA]: Start Executing CallA
 [*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:10
+The Saga is deactivated.
+The Saga is activated.
+[*time*][CallB]: CallB Success
+The Saga is deactivated.
+The Saga is activated.
 The Saga is deactivated.
 The Saga is activated.
 [*time*][CallA]: CallA Failed. Retries exhausted.
@@ -25,6 +29,8 @@ The Saga is activated.
 [*time*][CallA]: No undo operation for CallA. Marking as reverted
 [*time*][CallB]: Start Executing Revert CallB
 [*time*][CallB]: Registering reminder CallB:Retry for Revert CallB with interval 00:00:10
+The Saga is deactivated.
+The Saga is activated.
 The Saga is deactivated.
 The Saga is activated.
 [*time*][CallB]: Revert CallB Success
@@ -107,22 +113,7 @@ Open Telemetry:
     }
   },
   {
-    "TraceId": "id-1",
-    "ParentId": "id-10",
-    "Kind": "SERVER",
-    "Name": "name-4",
-    "LocalEndpoint": {
-      "ServiceName": "orchestrationservice.sagaway"
-    },
-    "Tags": {
-      "otel.library.name": "OrchestrationService.Sagaway",
-      "otel.scope.name": "OrchestrationService.Sagaway",
-      "saga.id": "id-3",
-      "saga.type": "SagaTestActorOperations"
-    }
-  },
-  {
-    "TraceId": "id-1",
+    "TraceId": "id-10",
     "ParentId": "id-11",
     "Kind": "SERVER",
     "Name": "name-4",
@@ -167,10 +158,40 @@ Open Telemetry:
     }
   },
   {
+    "TraceId": "id-15",
+    "ParentId": "id-16",
+    "Kind": "SERVER",
+    "Name": "name-4",
+    "LocalEndpoint": {
+      "ServiceName": "orchestrationservice.sagaway"
+    },
+    "Tags": {
+      "otel.library.name": "OrchestrationService.Sagaway",
+      "otel.scope.name": "OrchestrationService.Sagaway",
+      "saga.id": "id-3",
+      "saga.type": "SagaTestActorOperations"
+    }
+  },
+  {
     "TraceId": "id-1",
-    "ParentId": "id-15",
+    "ParentId": "id-17",
+    "Kind": "SERVER",
+    "Name": "name-4",
+    "LocalEndpoint": {
+      "ServiceName": "orchestrationservice.sagaway"
+    },
+    "Tags": {
+      "otel.library.name": "OrchestrationService.Sagaway",
+      "otel.scope.name": "OrchestrationService.Sagaway",
+      "saga.id": "id-3",
+      "saga.type": "SagaTestActorOperations"
+    }
+  },
+  {
+    "TraceId": "id-1",
+    "ParentId": "id-18",
     "Kind": null,
-    "Name": "name-16",
+    "Name": "name-19",
     "LocalEndpoint": {
       "ServiceName": "orchestrationservice.sagaway"
     },
@@ -182,8 +203,23 @@ Open Telemetry:
     }
   },
   {
+    "TraceId": "id-10",
+    "ParentId": "id-20",
+    "Kind": "SERVER",
+    "Name": "name-4",
+    "LocalEndpoint": {
+      "ServiceName": "orchestrationservice.sagaway"
+    },
+    "Tags": {
+      "otel.library.name": "OrchestrationService.Sagaway",
+      "otel.scope.name": "OrchestrationService.Sagaway",
+      "saga.id": "id-3",
+      "saga.type": "SagaTestActorOperations"
+    }
+  },
+  {
     "TraceId": "id-1",
-    "ParentId": "id-17",
+    "ParentId": "id-21",
     "Kind": "SERVER",
     "Name": "name-4",
     "LocalEndpoint": {
