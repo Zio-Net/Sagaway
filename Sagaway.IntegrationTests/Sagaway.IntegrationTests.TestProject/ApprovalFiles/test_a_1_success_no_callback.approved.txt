@@ -23,142 +23,14 @@ Open Telemetry:
       "otel.library.name": "OrchestrationService.Sagaway",
       "otel.scope.name": "OrchestrationService.Sagaway",
       "saga.id": "id-3",
-      "saga.outcome": "Succeeded",
-      "saga.type": "SagaTestRecorderActorOperations"
-    }
-  },
-  {
-    "TraceId": "id-1",
-    "ParentId": "id-5",
-    "Kind": null,
-    "Name": "name-6",
-    "LocalEndpoint": {
-      "ServiceName": "orchestrationservice.sagaway"
-    },
-    "Tags": {
-      "operation.name": "Step1",
-      "operation.outcome": "Succeeded",
-      "otel.library.name": "OrchestrationService.Sagaway",
-      "otel.scope.name": "OrchestrationService.Sagaway",
-      "saga.id": "id-3"
-    }
-  },
-  {
-    "TraceId": "id-1",
-    "ParentId": "id-5",
-    "Kind": null,
-    "Name": "name-7",
-    "LocalEndpoint": {
-      "ServiceName": "orchestrationservice.sagaway"
-    },
-    "Tags": {
-      "operation.name": "Step2",
-      "operation.outcome": "Succeeded",
-      "otel.library.name": "OrchestrationService.Sagaway",
-      "otel.scope.name": "OrchestrationService.Sagaway",
-      "saga.id": "id-3"
-    }
-  },
-  {
-    "TraceId": "id-1",
-    "ParentId": "id-5",
-    "Kind": null,
-    "Name": "name-8",
-    "LocalEndpoint": {
-      "ServiceName": "orchestrationservice.sagaway"
-    },
-    "Tags": {
-      "operation.name": "Step3",
-      "operation.outcome": "Succeeded",
-      "otel.library.name": "OrchestrationService.Sagaway",
-      "otel.scope.name": "OrchestrationService.Sagaway",
-      "saga.id": "id-3"
-    }
-  },
-  {
-    "TraceId": "id-9",
-    "ParentId": "id-10",
-    "Kind": "SERVER",
-    "Name": "name-12",
-    "LocalEndpoint": {
-      "ServiceName": "orchestrationservice.sagaway"
-    },
-    "Tags": {
-      "otel.library.name": "OrchestrationService.Sagaway",
-      "otel.scope.name": "OrchestrationService.Sagaway",
-      "saga.id": "id-11",
       "saga.type": "SagaTestActorOperations"
     }
   },
   {
-    "TraceId": "id-13",
-    "ParentId": "id-14",
-    "Kind": "SERVER",
-    "Name": "name-16",
-    "LocalEndpoint": {
-      "ServiceName": "orchestrationservice.sagaway"
-    },
-    "Tags": {
-      "otel.library.name": "OrchestrationService.Sagaway",
-      "otel.scope.name": "OrchestrationService.Sagaway",
-      "saga.id": "id-15",
-      "saga.outcome": "Succeeded",
-      "saga.type": "SagaTestRecorderActorOperations"
-    }
-  },
-  {
-    "TraceId": "id-13",
-    "ParentId": "id-17",
+    "TraceId": "id-1",
+    "ParentId": "id-5",
     "Kind": null,
     "Name": "name-6",
-    "LocalEndpoint": {
-      "ServiceName": "orchestrationservice.sagaway"
-    },
-    "Tags": {
-      "operation.name": "Step1",
-      "operation.outcome": "Succeeded",
-      "otel.library.name": "OrchestrationService.Sagaway",
-      "otel.scope.name": "OrchestrationService.Sagaway",
-      "saga.id": "id-15"
-    }
-  },
-  {
-    "TraceId": "id-13",
-    "ParentId": "id-17",
-    "Kind": null,
-    "Name": "name-7",
-    "LocalEndpoint": {
-      "ServiceName": "orchestrationservice.sagaway"
-    },
-    "Tags": {
-      "operation.name": "Step2",
-      "operation.outcome": "Succeeded",
-      "otel.library.name": "OrchestrationService.Sagaway",
-      "otel.scope.name": "OrchestrationService.Sagaway",
-      "saga.id": "id-15"
-    }
-  },
-  {
-    "TraceId": "id-13",
-    "ParentId": "id-17",
-    "Kind": null,
-    "Name": "name-8",
-    "LocalEndpoint": {
-      "ServiceName": "orchestrationservice.sagaway"
-    },
-    "Tags": {
-      "operation.name": "Step3",
-      "operation.outcome": "Succeeded",
-      "otel.library.name": "OrchestrationService.Sagaway",
-      "otel.scope.name": "OrchestrationService.Sagaway",
-      "saga.id": "id-15"
-    }
-  },
-  {
-    "TraceId": "id-9",
-    "ParentId": "id-18",
-    "Kind": null,
-    "Name": "name-19",
     "LocalEndpoint": {
       "ServiceName": "orchestrationservice.sagaway"
     },
@@ -166,21 +38,21 @@ Open Telemetry:
       "operation.name": "CallA",
       "otel.library.name": "OrchestrationService.Sagaway",
       "otel.scope.name": "OrchestrationService.Sagaway",
-      "saga.id": "id-11"
+      "saga.id": "id-3"
     }
   },
   {
-    "TraceId": "id-20",
-    "ParentId": "id-21",
+    "TraceId": "id-7",
+    "ParentId": "id-8",
     "Kind": "SERVER",
-    "Name": "name-12",
+    "Name": "name-4",
     "LocalEndpoint": {
       "ServiceName": "orchestrationservice.sagaway"
     },
     "Tags": {
       "otel.library.name": "OrchestrationService.Sagaway",
       "otel.scope.name": "OrchestrationService.Sagaway",
-      "saga.id": "id-11",
+      "saga.id": "id-3",
       "saga.outcome": "Succeeded",
       "saga.type": "SagaTestActorOperations"
     }
