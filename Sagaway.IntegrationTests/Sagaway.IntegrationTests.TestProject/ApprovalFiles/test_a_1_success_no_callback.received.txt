@@ -6,13 +6,6 @@ Saga Log:
 [*time*]The Saga is deactivated.
 [*time*]The Saga is activated.
 [*time*][CallA]: Wake by a reminder
-[*time*][CallA]: OnReminderAsync: Validation for CallA returned false, retrying action.
-[*time*][CallA]: Retry CallA. Retry count: 1
-[*time*][CallA]: Start Executing CallA
-[*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:05
-[*time*]The Saga is deactivated.
-[*time*]The Saga is activated.
-[*time*][CallA]: Wake by a reminder
 [*time*][CallA]: OnReminderAsync: CallA passed validation successfully.
 [*time*][CallA]: CallA Success
 
@@ -51,37 +44,6 @@ Open Telemetry:
   {
     "TraceId": "id-7",
     "ParentId": "id-8",
-    "Kind": "SERVER",
-    "Name": "name-4",
-    "LocalEndpoint": {
-      "ServiceName": "orchestrationservice.sagaway"
-    },
-    "Tags": {
-      "exception.context": "Error in ValidateCallAAsync for call id: 41a40084-8300-4176-b596-e244b446a3cc",
-      "otel.library.name": "OrchestrationService.Sagaway",
-      "otel.scope.name": "OrchestrationService.Sagaway",
-      "saga.id": "id-3",
-      "saga.type": "SagaTestActorOperations"
-    }
-  },
-  {
-    "TraceId": "id-1",
-    "ParentId": "id-9",
-    "Kind": null,
-    "Name": "name-10",
-    "LocalEndpoint": {
-      "ServiceName": "orchestrationservice.sagaway"
-    },
-    "Tags": {
-      "operation.name": "CallA",
-      "otel.library.name": "OrchestrationService.Sagaway",
-      "otel.scope.name": "OrchestrationService.Sagaway",
-      "saga.id": "id-3"
-    }
-  },
-  {
-    "TraceId": "id-11",
-    "ParentId": "id-12",
     "Kind": "SERVER",
     "Name": "name-4",
     "LocalEndpoint": {

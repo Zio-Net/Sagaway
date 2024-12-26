@@ -64,7 +64,7 @@ builder.Services.AddSagawayOpenTelemetry(configureTracerProvider =>
         }).SetResourceBuilder(
             ResourceBuilder.CreateDefault().AddService("StepRecorderTest"))
         .SetSampler(new AlwaysOnSampler()); // Collect all samples. Adjust as necessary for production.
-}, "OrchestrationService");
+}, "StepRecorderService");
 
 builder.Services.AddCors(options =>
 {

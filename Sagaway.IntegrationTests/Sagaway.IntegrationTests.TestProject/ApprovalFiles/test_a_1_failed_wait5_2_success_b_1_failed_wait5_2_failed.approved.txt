@@ -178,7 +178,6 @@ Open Telemetry:
       "ServiceName": "orchestrationservice.sagaway"
     },
     "Tags": {
-      "exception.context": "Error in ValidateCallAAsync for call id: d958c988-e5f3-45b2-83aa-e3e008cd0f2f",
       "otel.library.name": "OrchestrationService.Sagaway",
       "otel.scope.name": "OrchestrationService.Sagaway",
       "saga.id": "id-3",
