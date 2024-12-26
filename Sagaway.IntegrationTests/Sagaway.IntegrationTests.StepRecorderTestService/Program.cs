@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Mvc;
 using Dapr.Actors.Client;
 using Dapr.Client;
 using OpenTelemetry.Resources;
-using Sagaway.Callback.Router;
 using Sagaway.OpenTelemetry;
 using OpenTelemetry.Trace;
 using Microsoft.AspNetCore.Builder;
@@ -13,6 +12,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Sagaway.IntegrationTests.StepRecorderTestService;
+using Sagaway.Hosts.DaprActorHost;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,7 +25,7 @@ builder.Logging.AddDebug();
 builder.Services.AddHealthChecks();
 
 // Register DaprClient
-builder.Services.AddControllers().AddJsonOptions(options =>
+builder.Services.AddControllers().AddDapr().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: false));
@@ -34,7 +35,7 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 builder.Services.AddActors(options =>
 {
     // Register actor types and configure actor settings
-    options.Actors.RegisterActor<SimpleSagaActor>();
+    options.Actors.RegisterActor<StepRecorderTestActor>();
     // Configure default settings
     options.ActorIdleTimeout = TimeSpan.FromMinutes(3);
     options.ActorScanInterval = TimeSpan.FromSeconds(60);
@@ -47,6 +48,8 @@ builder.Services.AddActors(options =>
         PropertyNameCaseInsensitive = true
     };
 });
+
+builder.Services.RegisterSagawayStepRecorderDaprStore("statestore");
 
 //add and configure open telemetry to trace all
 builder.Services.AddSagawayOpenTelemetry(configureTracerProvider =>
@@ -87,42 +90,44 @@ if (app.Environment.IsDevelopment())
 
 app.MapHealthChecks("/healthz");
 
-//enable callback router
-app.UseSagawayCallbackRouter("test-response-queue");
 
-app.MapPost("/run-test", async (
+app.MapGet("/run-test", async (
         [FromServices] IActorProxyFactory actorProxyFactory,
         [FromServices] ILogger<Program> logger,
         [FromServices] DaprClient daprClient,
         [FromQuery] string? stepRecorderType) =>
 {
-
-   
-    if (string.IsNullOrEmpty(stepRecorderType))
+    var validTypes = new[] { "empty", "internal", "statestore" };
+    if (string.IsNullOrEmpty(stepRecorderType) || !validTypes.Contains(stepRecorderType))
     {
-        logger.LogError("stepRecorderType is required");
-        return Results.BadRequest("Test name is required");
+        logger.LogError("Invalid stepRecorderType: {stepRecorderType}", stepRecorderType);
+        return Results.BadRequest("Invalid stepRecorderType. Valid values are: empty, internal, statestore");
     }
 
     try
     {
-        
         logger.LogInformation("Starting step recorder test: {stepRecorderType}", stepRecorderType);
 
+        await daprClient.DeleteStateAsync("statestore", "TestResult");
+        await daprClient.SaveStateAsync("statestore", "stepRecorderType", stepRecorderType);
+
         var actorId = Guid.NewGuid().ToString();
-        var proxy = actorProxyFactory.CreateActorProxy<ISimpleSagaActor>(
-            new ActorId(actorId), "SimpleSagaActor");
+        var proxy = actorProxyFactory.CreateActorProxy<IStepRecorderTestActor>(
+            new ActorId(actorId), nameof(StepRecorderTestActor));
 
-        //a hack for testing
-        var metadata = new Dictionary<string, string>
+        await proxy.RunSagaAsync();
+
+        for (int i = 0; i < 10; ++i)
         {
-            { "ttlInSeconds", "300" }
-        };
-
-       
-        await proxy.RunSagaAsync(stepRecorderType);
-
-        return Results.Ok();
+            var result = await daprClient.GetStateAsync<bool>("statestore", "TestResult");
+            if (result)
+            {
+                logger.LogInformation("Step recorder test completed successfully: {stepRecorderType}", stepRecorderType);
+                return Results.Ok("pass");
+            }
+            await Task.Delay(1000);
+        }
+        return Results.Ok("failed");
     }
     catch (Exception e)
     {
@@ -132,6 +137,7 @@ app.MapPost("/run-test", async (
 })
 .WithName("run-test")
 .WithOpenApi();
+
 
 
 

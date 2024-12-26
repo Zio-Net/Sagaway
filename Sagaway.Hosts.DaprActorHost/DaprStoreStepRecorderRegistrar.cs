@@ -5,7 +5,7 @@ namespace Sagaway.Hosts.DaprActorHost;
 
 public static class DaprStoreStepRecorderRegistrar
 {
-    public static void RegisterDaprStoreSagawayStepRecorder(this IServiceCollection services, string daprStateStoreName)
+    public static void RegisterSagawayStepRecorderDaprStore(this IServiceCollection services, string daprStateStoreName)
     {
         services.AddSingleton<IStepRecorder>(sp =>
         {

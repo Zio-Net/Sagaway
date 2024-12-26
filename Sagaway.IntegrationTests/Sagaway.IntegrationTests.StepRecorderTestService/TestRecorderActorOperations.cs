@@ -1,7 +1,7 @@
 ﻿namespace Sagaway.IntegrationTests.StepRecorderTestService;
 
 [Flags]
-public enum SimpleActorOperations
+public enum TestRecorderActorOperations
 {
     Step1 = 1,
     Step2 = 2,
