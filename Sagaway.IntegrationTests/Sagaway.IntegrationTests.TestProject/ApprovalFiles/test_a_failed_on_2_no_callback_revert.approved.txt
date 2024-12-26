@@ -3,23 +3,23 @@ Result: False
 Saga Log:
 [*time*][CallA]: Start Executing CallA
 [*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:05
-The Saga is deactivated.
-The Saga is activated.
+[*time*]The Saga is deactivated.
+[*time*]The Saga is activated.
 [*time*][CallA]: Retry CallA. Retry count: 1
 [*time*][CallA]: Start Executing CallA
 [*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:05
-The Saga is deactivated.
-The Saga is activated.
+[*time*]The Saga is deactivated.
+[*time*]The Saga is activated.
 [*time*][CallA]: Retry CallA. Retry count: 2
 [*time*][CallA]: Start Executing CallA
 [*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:05
-The Saga is deactivated.
-The Saga is activated.
+[*time*]The Saga is deactivated.
+[*time*]The Saga is activated.
 [*time*][CallA]: CallA Failed. Retries exhausted.
 [*time*][CallA]: Start Executing Revert CallA
 [*time*][CallA]: Registering reminder CallA:Retry for Revert CallA with interval 00:00:05
-The Saga is deactivated.
-The Saga is activated.
+[*time*]The Saga is deactivated.
+[*time*]The Saga is activated.
 [*time*][CallA]: Wake by a reminder
 [*time*][CallA]: OnReminderAsync: Revert CallA passed validation successfully.
 [*time*][CallA]: Revert CallA Success
@@ -155,6 +155,7 @@ Open Telemetry:
       "ServiceName": "orchestrationservice.sagaway"
     },
     "Tags": {
+      "exception.context": "Error in ValidateCallAAsync for call id: 649e1ae9-009e-433b-b723-0978ad4b9b7f",
       "otel.library.name": "OrchestrationService.Sagaway",
       "otel.scope.name": "OrchestrationService.Sagaway",
       "saga.id": "id-3",

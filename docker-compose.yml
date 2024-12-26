@@ -321,7 +321,7 @@ services:
         max_attempts: 10
         window: 120s
     command: ["./daprd",
-     "-app-id", "testservice",
+     "-app-id", "steprecordertestservice",
      "-app-port", "80",
      "-placement-host-address", "placement:50006",
      "-dapr-http-port", "3500",
@@ -330,7 +330,7 @@ services:
     volumes:
         - "./dapr/:/dapr"
     depends_on:
-      - testservice
+      - steprecordertestservice
     network_mode: "service:steprecordertestservice"
 
 ############################

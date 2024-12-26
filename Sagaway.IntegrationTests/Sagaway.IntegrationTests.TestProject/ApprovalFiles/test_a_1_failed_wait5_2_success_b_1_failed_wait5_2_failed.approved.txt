@@ -5,25 +5,25 @@ Saga Log:
 [*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:10
 [*time*][CallB]: Start Executing CallB
 [*time*][CallB]: Registering reminder CallB:Retry for CallB with interval 00:00:30
-The Saga is deactivated.
-The Saga is activated.
+[*time*]The Saga is deactivated.
+[*time*]The Saga is activated.
 [*time*][CallA]: Retry CallA. Retry count: 1
 [*time*][CallA]: Start Executing CallA
 [*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:10
-The Saga is deactivated.
-The Saga is activated.
+[*time*]The Saga is deactivated.
+[*time*]The Saga is activated.
 [*time*][CallA]: Wake by a reminder
 [*time*][CallA]: OnReminderAsync: Validation for CallA returned false, retrying action.
 [*time*][CallA]: Retry CallA. Retry count: 2
 [*time*][CallA]: Start Executing CallA
 [*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:10
-The Saga is deactivated.
-The Saga is activated.
+[*time*]The Saga is deactivated.
+[*time*]The Saga is activated.
 [*time*][CallB]: Retry CallB. Retry count: 1
 [*time*][CallB]: Start Executing CallB
 [*time*][CallB]: Registering reminder CallB:Retry for CallB with interval 00:00:30
-The Saga is deactivated.
-The Saga is activated.
+[*time*]The Saga is deactivated.
+[*time*]The Saga is activated.
 [*time*][CallA]: Wake by a reminder
 [*time*][CallA]: OnReminderAsync: Validation for CallA returned false, retrying action.
 [*time*][CallA]: CallA Failed. Retries exhausted.
@@ -178,6 +178,7 @@ Open Telemetry:
       "ServiceName": "orchestrationservice.sagaway"
     },
     "Tags": {
+      "exception.context": "Error in ValidateCallAAsync for call id: d958c988-e5f3-45b2-83aa-e3e008cd0f2f",
       "otel.library.name": "OrchestrationService.Sagaway",
       "otel.scope.name": "OrchestrationService.Sagaway",
       "saga.id": "id-3",

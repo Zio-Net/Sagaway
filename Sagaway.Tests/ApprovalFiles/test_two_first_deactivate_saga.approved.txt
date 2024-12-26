@@ -58,8 +58,8 @@ OnSuccessCompletionCallback: Success.
 Run Log:
 [*time*][Op1]: Start Executing Op1
 [*time*][Op1]: Registering reminder Op1:Retry for Op1 with interval 00:00:01
-The Saga is deactivated.
-The Saga is activated.
+[*time*]The Saga is deactivated.
+[*time*]The Saga is activated.
 [*time*][Op1]: Wake by a reminder
 [*time*][Op1]: OnReminderAsync: Op1 passed validation successfully.
 [*time*][Op1]: Op1 Success
