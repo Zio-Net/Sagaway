@@ -3,8 +3,8 @@ Result: True
 Saga Log:
 [*time*][CallA]: Start Executing CallA
 [*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:05
-The Saga is deactivated.
-The Saga is activated.
+[*time*]The Saga is deactivated.
+[*time*]The Saga is activated.
 [*time*][CallA]: Wake by a reminder
 [*time*][CallA]: OnReminderAsync: CallA passed validation successfully.
 [*time*][CallA]: CallA Success

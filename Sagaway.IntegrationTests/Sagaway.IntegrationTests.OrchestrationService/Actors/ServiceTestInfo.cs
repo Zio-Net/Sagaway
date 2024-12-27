@@ -3,10 +3,11 @@
 public record ServiceTestInfo
 {
     //unique id for the call
+    // ReSharper disable UnusedAutoPropertyAccessor.Global
     public string CallId { get; init; } = Guid.NewGuid().ToString();
 
     //define the delay on each call
-    public int DelayOnCallInSeconds { get; init; } = 0;
+    public int DelayOnCallInSeconds { get; init; }
 
     //define if the call should return succeeded
     public bool ShouldSucceed { get; init; } = true;

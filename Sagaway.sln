@@ -81,6 +81,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "assets", "assets", "{EFADD2
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sagaway.IntegrationTests.TestSubSagaCommunicationService", "Sagaway.IntegrationTests\Sagaway.IntegrationTests.TestSubSagaCommunicationService\Sagaway.IntegrationTests.TestSubSagaCommunicationService.csproj", "{D25065BB-282F-47CD-B2EB-4A2181860E7D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sagaway.IntegrationTests.StepRecorderTestService", "Sagaway.IntegrationTests\Sagaway.IntegrationTests.StepRecorderTestService\Sagaway.IntegrationTests.StepRecorderTestService.csproj", "{4615A789-C36B-4CAF-9842-3872DC02E780}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -147,6 +149,10 @@ Global
 		{D25065BB-282F-47CD-B2EB-4A2181860E7D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D25065BB-282F-47CD-B2EB-4A2181860E7D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D25065BB-282F-47CD-B2EB-4A2181860E7D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4615A789-C36B-4CAF-9842-3872DC02E780}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4615A789-C36B-4CAF-9842-3872DC02E780}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4615A789-C36B-4CAF-9842-3872DC02E780}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4615A789-C36B-4CAF-9842-3872DC02E780}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -158,6 +164,7 @@ Global
 		{568B0B6C-EBF1-4222-A51E-90CF5DA349AF} = {DBBB1856-3CF3-45F6-8284-627DF1BA9AB1}
 		{B962A366-5569-4C6E-AE25-707750522035} = {7D12D337-63BB-43AF-88EB-9AF71921AC6C}
 		{D25065BB-282F-47CD-B2EB-4A2181860E7D} = {DBBB1856-3CF3-45F6-8284-627DF1BA9AB1}
+		{4615A789-C36B-4CAF-9842-3872DC02E780} = {DBBB1856-3CF3-45F6-8284-627DF1BA9AB1}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {27AF5C62-89C5-4AE2-B5DD-7DC1D1DDA605}

@@ -348,7 +348,8 @@ public class IntegrationTests
 
         var processedTraces = spans
             .Where(span => span.Tags != null 
-                           && span.Tags.ContainsKey("saga.id"))  // Filter out traces without saga.id
+                           && span.Tags.ContainsKey("saga.id")
+                           && span.LocalEndpoint is { ServiceName: "orchestrationservice.sagaway"})  // Filter out traces without saga.id and only if they belong to the orchestration service
             .Select(s =>
             {
                 // Map traceId, parentId, and saga.id to constant values

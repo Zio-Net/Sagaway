@@ -18,7 +18,7 @@ namespace Sagaway
             {
                 if (SagaOperation.RevertOperationAsync == null)
                 {
-                    LogAndRecord($"No undo operation for {SagaOperation.Operation}. Marking as reverted");
+                    await LogAndRecordAsync($"No undo operation for {SagaOperation.Operation}. Marking as reverted");
                     MarkSucceeded();
                     return;
                 }

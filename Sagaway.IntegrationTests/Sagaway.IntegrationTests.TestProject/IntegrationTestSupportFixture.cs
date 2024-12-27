@@ -39,7 +39,7 @@ public class IntegrationTestSupportFixture : IDisposable
 
         var testServiceUrl = configuration["AppSettings:TestServiceUrl"] ?? throw new ArgumentException("AppSettings:TestServiceUrl is not configured");
         SubSagaTestServiceUrl = configuration["AppSettings:SubSagaTestServiceUrl"] ?? throw new ArgumentException("AppSettings:SubSagaTestServiceUrl is not configured");
-        
+        TestRecorderServiceUrl = configuration["AppSettings:TestRecorderServiceUrl"] ?? throw new ArgumentException("AppSettings:TestRecorderServiceUrl is not configured");
         AddRobustHttpClient<IntegrationTestSupportFixture>(services, baseUrl: testServiceUrl);
 
         // Setup OpenTelemetry
@@ -74,6 +74,8 @@ public class IntegrationTestSupportFixture : IDisposable
     public HttpClient HttpClient => _testHttpClient;
 
     public string SubSagaTestServiceUrl { get; }
+
+    public string TestRecorderServiceUrl { get; }
 
     public JsonSerializerOptions SerializeOptions => new()
     {

@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "Sagaway.IntegrationTests.StepRecorderTestService": {
+      "commandName": "Project"
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker"
+    }
+  }
+}

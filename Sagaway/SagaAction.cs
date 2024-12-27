@@ -59,10 +59,10 @@ namespace Sagaway
 
             private string OperationName => $"{RevertText}{SagaOperation.Operation}";
             
-            protected void LogAndRecord(string message)
+            protected async Task LogAndRecordAsync(string message)
             {
                 _logger.LogInformation(message);
-                _saga.RecordStep(SagaOperation.Operation, message);
+                await _saga.RecordStepAsync(SagaOperation.Operation, message);
             }
 
             public void StoreState(JsonObject json)
@@ -89,7 +89,7 @@ namespace Sagaway
                     return default;
                 }
 
-                LogAndRecord($"Registering reminder {ReminderName} for {OperationName} with interval {retryInterval}");
+                await LogAndRecordAsync($"Registering reminder {ReminderName} for {OperationName} with interval {retryInterval}");
                 await _saga._sagaSupportOperations.SetReminderAsync(ReminderName, retryInterval);
 
 
@@ -100,7 +100,7 @@ namespace Sagaway
 
             public async Task ExecuteAsync()
             {
-                LogAndRecord($"Start Executing {OperationName}");
+                await LogAndRecordAsync($"Start Executing {OperationName}");
                 TimeSpan retryInterval = default;
 
                 try
@@ -110,13 +110,13 @@ namespace Sagaway
                 }
                 catch (Exception ex)
                 {
-                    LogAndRecord($"Error when calling {OperationName}. Error: {ex.Message}. Retry in {retryInterval} seconds");
+                    await LogAndRecordAsync($"Error when calling {OperationName}. Error: {ex.Message}. Retry in {retryInterval} seconds");
                     await _saga.RecordTelemetryExceptionAsync(ex, $"Error when calling {OperationName}");
 
                     if (retryInterval == default)
                     {
                         //no reminder and we failed. Take failure action right away
-                        LogAndRecord($"No reminder set for {OperationName}. Taking failure action");
+                        await LogAndRecordAsync($"No reminder set for {OperationName}. Taking failure action");
                         await InformFailureOperationAsync(false);
                     }
                 }
@@ -151,7 +151,7 @@ namespace Sagaway
                 _retryCount++;
                 if (!failFast && _retryCount <= MaxRetries)
                 {
-                    LogAndRecord($"Retry {OperationName}. Retry count: {_retryCount}");
+                    await LogAndRecordAsync($"Retry {OperationName}. Retry count: {_retryCount}");
                     await _saga.RecordRetryAttemptTelemetryAsync(SagaOperation.Operation, _retryCount, IsRevert);
 
                     await ExecuteAsync();
@@ -159,7 +159,7 @@ namespace Sagaway
                 }
 
                 Failed = true;
-                LogAndRecord(failFast ? $"{OperationName} Failed Fast." : $"{OperationName} Failed. Retries exhausted.");
+                await LogAndRecordAsync(failFast ? $"{OperationName} Failed Fast." : $"{OperationName} Failed. Retries exhausted.");
                 await _saga.RecordEndOperationTelemetry(SagaOperation.Operation, 
                     IsRevert ? OperationOutcome.RevertFailed : OperationOutcome.Failed, IsRevert);
 
@@ -177,7 +177,7 @@ namespace Sagaway
                     return;
                 }
 
-                LogAndRecord($"{OperationName} Success");
+                await LogAndRecordAsync($"{OperationName} Success");
                 
                 Succeeded = true;
 
@@ -195,7 +195,7 @@ namespace Sagaway
                     return;
                 }
 
-                LogAndRecord("Wake by a reminder");
+                await LogAndRecordAsync("Wake by a reminder");
 
                 try
                 {
@@ -206,25 +206,25 @@ namespace Sagaway
 
                     if (hasValidated == null)
                     {
-                        LogAndRecord($"OnReminderAsync: No validate function defined for {OperationName}, cannot proceed. Marking as failed.");
+                        await LogAndRecordAsync($"OnReminderAsync: No validate function defined for {OperationName}, cannot proceed. Marking as failed.");
                         await InformFailureOperationAsync(false);
                         return;
                     }
 
                     if (hasValidated == true)
                     {
-                        LogAndRecord($"OnReminderAsync: {OperationName} passed validation successfully.");
+                        await LogAndRecordAsync($"OnReminderAsync: {OperationName} passed validation successfully.");
                         await InformSuccessOperationAsync();
                         return;
                     }
                     //else the validation returned false
                     
-                    LogAndRecord($"OnReminderAsync: Validation for {OperationName} returned false, retrying action.");
+                    await LogAndRecordAsync($"OnReminderAsync: Validation for {OperationName} returned false, retrying action.");
                     await InformFailureOperationAsync(false);
                 }
                 catch (Exception ex)
                 {
-                    LogAndRecord($"OnReminderAsync: Error when calling {OperationName} validate. Error: {ex.Message}.");
+                    await LogAndRecordAsync($"OnReminderAsync: Error when calling {OperationName} validate. Error: {ex.Message}.");
                     await InformFailureOperationAsync(false);
                 }
             }

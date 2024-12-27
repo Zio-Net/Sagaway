@@ -5,11 +5,11 @@ Saga Log:
 [*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:10
 [*time*][CallB]: Start Executing CallB
 [*time*][CallB]: Registering reminder CallB:Retry for CallB with interval 00:00:10
-The Saga is deactivated.
-The Saga is activated.
+[*time*]The Saga is deactivated.
+[*time*]The Saga is activated.
 [*time*][CallA]: CallA Success
-The Saga is deactivated.
-The Saga is activated.
+[*time*]The Saga is deactivated.
+[*time*]The Saga is activated.
 [*time*][CallB]: CallB Success
 
 Open Telemetry:

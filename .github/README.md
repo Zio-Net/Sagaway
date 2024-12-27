@@ -717,7 +717,25 @@ In this code:
 - The **sub-saga** executes the requested operation, and upon completion, it calls back the **main saga** using the callback method provided during the invocation.
 - The **main saga** processes the result in the callback and continues with its workflow.
 
+## Sagaway Saga Log state store
+## Sagaway Saga Log state store
+A long-running saga with multiple retries can create an extensive log. Since the saga log is stored as part of the saga state,
+It may lead to overhead on the Dapr Actor state store. In one of our projects, we have seen a very high consumption of RUs. 
+To reduce the actor state store overhead, Sagaway allows the user to dictate whether to ignore SagaLog or use an external SagaLog state store.
+You can implement the `IStepRecorder` interface to provide your own implementation of the SagaLog state store.
+You can use the Saga Builder with the `WithNullStepRecorder` to ignore the SagaLog or with the `WithStepRecorder` to provide your implementation or to provide an existing `DaprStoreStepRecorder` instance.
+The easiest way is to register the `DaprStoreStepRecorder` in the DI container and use it in the `WithStepRecorder` function.
 
+```csharp   
+//in program.cs
+builder.Services.RegisterSagawayStepRecorderDaprStore("statestore");
+
+//in the ctor of the actor:
+_stepRecorder = serviceProvider!.GetRequiredService<IStepRecorder>();
+
+//in the ReBuildSaga function:
+    sagaBuilder.WithStepRecorder(_stepRecorder)
+```
 
 That is all you need to do to use the Sagaway with Dapr services.
 
