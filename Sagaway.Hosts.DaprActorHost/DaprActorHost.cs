@@ -34,6 +34,7 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     private DaprClient? _daprClient;
     private readonly ITelemetryAdapter _telemetryAdapter;
     private readonly AsyncRetryPolicy _retryPolicy;
+    private readonly Random _jitterer = new();
 
     /// <summary>
     /// Create a Dapr Actor host for the saga
@@ -49,7 +50,18 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
         _logger = logger;
         _telemetryAdapter = serviceProvider?.GetService<ITelemetryAdapter>() ?? new NullTelemetryAdapter();
         //todo: provide a way to configure the retry policy
-        _retryPolicy = Policy.Handle<Exception>().WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
+        _retryPolicy = Policy
+            .Handle<Exception>()
+            .WaitAndRetryAsync(
+                10, 
+                retryAttempt => TimeSpan.FromMilliseconds(Math.Min(60, Math.Pow(2, retryAttempt - 1))) // starting from 1 second, max 60 seconds
+                    + TimeSpan.FromMilliseconds(_jitterer.Next(0, 1000)),
+                (exception, timespan, retryCount, _) =>
+                {
+                    _logger.LogWarning(exception,
+                        "DaprActorHost retry {retryCount} due to {exceptionType}: {message}. Waiting {duration} seconds before next retry.",
+                        retryCount, exception.GetType().Name, exception.Message, timespan.TotalSeconds);
+                });
 
         _logger.LogInformation("Dapr Actor host created for actor id: {Id}", Id);
     }
@@ -228,13 +240,13 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
                 }
                 catch (DaprApiException daprException) when (daprException.Message.Contains("412"))
                 {
-                    _logger.LogWarning("Error 412: Reminder {ReminderName}. ignoring", reminderName);
+                    _logger.LogWarning("Error 412: Reminder {ReminderName}. Retrying", reminderName);
                 }
             });
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Reminder {ReminderName} not found, ignoring", reminderName);
+            _logger.LogError(ex, "Could not cancel reminder {ReminderName}", reminderName);
         }
     }
 
