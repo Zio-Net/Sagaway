@@ -379,9 +379,9 @@ public partial class Saga<TEOperations> : ISagaReset, IStepRecorder, ISaga<TEOpe
             //log the json as readable text
             _logger.LogDebug($"On loading state: Saga {SagaName} state: {_jsonStateBuilder}");
 
-            if (_jsonStateBuilder is null || _jsonStateBuilder.Count == 0 && isCalledFromReminder)
+            if ((_jsonStateBuilder is null || _jsonStateBuilder.Count == 0) && isCalledFromReminder)
             {
-                _logger.LogCritical("Saga was invoked by reminder, but state {SagaName} is not found in persistence store", SagaName);
+                _logger.LogWarning("Saga was invoked by reminder, but state {SagaName} is not found in persistence store", SagaName);
                 throw new CorruptedSagaStateException($"[{SagaName}] Saga was invoked by reminder, but state is not found in persistence store");
             }
 
@@ -914,6 +914,6 @@ public partial class Saga<TEOperations> : ISagaReset, IStepRecorder, ISaga<TEOpe
 
     Task<string> IStepRecorder.GetSagaLogAsync()
     {
-        return Task.FromResult(_internalStepRecorder.ToString() ?? string.Empty);
+        return Task.FromResult(_internalStepRecorder.ToString());
     }
 }
