@@ -5,34 +5,34 @@ Saga Log:
 [*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:10
 [*time*][CallB]: Start Executing CallB
 [*time*][CallB]: Registering reminder CallB:Retry for CallB with interval 00:00:15
-The Saga is deactivated.
-The Saga is activated.
+[*time*]The Saga is deactivated.
+[*time*]The Saga is activated.
 [*time*][CallA]: Retry CallA. Retry count: 1
 [*time*][CallA]: Start Executing CallA
 [*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:10
-The Saga is deactivated.
-The Saga is activated.
+[*time*]The Saga is deactivated.
+[*time*]The Saga is activated.
 [*time*][CallA]: Wake by a reminder
 [*time*][CallA]: OnReminderAsync: Validation for CallA returned false, retrying action.
 [*time*][CallA]: Retry CallA. Retry count: 2
 [*time*][CallA]: Start Executing CallA
 [*time*][CallA]: Registering reminder CallA:Retry for CallA with interval 00:00:10
-The Saga is deactivated.
-The Saga is activated.
+[*time*]The Saga is deactivated.
+[*time*]The Saga is activated.
 [*time*][CallB]: CallB Success
-The Saga is deactivated.
-The Saga is activated.
-The Saga is deactivated.
-The Saga is activated.
+[*time*]The Saga is deactivated.
+[*time*]The Saga is activated.
+[*time*]The Saga is deactivated.
+[*time*]The Saga is activated.
 [*time*][CallA]: CallA Failed. Retries exhausted.
 [*time*][CallA]: Start Executing Revert CallA
 [*time*][CallA]: No undo operation for CallA. Marking as reverted
 [*time*][CallB]: Start Executing Revert CallB
 [*time*][CallB]: Registering reminder CallB:Retry for Revert CallB with interval 00:00:10
-The Saga is deactivated.
-The Saga is activated.
-The Saga is deactivated.
-The Saga is activated.
+[*time*]The Saga is deactivated.
+[*time*]The Saga is activated.
+[*time*]The Saga is deactivated.
+[*time*]The Saga is activated.
 [*time*][CallB]: Revert CallB Success
 
 Open Telemetry:

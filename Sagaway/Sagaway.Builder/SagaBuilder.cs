@@ -17,6 +17,7 @@ public partial class Saga<TEOperations> where TEOperations : Enum
         private Action<string>? _onRevertedCallback;
         private Action<string>? _onFailedRevertedCallback;
         private readonly List<SagaOperation> _operations = new();
+        private IStepRecorder? _stepRecorder;
         private Action<string>? _onFailedCallback;
 
         /// <summary>
@@ -82,6 +83,30 @@ public partial class Saga<TEOperations> where TEOperations : Enum
         }
 
         /// <summary>
+        /// Add an external step recorder to the saga
+        /// </summary>
+        /// <remarks>If the step recorder is not provided, Sagaway uses actor state based step recorder</remarks>
+        /// <param name="stepRecorder"></param>
+        /// <returns>The saga builder for fluent build</returns>
+        public SagaBuilder WithStepRecorder(IStepRecorder stepRecorder)
+        {
+            _stepRecorder = stepRecorder;
+            return this;
+        }
+
+        /// <summary>
+        /// Add an empty step recorder that does nothing
+        /// </summary>
+        /// <remarks>If the step recorder is not provided, Sagaway uses actor state based step recorder</remarks>
+        /// <returns>The saga builder for fluent build</returns>
+        public SagaBuilder WithNullStepRecorder()
+        {
+            _stepRecorder = new NullStepRecorder();
+            return this;
+        }
+
+
+        /// <summary>
         /// Add an operation to the saga
         /// </summary>
         /// <param name="operation">The operation need a do action. Undo action is optional</param>
@@ -102,7 +127,7 @@ public partial class Saga<TEOperations> where TEOperations : Enum
         /// <returns>The saga instance</returns>
         public ISaga<TEOperations> Build()
         {
-            var saga = new Saga<TEOperations>(_logger, _sagaUniqueId, _sagaSupportOperations, _operations, _onSuccessCompletionCallback, _onFailedCallback ,_onRevertedCallback, _onFailedRevertedCallback);
+            var saga = new Saga<TEOperations>(_logger, _sagaUniqueId, _sagaSupportOperations, _stepRecorder, _operations, _onSuccessCompletionCallback, _onFailedCallback ,_onRevertedCallback, _onFailedRevertedCallback);
             return saga;
         }
     }

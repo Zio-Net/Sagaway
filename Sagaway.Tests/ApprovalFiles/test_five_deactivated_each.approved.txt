@@ -138,26 +138,26 @@ OnSuccessCompletionCallback: Success.
 Run Log:
 [*time*][Op1]: Start Executing Op1
 [*time*][Op1]: Registering reminder Op1:Retry for Op1 with interval 00:00:02
-The Saga is deactivated.
-The Saga is activated.
+[*time*]The Saga is deactivated.
+[*time*]The Saga is activated.
 [*time*][Op1]: Op1 Success
 [*time*][Op2]: Start Executing Op2
 [*time*][Op2]: Registering reminder Op2:Retry for Op2 with interval 00:00:05
-The Saga is deactivated.
-The Saga is activated.
+[*time*]The Saga is deactivated.
+[*time*]The Saga is activated.
 [*time*][Op3]: Start Executing Op3
 [*time*][Op3]: Registering reminder Op3:Retry for Op3 with interval 00:00:08
-The Saga is deactivated.
-The Saga is activated.
+[*time*]The Saga is deactivated.
+[*time*]The Saga is activated.
 [*time*][Op2]: Op2 Success
 [*time*][Op4]: Start Executing Op4
 [*time*][Op4]: Registering reminder Op4:Retry for Op4 with interval 00:00:11
-The Saga is deactivated.
-The Saga is activated.
+[*time*]The Saga is deactivated.
+[*time*]The Saga is activated.
 [*time*][Op5]: Start Executing Op5
 [*time*][Op5]: Registering reminder Op5:Retry for Op5 with interval 00:00:14
-The Saga is deactivated.
-The Saga is activated.
+[*time*]The Saga is deactivated.
+[*time*]The Saga is activated.
 [*time*][Op3]: Op3 Success
 [*time*][Op4]: Op4 Success
 [*time*][Op5]: Op5 Success
