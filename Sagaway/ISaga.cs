@@ -60,9 +60,10 @@ public interface ISaga<in TEOperations> where TEOperations : Enum
     /// <summary>
     /// Implementer should call this method to inform an activated event
     /// </summary>
+    /// <param name="isCalledFromReminder"></param>default is false, if true, the reminder is calling the activation
     /// <param name="afterLoadCallback">Callback will be called after saga state loaded, before restarting execution</param>
     /// <returns>Async operation</returns>
-    Task InformActivatedAsync(Func<Task>? afterLoadCallback = null);
+    Task InformActivatedAsync(Func<Task>? afterLoadCallback = null, bool isCalledFromReminder = false);
 
     /// <summary>
     /// Implementer should call this method to inform a deactivated event
