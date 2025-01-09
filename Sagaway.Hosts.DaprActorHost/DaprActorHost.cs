@@ -54,7 +54,7 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
             .Handle<Exception>()
             .WaitAndRetryAsync(
                 10, 
-                retryAttempt => TimeSpan.FromMilliseconds(Math.Min(60, Math.Pow(2, retryAttempt - 1))) // starting from 1 second, max 60 seconds
+                retryAttempt => TimeSpan.FromSeconds(Math.Min(60, Math.Pow(2, retryAttempt))) // starting from 2 second, max 60 seconds
                     + TimeSpan.FromMilliseconds(_jitterer.Next(0, 1000)),
                 (exception, timespan, retryCount, _) =>
                 {
