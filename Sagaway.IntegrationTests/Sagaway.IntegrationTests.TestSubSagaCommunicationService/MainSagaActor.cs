@@ -1,5 +1,6 @@
 using Dapr.Actors.Runtime;
 using Sagaway.Hosts;
+using Sagaway.Hosts.DaprActorHost;
 
 namespace Sagaway.IntegrationTests.TestSubSagaCommunicationService;
 
@@ -94,8 +95,12 @@ public class MainSagaActor : DaprActorHost<MainSagaActorOperations>, IMainSagaAc
     {
         Logger.LogInformation("Start calling sub-saga...");
 
+        var subSagaOptions = new CallSubSagaOptions()
+        {
+            CallbackMethodName = nameof(OnAddResultAsync),
+        };
         await CallSubSagaAsync<ISubSagaActor>(subSaga => subSaga.AddAsync(38, 4, TimeSpan.FromSeconds(5)),
-            "SubSagaActor","Sub" + ActorHost.Id, nameof(OnAddResultAsync));
+            "SubSagaActor", "Sub" + ActorHost.Id, subSagaOptions);
     }
 
     private async Task OnAddResultAsync(AddResult addResult)
@@ -105,8 +110,12 @@ public class MainSagaActor : DaprActorHost<MainSagaActorOperations>, IMainSagaAc
         if (addResult.Result == 42)
         {
             Logger.LogInformation("Telling SubSagaActor to complete...");
+            var subSagaOptions = new CallSubSagaOptions()
+            {
+                CallbackMethodName = nameof(OnSubSagaEndAsync),
+            };
             await CallSubSagaAsync<ISubSagaActor>(subSaga => subSaga.DoneAsync(),
-                "SubSagaActor", "Sub" + ActorHost.Id, nameof(OnSubSagaEndAsync));
+                "SubSagaActor", "Sub" + ActorHost.Id, subSagaOptions);
 
             // Wait for the sub-saga to be fully done before marking the operation complete.
             await ReportCompleteOperationOutcomeAsync(MainSagaActorOperations.CallSubSaga, true);
