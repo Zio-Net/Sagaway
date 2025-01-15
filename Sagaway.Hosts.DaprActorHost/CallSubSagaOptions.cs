@@ -9,7 +9,7 @@ public record CallSubSagaOptions
     /// Gets the name of the callback method in the main saga that should be invoked
     /// once the sub-saga completes its operation.
     /// </summary>
-    public string CallbackMethodName { get; init; } = string.Empty;
+    public required string CallbackMethodName { get; init; }
 
     /// <summary>
     /// Gets any additional metadata specific to the sub-saga invocation,
@@ -27,5 +27,6 @@ public record CallSubSagaOptions
     /// Gets a dictionary of additional metadata to include in the binding context.
     /// These values will override any defaults if the same keys are present.
     /// </summary>
-    public Dictionary<string, string>? CustomBindingMetadata { get; init; }
+    // ReSharper disable once CollectionNeverUpdated.Global
+    public Dictionary<string, string>? CustomBindingMetadata { get; init; } = [];
 }

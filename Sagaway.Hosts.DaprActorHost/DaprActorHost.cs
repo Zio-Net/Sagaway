@@ -571,7 +571,7 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
         where TSubSaga : ISagawayActor
     {
         _logger.LogInformation("Starting sub-saga with actor id {NewActorId} using method {CallbackMethodName}", newActorId, options.CallbackMethodName);
-
+        
         // Use the method name of StartSubSagaWithContextAsync to handle the sub-saga dispatch
         var callbackContext = CaptureCallbackContext(options.CallbackMethodName);
 
@@ -649,6 +649,7 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     /// </code>
     /// This will invoke the "DoSomethingAsync" method on the sub-saga and allow for a callback to the "MainSagaCallback" method on completion.
     /// </example>
+    [Obsolete("Use overload with options instead")]
     protected async Task CallSubSagaAsync<TSubSaga>(Expression<Func<TSubSaga, Task>> methodExpression, string actorTypeName,
         string newActorId, string callbackMethodName = "", string customMetadata = "")
         where TSubSaga : ISagawayActor
