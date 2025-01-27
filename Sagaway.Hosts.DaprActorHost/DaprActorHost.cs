@@ -54,7 +54,7 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
             .Handle<Exception>()
             .WaitAndRetryAsync(
                 10, 
-                retryAttempt => TimeSpan.FromMilliseconds(Math.Min(60, Math.Pow(2, retryAttempt - 1))) // starting from 1 second, max 60 seconds
+                retryAttempt => TimeSpan.FromSeconds(Math.Min(60, Math.Pow(2, retryAttempt))) // starting from 2 second, max 60 seconds
                     + TimeSpan.FromMilliseconds(_jitterer.Next(0, 1000)),
                 (exception, timespan, retryCount, _) =>
                 {
@@ -115,7 +115,8 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
         {
             Saga = null; //just in case
             Saga = ReBuildSaga();
-            await Saga.InformActivatedAsync(OnActivateSagaAsync);
+            var isCalledFromReminder = actorMethodContext.CallType == ActorCallType.ReminderMethod;
+            await Saga.InformActivatedAsync(OnActivateSagaAsync, isCalledFromReminder);
 
             _logger.LogInformation("Saga rebuilt and activated for actor id: {ActorId}", Id);
         }
@@ -529,6 +530,107 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
 
 
     /// <summary>
+    /// Invokes a method on a sub-saga actor using an expression to capture the method call.
+    /// Extracts the method name and parameters from the provided expression and sends them via Dapr binding.
+    /// Includes support for custom callback contexts, metadata, and binding options.
+    /// </summary>
+    /// <typeparam name="TSubSaga">The type of the interface of the sub-saga actor.</typeparam>
+    /// <param name="methodExpression">An expression that represents the method to invoke on the sub-saga actor.</param>
+    /// <param name="actorTypeName">The type name of the actor as registered in the Dapr actor runtime.</param>
+    /// <param name="newActorId">The unique identifier of the sub-saga actor.</param>
+    /// <param name="options">
+    /// A set of additional options for the sub-saga call, including:
+    /// <list type="bullet">
+    /// <item><description>CallbackMethodName: The method to invoke in the main saga after the sub-saga completes.</description></item>
+    /// <item><description>CustomSagawayMetadata: Metadata to include in the Dapr binding call context.</description></item>
+    /// <item><description>CustomBindingMetadata: A dictionary of additional binding metadata, which will override default values if keys overlap.</description></item>
+    /// <item><description>UseBindingName: Specifies an alternate binding name, defaulting to the callback binding name if not set.</description></item>
+    /// </list>
+    /// </param>
+    /// <returns>A task representing the asynchronous operation of invoking the sub-saga actor.</returns>
+    /// <example>
+    /// Example usage:
+    /// <code>
+    /// await CallSubSagaAsync&lt;ISubSaga&gt;(
+    ///     saga => saga.ExecuteAsync(param1, param2),
+    ///     "SubSagaActor",
+    ///     "SubSaga123",
+    ///     new CallSubSagaOptions(
+    ///         CallbackMethodName: "MainSagaCallback",
+    ///         CustomSagawayMetadata: "SomeMetadata",
+    ///         CustomBindingMetadata: new Dictionary&lt;string, string&gt;
+    ///         {
+    ///             { "key1", "value1" },
+    ///             { "key2", "value2" }
+    ///         },
+    ///         UseBindingName: "customBindingName"));
+    /// </code>
+    /// </example>
+    protected async Task CallSubSagaAsync<TSubSaga>(Expression<Func<TSubSaga, Task>> methodExpression, string actorTypeName, 
+        string newActorId, CallSubSagaOptions options)
+        where TSubSaga : ISagawayActor
+    {
+        _logger.LogInformation("Starting sub-saga with actor id {NewActorId} using method {CallbackMethodName}", newActorId, options.CallbackMethodName);
+        
+        // Use the method name of StartSubSagaWithContextAsync to handle the sub-saga dispatch
+        var callbackContext = CaptureCallbackContext(options.CallbackMethodName);
+
+        // Extract method name and parameters from the expression
+        var methodCall = (MethodCallExpression)methodExpression.Body;
+        var methodName = methodCall.Method.Name;
+        var arguments = methodCall.Arguments.Select(a => Expression.Lambda(a).Compile().DynamicInvoke()).ToArray();
+
+        _logger.LogDebug("Extracted method {MethodName} with arguments for sub-saga", methodName);
+
+        // Prepare the SubSagaInvocationContext object
+        var invocationContext = new SubSagaInvocationContext
+        {
+            MethodName = methodName,  // The target method to invoke in the sub-saga
+            CallbackContext = callbackContext,
+            ParametersJson = JsonSerializer.Serialize(arguments, GetJsonSerializerOptions())
+        };
+
+        var invokeDispatcherParameters = new Dictionary<string, string>()
+        {
+            ["x-sagaway-dapr-callback-method-name"] = nameof(ProcessASubSagaCallAsync),
+            ["x-sagaway-dapr-actor-id"] = newActorId,
+            ["x-sagaway-dapr-actor-type"] = actorTypeName,
+            ["x-sagaway-dapr-message-dispatch-time"] = DateTime.UtcNow.ToString("o"), // ISO 8601 format
+            ["x-sagaway-dapr-custom-metadata"] = options.CustomSagawayMetadata,
+        };
+
+        LogDebugContext("Sub Saga call context", invokeDispatcherParameters);
+
+        if (options.CustomBindingMetadata is not null)
+        {
+            foreach (var (key, value) in options.CustomBindingMetadata)
+            {
+                invokeDispatcherParameters[key] = value;
+            }
+        }
+
+        _logger.LogInformation("Dispatching sub-saga invocation for method {MethodName}", methodName);
+
+        // Create a new DaprClient for the sub-saga invocation, so it will not use the preconfigured HttpClient with the default headers
+        var daprClientBuilder = new DaprClientBuilder();
+        var subSagaDaprClient = daprClientBuilder.Build(); // No custom headers for sub-saga
+
+        var bindingName = string.IsNullOrWhiteSpace(options.UseBindingName) 
+            ? GetCallbackBindingName() 
+            : options.UseBindingName;
+
+        // Dispatch the sub-saga invocation with a single parameter (invocationContext)
+        await subSagaDaprClient.InvokeBindingAsync(
+            bindingName, 
+            "create",  // Binding operation
+            invocationContext,
+            invokeDispatcherParameters
+        );
+
+        _logger.LogInformation("Sub-saga invocation dispatched successfully for method {MethodName}", methodName);
+    }
+
+    /// <summary>
     /// Call or start a sub-saga by invoking a method on a sub-saga actor using an expression to capture the method call.
     /// The method extracts the function name and parameters from the provided expression, and sends them via Dapr binding,
     /// along with the captured callback context to enable communication between the main and sub-sagas.
@@ -547,7 +649,8 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     /// </code>
     /// This will invoke the "DoSomethingAsync" method on the sub-saga and allow for a callback to the "MainSagaCallback" method on completion.
     /// </example>
-    protected async Task CallSubSagaAsync<TSubSaga>(Expression<Func<TSubSaga, Task>> methodExpression, string actorTypeName, 
+    [Obsolete("Use overload with options instead")]
+    protected async Task CallSubSagaAsync<TSubSaga>(Expression<Func<TSubSaga, Task>> methodExpression, string actorTypeName,
         string newActorId, string callbackMethodName = "", string customMetadata = "")
         where TSubSaga : ISagawayActor
     {

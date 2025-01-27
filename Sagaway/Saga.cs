@@ -293,7 +293,7 @@ public partial class Saga<TEOperations> : ISagaReset, IStepRecorder, ISaga<TEOpe
     /// Handles the activated event
     /// </summary>
     /// <returns>Async operation</returns>
-    public async Task InformActivatedAsync(Func<Task>? afterLoadCallback = null)
+    public async Task InformActivatedAsync(Func<Task>? afterLoadCallback = null, bool isCalledFromReminder = false)
     {
         bool isNew = false;
         bool completed = false;
@@ -305,7 +305,7 @@ public partial class Saga<TEOperations> : ISagaReset, IStepRecorder, ISaga<TEOpe
             _deactivated = false;
             try
             {
-                isNew = await LoadStateAsync();
+                isNew = await LoadStateAsync(isCalledFromReminder: isCalledFromReminder);
 
                 await AfterLoadCallbackInvokeAsync(afterLoadCallback);
 
@@ -370,7 +370,7 @@ public partial class Saga<TEOperations> : ISagaReset, IStepRecorder, ISaga<TEOpe
     }
 
     //load the state of the saga, if there is no state, it is a new saga
-    private async Task<bool> LoadStateAsync()
+    private async Task<bool> LoadStateAsync(bool isCalledFromReminder)
     {
         try
         {
@@ -378,6 +378,12 @@ public partial class Saga<TEOperations> : ISagaReset, IStepRecorder, ISaga<TEOpe
 
             //log the json as readable text
             _logger.LogDebug($"On loading state: Saga {SagaName} state: {_jsonStateBuilder}");
+
+            if ((_jsonStateBuilder is null || _jsonStateBuilder.Count == 0) && isCalledFromReminder)
+            {
+                _logger.LogWarning("Saga was invoked by reminder, but state {SagaName} is not found in persistence store", SagaName);
+                throw new CorruptedSagaStateException($"[{SagaName}] Saga was invoked by reminder, but state is not found in persistence store");
+            }
 
             if (_jsonStateBuilder is null || _jsonStateBuilder.Count == 0)
             {
@@ -908,6 +914,6 @@ public partial class Saga<TEOperations> : ISagaReset, IStepRecorder, ISaga<TEOpe
 
     Task<string> IStepRecorder.GetSagaLogAsync()
     {
-        return Task.FromResult(_internalStepRecorder.ToString() ?? string.Empty);
+        return Task.FromResult(_internalStepRecorder.ToString());
     }
 }
