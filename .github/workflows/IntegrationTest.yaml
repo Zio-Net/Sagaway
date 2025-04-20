@@ -33,10 +33,10 @@ jobs:
             rm ./dapr/components/dapr-secretstore.json
             echo "{\"SignalRConnectionString\": \"${{ secrets.SAGAWAY_SIGNALR_CONNECTION_STRING }}\"}" > ./dapr/components/dapr-secretstore.json
     - name: Setup .NET
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v4
       with:
         dotnet-version: |
-          8.0.x
+          9.0.x
     - name: Sagaway Core Tests
       run: dotnet test --verbosity normal --configuration Debug Sagaway.Tests/Sagaway.Tests.csproj
     - name: Docker Compose Up
