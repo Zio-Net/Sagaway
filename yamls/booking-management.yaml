@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: booking-management
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: booking-management
+  template:
+    metadata:
+      labels:
+        app: booking-management
+      annotations:
+        dapr.io/enabled: "true"
+        dapr.io/app-id: "booking-management"
+        dapr.io/app-port: "8080"
+        dapr.io/config: "default"
+    spec:
+      containers:
+      - name: booking-management
+        image: ${ACR_NAME}.azurecr.io/sagawayreservationdemobookingmanagement:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: ASPNETCORE_ENVIRONMENT
+          value: "Development"
+        - name: ASPNETCORE_URLS
+          value: "http://+:8080"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: booking-management
+spec:
+  selector:
+    app: booking-management
+  ports:
+  - port: 8080
+    targetPort: 8080
+  type: LoadBalancer

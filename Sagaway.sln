@@ -83,6 +83,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sagaway.IntegrationTests.Te
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sagaway.IntegrationTests.StepRecorderTestService", "Sagaway.IntegrationTests\Sagaway.IntegrationTests.StepRecorderTestService\Sagaway.IntegrationTests.StepRecorderTestService.csproj", "{4615A789-C36B-4CAF-9842-3872DC02E780}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{B525F252-8388-449A-B753-C4AF90884C9F}"
+	ProjectSection(SolutionItems) = preProject
+		aks-guide.txt = aks-guide.txt
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

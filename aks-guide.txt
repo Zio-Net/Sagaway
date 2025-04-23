@@ -1,0 +1,96 @@
+# to login:
+az login --use-device-code
+
+# to see list of accounts associated
+az account list --output table
+
+# to choose which one to apply
+az account set --subscription "YOUR_SUBSCRIPTION_NAME"
+
+# Create a resource group
+az group create --name myResourceGroup --location eastus
+
+# Create AKS cluster
+az aks create --resource-group myResourceGroup --name myAKSCluster --node-count 1 --node-vm-size Standard_B2s --generate-ssh-keys
+
+# Connect to the cluster
+az aks get-credentials --resource-group myResourceGroup --name myAKSCluster
+
+# Initialize Dapr in your Kubernetes cluster
+dapr init -k
+
+# Verify Dapr is running
+kubectl get pods -n dapr-system
+
+//////////// push components of dapr:
+# Create the namespace first
+kubectl create namespace sagaway
+kubectl config set-context --current --namespace=sagaway
+
+# Apply all Dapr components
+kubectl apply -f dapr/components/
+
+# Apply the Dapr configuration
+kubectl apply -f dapr/config.yaml
+//////////// 
+
+# Create Azure Container Registry (ACR) -- ( i made with "sagaway123acr" , so rest of the commands will be with this, for you you might need to change)
+az acr create --resource-group myResourceGroup --name sagaway123acr --sku Basic
+
+# Give AKS permissions to pull from ACR
+az aks update -n myAKSCluster -g myResourceGroup --attach-acr sagaway123acr
+
+# Log in to ACR
+az acr login --name sagaway123acr
+
+# Set the ACR_NAME variable for later use
+export ACR_NAME=sagaway123acr
+
+////Build and push all service images
+# Build
+docker build -t $ACR_NAME.azurecr.io/sagawayreservationdemoreservationmanager:latest -f Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationManager/Dockerfile .
+docker build -t $ACR_NAME.azurecr.io/sagawayreservationdemobillingmanagement:latest -f Sagaway.ReservationDemo/Sagaway.ReservationDemo.BillingManagement/Dockerfile .
+docker build -t $ACR_NAME.azurecr.io/sagawayreservationdemoinventorymanagement:latest -f Sagaway.ReservationDemo/Sagaway.ReservationDemo.InventoryManagement/Dockerfile .
+docker build -t $ACR_NAME.azurecr.io/sagawayreservationdemobookingmanagement:latest -f Sagaway.ReservationDemo/Sagaway.ReservationDemo.BookingManagement/Dockerfile .
+docker build -t $ACR_NAME.azurecr.io/sagawayintegrationtestsorchestrationservice:latest -f Sagaway.IntegrationTests/Sagaway.IntegrationTests.OrchestrationService/Dockerfile .
+docker build -t $ACR_NAME.azurecr.io/sagawayintegrationteststestservice:latest -f Sagaway.IntegrationTests/Sagaway.IntegrationTests.TestService/Dockerfile .
+docker build -t $ACR_NAME.azurecr.io/sagawayintegrationteststestsubsagacommunicationservice:latest -f Sagaway.IntegrationTests/Sagaway.IntegrationTests.TestSubSagaCommunicationService/Dockerfile .
+docker build -t $ACR_NAME.azurecr.io/sagawayintegrationtestssteprecordertestservice:latest -f Sagaway.IntegrationTests/Sagaway.IntegrationTests.StepRecorderTestService/Dockerfile .
+docker build -t $ACR_NAME.azurecr.io/signalremulator:latest -f ./SignalREmulator/Dockerfile .
+
+# Push
+docker push $ACR_NAME.azurecr.io/sagawayreservationdemoreservationmanager:latest
+docker push $ACR_NAME.azurecr.io/sagawayreservationdemobillingmanagement:latest
+docker push $ACR_NAME.azurecr.io/sagawayreservationdemoinventorymanagement:latest
+docker push $ACR_NAME.azurecr.io/sagawayreservationdemobookingmanagement:latest
+docker push $ACR_NAME.azurecr.io/sagawayintegrationtestsorchestrationservice:latest
+docker push $ACR_NAME.azurecr.io/sagawayintegrationteststestservice:latest
+docker push $ACR_NAME.azurecr.io/sagawayintegrationteststestsubsagacommunicationservice:latest
+docker push $ACR_NAME.azurecr.io/sagawayintegrationtestssteprecordertestservice:latest
+docker push $ACR_NAME.azurecr.io/signalremulator:latest
+
+
+
+# Apply ACR to the YAML Files and Deploy them to AKS
+for file in ./yamls/*.yaml ./dapr/*.yaml ./dapr/components/*.yaml; do
+  envsubst < "$file" | kubectl apply -f -
+done
+
+
+# Check pod status
+kubectl get pods
+
+# Check the status and retrieve the external IP from each manager
+kubectl get svc reservation-manager
+
+
+### Now we can get/post to the deployed in aks
+for example in localhost we did:
+curl -X POST "http://localhost:4545/reserve?reservationId=123e4567-e89b-12d3-a456-426614174000&customerName=JohnDoe&carClass=Luxury".
+and
+curl -X GET "http://localhost:4545/reservations/JohnDoe"
+
+so now we will do:
+curl -X POST "http://<the_external_ip_we_get_from_the_last_step>:8080/reserve?reservationId=123e4567-e89b-12d3-a456-426614174000&customerName=JohnDoe&carClass=Luxury"
+and
+curl -X GET "http://<the_external_ip_we_get_from_the_last_step>:8080/reservations/JohnDoe"
