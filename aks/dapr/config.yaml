@@ -1,0 +1,16 @@
+apiVersion: dapr.io/v1alpha1
+kind: Configuration
+metadata:
+  name: default
+spec:
+  tracing:
+    samplingRate: "1"
+    zipkin:
+      endpointAddress: http://zipkin:9411/api/v2/spans
+  features:
+    - name: Actor.Reentrancy
+      enabled: true
+  mtls:
+    enabled: false
+    controlPlaneTrustDomain: "cluster.local"
+    sentryAddress: "dapr-sentry.default.svc.cluster.local:80"

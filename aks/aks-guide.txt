@@ -15,6 +15,8 @@ az aks create --resource-group myResourceGroup --name myAKSCluster --node-count 
 
 # Connect to the cluster
 az aks get-credentials --resource-group myResourceGroup --name myAKSCluster
+# if you get this error: ERROR: A different object named myAKSCluster already exists in clusters in your kubeconfig file.
+# then need to delete the config in ".kube" folder in the C:\Users\YourUser
 
 # Initialize Dapr in your Kubernetes cluster
 dapr init -k
@@ -27,26 +29,27 @@ kubectl get pods -n dapr-system
 kubectl create namespace sagaway
 kubectl config set-context --current --namespace=sagaway
 
-# Apply all Dapr components
+# Apply all Dapr components (need to be in sagaway root folder and then in aks folder)
 kubectl apply -f dapr/components/
 
-# Apply the Dapr configuration
+# Apply the Dapr configuration (need to be in sagaway root folder and then in aks folder)
 kubectl apply -f dapr/config.yaml
 //////////// 
 
-# Create Azure Container Registry (ACR) -- ( i made with "sagaway123acr" , so rest of the commands will be with this, for you you might need to change)
-az acr create --resource-group myResourceGroup --name sagaway123acr --sku Basic
+# Create Azure Container Registry (ACR) -- ( i made with "sagaway222acr" , so rest of the commands will be with this, for you you might need to change)
+az acr create --resource-group myResourceGroup --name sagaway222acr --sku Basic
 
 # Give AKS permissions to pull from ACR
-az aks update -n myAKSCluster -g myResourceGroup --attach-acr sagaway123acr
+az aks update -n myAKSCluster -g myResourceGroup --attach-acr sagaway222acr
 
 # Log in to ACR
-az acr login --name sagaway123acr
+az acr login --name sagaway222acr
+
 
 # Set the ACR_NAME variable for later use
-export ACR_NAME=sagaway123acr
+export ACR_NAME=sagaway222acr
 
-////Build and push all service images
+////Build and push all service images (need to be in sagaway root folder and then in aks folder)
 # Build
 docker build -t $ACR_NAME.azurecr.io/sagawayreservationdemoreservationmanager:latest -f Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationManager/Dockerfile .
 docker build -t $ACR_NAME.azurecr.io/sagawayreservationdemobillingmanagement:latest -f Sagaway.ReservationDemo/Sagaway.ReservationDemo.BillingManagement/Dockerfile .
@@ -71,7 +74,7 @@ docker push $ACR_NAME.azurecr.io/signalremulator:latest
 
 
 
-# Apply ACR to the YAML Files and Deploy them to AKS
+# Apply ACR to the YAML Files and Deploy them to AKS (need to be in sagaway root folder and then in aks folder)
 for file in ./yamls/*.yaml ./dapr/*.yaml ./dapr/components/*.yaml; do
   envsubst < "$file" | kubectl apply -f -
 done
@@ -94,3 +97,9 @@ so now we will do:
 curl -X POST "http://<the_external_ip_we_get_from_the_last_step>:8080/reserve?reservationId=123e4567-e89b-12d3-a456-426614174000&customerName=JohnDoe&carClass=Luxury"
 and
 curl -X GET "http://<the_external_ip_we_get_from_the_last_step>:8080/reservations/JohnDoe"
+
+
+###Extra:
+kubectl patch svc reservation-manager \
+  -p '{"metadata":{"annotations":{"service.beta.kubernetes.io/azure-dns-label-name":"sagaway-reserve"}}}'
+
