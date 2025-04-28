@@ -95,7 +95,7 @@ namespace Sagaway.ReservationDemo.ReservationUI.Services
                     _logger.LogInformation(
                         "No reservations found for customer {CustomerName} via {AbsoluteUri} (404)", customerName,
                         absoluteUri);
-                    return new List<ReservationStatus>();
+                    return [];
                 }
 
                 response.EnsureSuccessStatusCode();

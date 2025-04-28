@@ -388,7 +388,7 @@ public class CarReservationCancellationActor : DaprActorHost<CarCancelReservatio
 
         var metadata = new Dictionary<string, string>
         {
-            { "ttlInSeconds", "300" } // 5 minutes TTL
+            { "ttlInSeconds", "900" } // 15 minutes TTL
         };
 
         if (_reservationInfo == null)

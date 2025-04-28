@@ -6,5 +6,6 @@ public record BookingInfo
     // ReSharper disable UnusedAutoPropertyAccessor.Global
     public required string CustomerName { get; set; }
     public bool IsReserved { get; set; }
+    public required string CarClass { get; set; }
     public Guid Id { get; set; }
 }

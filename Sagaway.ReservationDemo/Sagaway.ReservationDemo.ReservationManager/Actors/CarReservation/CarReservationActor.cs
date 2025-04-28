@@ -372,7 +372,7 @@ public class CarReservationActor : DaprActorHost<CarReservationActorOperations>,
         
         var metadata = new Dictionary<string, string>
         {
-            { "ttlInSeconds", "300" } // 5 minutes TTL
+            { "ttlInSeconds", "900" } // 15 minutes TTL
         };
 
         var key = _reservationInfo.ReservationId.ToString();

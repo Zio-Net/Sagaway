@@ -123,6 +123,7 @@ app.MapPost("/booking-queue", async (
             Id = request.ReservationId,
             ReservationStatusUpdateTime = messageDispatchTime,
             CustomerName = request.CustomerName,
+            CarClass = request.CarClass,
             IsReserved = false
         };
 
@@ -271,6 +272,16 @@ app.MapGet("/customer-reservations", async ([FromQuery] string customerName, [Fr
             var customerReservations = reservations.Results;
 
             return Results.Ok(customerReservations.Select(r => r.Data).ToArray());
+        }
+        catch (Grpc.Core.RpcException grpcEx)
+            when (grpcEx.StatusCode == Grpc.Core.StatusCode.Internal
+                  && grpcEx.Status.Detail.Contains("invalid output"))
+        {
+            // Workaround for Dapr bug: treat "invalid output" as empty result set - dapr bug #3787
+            logger.LogWarning(grpcEx,
+                "Dapr QueryStateAsync returned invalid output for customer {CustomerName}. Returning empty list.",
+                customerName);
+            return Results.Ok(Array.Empty<ReservationState>());
         }
         catch (Exception ex)
         {
