@@ -83,6 +83,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sagaway.IntegrationTests.Te
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sagaway.IntegrationTests.StepRecorderTestService", "Sagaway.IntegrationTests\Sagaway.IntegrationTests.StepRecorderTestService\Sagaway.IntegrationTests.StepRecorderTestService.csproj", "{4615A789-C36B-4CAF-9842-3872DC02E780}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sagaway.ReservationDemo.ReservationUI", "Sagaway.ReservationDemo\Sagaway.ReservationDemo.ReservationUI\Sagaway.ReservationDemo.ReservationUI.csproj", "{B820A3FC-B8DE-2C80-73C8-98B38CE54881}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -153,6 +155,10 @@ Global
 		{4615A789-C36B-4CAF-9842-3872DC02E780}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4615A789-C36B-4CAF-9842-3872DC02E780}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4615A789-C36B-4CAF-9842-3872DC02E780}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B820A3FC-B8DE-2C80-73C8-98B38CE54881}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B820A3FC-B8DE-2C80-73C8-98B38CE54881}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B820A3FC-B8DE-2C80-73C8-98B38CE54881}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B820A3FC-B8DE-2C80-73C8-98B38CE54881}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -24,7 +24,7 @@ services:
       - placement
 
   reservation-manager-dapr:
-    image: "daprio/daprd:1.14.4"
+    image: "daprio/daprd:1.15.3"
     deploy:
       restart_policy:
         condition: on-failure
@@ -35,6 +35,7 @@ services:
      "-app-id", "reservation-manager",
      "-app-port", "80",
      "-placement-host-address", "placement:50006",
+     "-scheduler-host-address", "scheduler:50007",
      "-dapr-http-port", "3500",
      "-resources-path", "/dapr/components",
      "-config", "/dapr/config.yaml"]
@@ -65,7 +66,7 @@ services:
       - ASPNETCORE_URLS=http://billing-management:80
 
   billing-management-dapr:
-    image: "daprio/daprd:1.14.4"
+    image: "daprio/daprd:1.15.3"
     deploy:
       restart_policy:
         condition: on-failure
@@ -76,6 +77,7 @@ services:
      "-app-id", "billing-management",
      "-app-port", "80",
      "-placement-host-address", "placement:50006",
+     "-scheduler-host-address", "scheduler:50007",
      "-dapr-http-port", "3500",
      "-resources-path", "/dapr/components",
      "-config", "/dapr/config.yaml"]
@@ -105,7 +107,7 @@ services:
       - ASPNETCORE_URLS=http://inventory-management:80
 
   inventory-management-dapr:
-    image: "daprio/daprd:1.14.4"
+    image: "daprio/daprd:1.15.3"
     deploy:
       restart_policy:
         condition: on-failure
@@ -116,6 +118,7 @@ services:
      "-app-id", "inventory-management",
      "-app-port", "80",
      "-placement-host-address", "placement:50006",
+     "-scheduler-host-address", "scheduler:50007",
      "-dapr-http-port", "3500",
      "-resources-path", "/dapr/components",
      "-config", "/dapr/config.yaml"]
@@ -145,7 +148,7 @@ services:
       - ASPNETCORE_URLS=http://booking-management:80
 
   booking-management-dapr:
-    image: "daprio/daprd:1.14.4"
+    image: "daprio/daprd:1.15.3"
     deploy:
       restart_policy:
         condition: on-failure
@@ -156,6 +159,7 @@ services:
      "-app-id", "booking-management",
      "-app-port", "80",
      "-placement-host-address", "placement:50006",
+     "-scheduler-host-address", "scheduler:50007",
      "-dapr-http-port", "3500",
      "-resources-path", "/dapr/components",
      "-config", "/dapr/config.yaml"]
@@ -164,6 +168,23 @@ services:
     depends_on:
       - booking-management
     network_mode: "service:booking-management"
+
+##################################################
+# Reservation Demo Blazor App
+##################################################
+  reservation-ui:
+    build:
+      context: .
+      dockerfile: Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationUI/Dockerfile
+    networks:
+      - sagaway-network
+    ports:
+      - "5000:80" 
+    environment:
+     # - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+    depends_on:
+      - reservation-manager
 
 ############################
 # Test Services
@@ -191,7 +212,7 @@ services:
       - placement
 
   orchestrationservice-dapr:
-    image: "daprio/daprd:1.14.4"
+    image: "daprio/daprd:1.15.3"
     deploy:
       restart_policy:
         condition: on-failure
@@ -202,6 +223,7 @@ services:
      "-app-id", "orchestrationservice",
      "-app-port", "80",
      "-placement-host-address", "placement:50006",
+     "-scheduler-host-address", "scheduler:50007",
      "-dapr-http-port", "3500",
      "-resources-path", "/dapr/components",
      "-config", "/dapr/config.yaml"]
@@ -229,7 +251,7 @@ services:
       - placement
 
   testservice-dapr:
-    image: "daprio/daprd:1.14.4"
+    image: "daprio/daprd:1.15.3"
     deploy:
       restart_policy:
         condition: on-failure
@@ -240,6 +262,7 @@ services:
      "-app-id", "testservice",
      "-app-port", "80",
      "-placement-host-address", "placement:50006",
+     "-scheduler-host-address", "scheduler:50007",
      "-dapr-http-port", "3500",
      "-resources-path", "/dapr/components",
      "-config", "/dapr/config.yaml"]
@@ -271,7 +294,7 @@ services:
       - placement
 
   testsubsagacommunicationservice-dapr:
-    image: "daprio/daprd:1.14.4"
+    image: "daprio/daprd:1.15.3"
     deploy:
       restart_policy:
         condition: on-failure
@@ -282,6 +305,7 @@ services:
      "-app-id", "testsubsagacommunicationservice",
      "-app-port", "80",
      "-placement-host-address", "placement:50006",
+     "-scheduler-host-address", "scheduler:50007",
      "-dapr-http-port", "3500",
      "-resources-path", "/dapr/components",
      "-config", "/dapr/config.yaml"]
@@ -313,7 +337,7 @@ services:
       - placement
 
   steprecordertestservice-dapr:
-    image: "daprio/daprd:1.14.4"
+    image: "daprio/daprd:1.15.3"
     deploy:
       restart_policy:
         condition: on-failure
@@ -324,6 +348,7 @@ services:
      "-app-id", "steprecordertestservice",
      "-app-port", "80",
      "-placement-host-address", "placement:50006",
+     "-scheduler-host-address", "scheduler:50007",
      "-dapr-http-port", "3500",
      "-resources-path", "/dapr/components",
      "-config", "/dapr/config.yaml"]
@@ -361,13 +386,27 @@ services:
 ## Dapr placement service
 #############################
   placement:
-    image: "daprio/dapr:1.14.4"
+    image: "daprio/dapr:1.15.3"
     command: ["./placement", "-port", "50006"]
     ports:
       - "50006:50006"
     networks:
       - sagaway-network
- 
+
+#############################
+## Dapr scheduler service
+#############################
+  scheduler:
+    image: daprio/dapr:1.15.3
+    user: root
+    command: ["./scheduler", "--port", "50007", "--etcd-data-dir", "/data"]
+    ports:
+      - "50007:50007"
+    volumes:
+      - scheduler-data:/data
+    networks:
+      - sagaway-network
+
 ############################
 # Dapr zipkin service
 ############################
@@ -418,6 +457,8 @@ networks:
            
 volumes: 
   workspace:  
+  scheduler-data:
+
 
 
 

@@ -1,0 +1,150 @@
+﻿@* Components/ReservationStatusDisplay.razor *@
+@* Inject HttpClient or your custom API client service *@
+@* @inject HttpClient Http *@ 
+@* @inject ReservationApiClient ApiClient *@ 
+
+<div class="mt-8 p-4 border rounded-lg shadow bg-white">
+    <h2 class="text-xl font-semibold mb-4 text-gray-700">Reservation Status (@(string.IsNullOrWhiteSpace(CustomerNameToFetch) ? "No customer selected" : CustomerNameToFetch))</h2>
+
+    @if (_isLoading)
+    {
+        <p class="text-gray-500">Loading reservation status...</p>
+        @* Add a spinner here if desired *@
+    }
+    else if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <p class="text-red-600">Error loading status: @_errorMessage</p>
+    }
+    else if (_reservations == null || !_reservations.Any())
+    {
+        <p class="text-gray-600">No reservations found for this customer.</p>
+    }
+    else
+    {
+        <ul class="space-y-3">
+            @foreach (var reservation in _reservations)
+            {
+                <li class="p-3 border rounded shadow-sm bg-gray-50">
+                    <p><strong>ID:</strong> @reservation.ReservationId</p>
+                    <p><strong>Car:</strong> @reservation.CarClass</p>
+                    @* Assuming BookingInfo has a status property - adapt as needed *@
+                    <p><strong>Status:</strong> <span class="font-medium @GetStatusClass(reservation.Status)">@reservation.Status</span></p>
+                </li>
+            }
+        </ul>
+    }
+    <button @onclick="FetchReservationStatus"
+            class="mt-4 px-4 py-1 bg-blue-500 text-white text-sm font-medium rounded hover:bg-blue-600 disabled:opacity-50"
+            disabled="@(_isLoading || string.IsNullOrWhiteSpace(CustomerNameToFetch))">
+        Refresh Status
+    </button>
+</div>
+
+@code {
+    [Parameter]
+    public string? CustomerNameToFetch { get; set; }
+
+    private List<BookingInfo>? _reservations;
+    private bool _isLoading = false;
+    private string? _errorMessage;
+
+    // This method is called when the parameter changes *after* initial render
+    protected override async Task OnParametersSetAsync()
+    {
+        // Automatically fetch when the customer name is set/changed
+        // Avoid fetching if it hasn't actually changed or is null/empty
+        // We might need more robust change detection depending on usage
+        if (!string.IsNullOrWhiteSpace(CustomerNameToFetch))
+        {
+            await FetchReservationStatus();
+        }
+        else
+        {
+            // Clear status if customer name is cleared
+            _reservations = null;
+            _errorMessage = null;
+        }
+    }
+
+    private async Task FetchReservationStatus()
+    {
+        if (string.IsNullOrWhiteSpace(CustomerNameToFetch))
+        {
+            _reservations = null;
+            _errorMessage = null;
+            _isLoading = false;
+            StateHasChanged();
+            return;
+        }
+
+        _isLoading = true;
+        _errorMessage = null;
+        _reservations = null; // Clear previous results
+        StateHasChanged(); // Update UI to show loading
+
+        try
+        {
+            Console.WriteLine($"Fetching reservations for {CustomerNameToFetch}");
+
+            // --- TODO: Replace with actual API call using HttpClient or your API Client ---
+            // Example using injected HttpClient (ensure base address is configured in Program.cs)
+            // var response = await Http.GetAsync($"/reservations/{Uri.EscapeDataString(CustomerNameToFetch)}");
+            // if (response.IsSuccessStatusCode)
+            // {
+            //     reservations = await response.Content.ReadFromJsonAsync<List<BookingInfo>>();
+            // }
+            // else
+            // {
+            //     errorMessage = $"API Error: {response.StatusCode}";
+            // }
+
+            // --- Placeholder Simulation ---
+            await Task.Delay(1500); // Simulate network delay
+            // Simulate finding some data
+            if (CustomerNameToFetch.ToLower() == "alon")
+            {
+                _reservations =
+                [
+	                new() { ReservationId = Guid.NewGuid(), CustomerName = CustomerNameToFetch, CarClass = "ECON", Status = "Confirmed", IsReserved = true },
+	                new() { ReservationId = Guid.NewGuid(), CustomerName = CustomerNameToFetch, CarClass = "LUX", Status = "Pending", IsReserved = true }
+                ];
+            }
+            else
+            {
+                _reservations = []; // Simulate not finding data
+            }
+            // --- End Placeholder Simulation ---
+
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching status: {ex.Message}");
+            _errorMessage = "Failed to load data. Please try again.";
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged(); // Update UI with results or error
+        }
+    }
+
+    private string GetStatusClass(string? status) => status switch
+    {
+        "Confirmed" => "text-green-700",
+        "Pending" => "text-yellow-700",
+        "Cancelled" => "text-red-700",
+        "Failed" => "text-red-800",
+        _ => "text-gray-600"
+    };
+
+    // Class to represent the reservation data from the backend API
+    // Adapt properties based on your actual API response (BookingInfo)
+    private class BookingInfo
+    {
+        public Guid ReservationId { get; set; }
+        public string? CustomerName { get; set; }
+        public string? CarClass { get; set; }
+        public bool IsReserved { get; set; } // From backend example
+        public string Status { get; set; } = "Unknown"; // Add a status property if your API provides it
+    }
+}
