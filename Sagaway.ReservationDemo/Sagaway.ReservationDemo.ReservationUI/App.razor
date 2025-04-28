@@ -154,20 +154,18 @@
         Logger.LogInformation("Attempting to reserve {CarClass} for {CustomerName} (ID: {CustomerId})",
             _selectedCarClass.Code, customerNameForApi, _selectedCustomerId);
 
-        // --- TODO: Replace with actual API call ---
-        await Task.Delay(2000); // Simulate API call delay
-        var reservationSucceeded = DateTime.Now.Second % 2 == 0; // Simulate random success/failure for demo
-        Guid? newReservationId = reservationSucceeded ? Guid.NewGuid() : null;
+        Guid? newReservationId = Guid.NewGuid();
+		bool reservationRequestSucceeded;
         try
         {
             var reservationResult = await ApiClient.ReserveCarAsync(customerNameForApi, _selectedCarClass.Code);
-            reservationSucceeded = true; // Assuming API call success if no exception
+            reservationRequestSucceeded = true;
             newReservationId = reservationResult?.ReservationId;
             Logger.LogInformation("Reservation initiated, ID: {ReservationId}", newReservationId);
         }
         catch (Exception ex)
         {
-            reservationSucceeded = false;
+            reservationRequestSucceeded = false;
             Logger.LogError(ex, "Reservation failed for {CustomerName}", customerNameForApi);
             _reservationMessage = $"Error: Reservation failed - {ex.Message}";
         }
@@ -175,7 +173,7 @@
 
         _isProcessingReservation = false;
 
-        if (reservationSucceeded)
+        if (reservationRequestSucceeded)
         {
             _reservationMessage = $"Success! Reservation {newReservationId} started for {customerNameForApi}.";
             // Trigger status fetch for the selected customer
@@ -192,18 +190,14 @@
     // --- Data Structures ---
     private class CarType
     {
-#pragma warning disable CS8618
-        public string Name { get; init; }
-        public string Code { get; init; }
-        public string ImageUrl { get; init; }
-#pragma warning restore CS8618
+        public required string Name { get; init; }
+        public required string Code { get; init; }
+        public required string ImageUrl { get; init; }
     }
 
     private class CustomerInfo
     {
-#pragma warning disable CS8618
         public Guid CustomerId { get; init; }
-        public string CustomerName { get; init; }
-#pragma warning restore CS8618
+        public required string CustomerName { get; init; }
     }
 }

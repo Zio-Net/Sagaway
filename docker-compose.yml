@@ -1,5 +1,3 @@
-version: '3.7'
-
 services:
 ##################################################
 # Reservation Manager Microservice + Dapr sidecars

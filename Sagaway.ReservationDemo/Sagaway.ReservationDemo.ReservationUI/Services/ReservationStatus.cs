@@ -14,6 +14,9 @@ public class ReservationStatus // Renamed for clarity on client-side, but maps t
     [JsonPropertyName("customerName")]
     public string? CustomerName { get; set; }
 
+    [JsonPropertyName("carClass")] 
+    public string? CarClass { get; set; }
+
     [JsonPropertyName("isReserved")] // Maps to BookingInfo.IsReserved
     public bool IsReserved { get; set; }
 }

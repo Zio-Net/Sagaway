@@ -1,7 +1,7 @@
-﻿@* Components/ReservationStatusDisplay.razor *@
-@* Inject HttpClient or your custom API client service *@
-@* @inject HttpClient Http *@ 
-@* @inject ReservationApiClient ApiClient *@ 
+﻿@using Sagaway.ReservationDemo.ReservationUI.Services
+@inject IReservationApiClient ApiClient
+@inject ILogger<ReservationStatusDisplay> Logger
+@inject HttpClient Http
 
 <div class="mt-8 p-4 border rounded-lg shadow bg-white">
     <h2 class="text-xl font-semibold mb-4 text-gray-700">Reservation Status (@(string.IsNullOrWhiteSpace(CustomerNameToFetch) ? "No customer selected" : CustomerNameToFetch))</h2>
@@ -9,7 +9,9 @@
     @if (_isLoading)
     {
         <p class="text-gray-500">Loading reservation status...</p>
-        @* Add a spinner here if desired *@
+        <div class="flex justify-center mt-2">
+            <div class="spinner-border w-8 h-8 border-4 border-t-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
     }
     else if (!string.IsNullOrWhiteSpace(_errorMessage))
     {
@@ -21,39 +23,177 @@
     }
     else
     {
-        <ul class="space-y-3">
-            @foreach (var reservation in _reservations)
-            {
-                <li class="p-3 border rounded shadow-sm bg-gray-50">
-                    <p><strong>ID:</strong> @reservation.ReservationId</p>
-                    <p><strong>Car:</strong> @reservation.CarClass</p>
-                    @* Assuming BookingInfo has a status property - adapt as needed *@
-                    <p><strong>Status:</strong> <span class="font-medium @GetStatusClass(reservation.Status)">@reservation.Status</span></p>
-                </li>
-            }
-        </ul>
+        <div class="overflow-x-auto">
+            <table class="min-w-full bg-white">
+                <thead class="bg-gray-100">
+                    <tr>
+                        <th class="py-2 px-4 text-left">Car</th>
+                        <th class="py-2 px-4 text-left">Reservation ID</th>
+                        <th class="py-2 px-4 text-left">Status</th>
+                        <th class="py-2 px-4 text-left">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var reservation in _reservations)
+                    {
+	                    <tr class="border-b hover:bg-gray-50">
+		                    <td class="py-2 px-4">
+			                    <div class="flex items-center">
+				                    @{
+					                    var imgSrc = GetCarImageForClass(reservation.CarClass);
+				                    }
+				                    <img src="@imgSrc" alt="@reservation.CarClass" 
+				                         class="h-10 w-10 object-cover mr-2"
+				                         onerror="this.onerror=null; this.src=''; this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden');" />
+				                    <div class="h-10 w-14 bg-gray-200 rounded mr-2 flex items-center justify-center hidden">
+					                    <span class="text-xs text-gray-600">@(reservation.CarClass ?? "Unknown")</span>
+				                    </div>
+				                    <span>@(reservation.CarClass ?? "Unknown")</span>
+			                    </div>
+		                    </td>
+		                    <td class="py-2 px-4">
+			                    <span class="font-mono text-sm">@reservation.ReservationId</span>
+		                    </td>
+		                    <td class="py-2 px-4">
+			                    <span class="px-2 py-1 rounded-full text-sm @GetStatusClass(reservation.IsReserved)">
+				                    @(reservation.IsReserved ? "Reserved" : "Not Reserved")
+			                    </span>
+		                    </td>
+		                    <td class="py-2 px-4">
+			                    <button @onclick="() => ViewSagaLog(reservation.ReservationId)"
+			                            class="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600">
+				                    View Saga Log
+			                    </button>
+		                    </td>
+	                    </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
     }
-    <button @onclick="FetchReservationStatus"
-            class="mt-4 px-4 py-1 bg-blue-500 text-white text-sm font-medium rounded hover:bg-blue-600 disabled:opacity-50"
-            disabled="@(_isLoading || string.IsNullOrWhiteSpace(CustomerNameToFetch))">
-        Refresh Status
-    </button>
+    
+    <div class="mt-4 flex gap-2">
+        <button @onclick="FetchReservationStatus"
+                class="px-4 py-1 bg-blue-500 text-white text-sm font-medium rounded hover:bg-blue-600 disabled:opacity-50"
+                disabled="@(_isLoading || string.IsNullOrWhiteSpace(CustomerNameToFetch))">
+            Refresh Status
+        </button>
+        
+        <button @onclick="DebugApiCall"
+                class="px-4 py-1 bg-gray-500 text-white text-sm font-medium rounded hover:bg-gray-600 disabled:opacity-50">
+            Debug API Call
+        </button>
+    </div>
+
+    @if (_showSagaLogModal)
+    {
+        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-lg shadow-lg p-6 w-11/12 max-w-4xl max-h-[80vh] overflow-y-auto">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold">Saga Log - Reservation @_selectedReservationId</h3>
+                    <button @onclick="CloseSagaLogModal" class="text-gray-500 hover:text-gray-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                
+                @if (_loadingSagaLog)
+                {
+                    <div class="text-center py-8">
+                        <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
+                        <p class="mt-2">Loading saga log...</p>
+                    </div>
+                }
+                else if (!string.IsNullOrWhiteSpace(_sagaLogError))
+                {
+                    <div class="p-4 bg-red-100 text-red-700 rounded">
+                        <p>Error loading saga log: @_sagaLogError</p>
+                    </div>
+                }
+                else if (string.IsNullOrWhiteSpace(_sagaLog))
+                {
+                    <div class="p-4 bg-yellow-100 text-yellow-700 rounded">
+                        <p>No saga log available for this reservation.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="mb-3">
+                        <span class="text-gray-600 text-sm">Response preview (first 500 chars):</span>
+                    </div>
+                    <pre class="bg-gray-100 p-4 rounded overflow-x-auto text-sm font-mono whitespace-pre-wrap">@(_sagaLog.Length > 500 ? _sagaLog.Substring(0, 500) + "..." : _sagaLog)</pre>
+                    
+                    @if (_sagaLog.Contains("<!DOCTYPE html>"))
+                    {
+                        <div class="mt-4 p-3 bg-yellow-100 text-yellow-800 rounded">
+                            <p>Warning: The response appears to be HTML instead of a JSON saga log. This indicates the API endpoint might be returning the wrong content.</p>
+                        </div>
+                    }
+                }
+                
+                <div class="mt-6 flex justify-end gap-3">
+                    <button @onclick="AttemptAlternateSagaLogFetch" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                        Try Direct Fetch
+                    </button>
+                    <button @onclick="CloseSagaLogModal" class="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (_showDebugModal)
+    {
+        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-lg shadow-lg p-6 w-11/12 max-w-3xl max-h-[80vh] overflow-y-auto">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold">API Debug Information</h3>
+                    <button @onclick="() => _showDebugModal = false" class="text-gray-500 hover:text-gray-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                
+				<div>
+                    <h4 class="font-semibold mb-2">API Response for '@CustomerNameToFetch':</h4>
+                    <pre class="bg-gray-100 p-3 rounded overflow-x-auto text-sm font-mono whitespace-pre-wrap">@_debugApiResponse</pre>
+                </div>
+                
+                <div class="mt-6 flex justify-end">
+                    <button @onclick="() => _showDebugModal = false" class="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
 </div>
 
 @code {
     [Parameter]
     public string? CustomerNameToFetch { get; set; }
 
-    private List<BookingInfo>? _reservations;
+    private List<ReservationStatus>? _reservations;
     private bool _isLoading = false;
     private string? _errorMessage;
+    
+    // Saga log modal state
+    private bool _showSagaLogModal = false;
+    private Guid _selectedReservationId;
+    private string? _sagaLog;
+    private bool _loadingSagaLog = false;
+    private string? _sagaLogError;
+
+    // Debug info
+    private bool _showDebugModal = false;
+    private string _debugApiResponse = "No data";
 
     // This method is called when the parameter changes *after* initial render
     protected override async Task OnParametersSetAsync()
     {
-        // Automatically fetch when the customer name is set/changed
-        // Avoid fetching if it hasn't actually changed or is null/empty
-        // We might need more robust change detection depending on usage
         if (!string.IsNullOrWhiteSpace(CustomerNameToFetch))
         {
             await FetchReservationStatus();
@@ -66,7 +206,7 @@
         }
     }
 
-    private async Task FetchReservationStatus()
+    public async Task FetchReservationStatus()
     {
         if (string.IsNullOrWhiteSpace(CustomerNameToFetch))
         {
@@ -84,42 +224,29 @@
 
         try
         {
-            Console.WriteLine($"Fetching reservations for {CustomerNameToFetch}");
-
-            // --- TODO: Replace with actual API call using HttpClient or your API Client ---
-            // Example using injected HttpClient (ensure base address is configured in Program.cs)
-            // var response = await Http.GetAsync($"/reservations/{Uri.EscapeDataString(CustomerNameToFetch)}");
-            // if (response.IsSuccessStatusCode)
-            // {
-            //     reservations = await response.Content.ReadFromJsonAsync<List<BookingInfo>>();
-            // }
-            // else
-            // {
-            //     errorMessage = $"API Error: {response.StatusCode}";
-            // }
-
-            // --- Placeholder Simulation ---
-            await Task.Delay(1500); // Simulate network delay
-            // Simulate finding some data
-            if (CustomerNameToFetch.ToLower() == "alon")
+            Logger.LogInformation("Fetching reservations for {CustomerName}", CustomerNameToFetch);
+            
+            // Try to get mock data if real API fails
+            try 
             {
-                _reservations =
-                [
-	                new() { ReservationId = Guid.NewGuid(), CustomerName = CustomerNameToFetch, CarClass = "ECON", Status = "Confirmed", IsReserved = true },
-	                new() { ReservationId = Guid.NewGuid(), CustomerName = CustomerNameToFetch, CarClass = "LUX", Status = "Pending", IsReserved = true }
-                ];
+                // Call the API client to get real reservation data
+                _reservations = await ApiClient.GetReservationsAsync(CustomerNameToFetch);
+                
+                if (_reservations == null)
+                {
+                    _errorMessage = "Failed to retrieve reservations. Please try again.";
+                }
             }
-            else
+            catch (Exception apiEx) 
             {
-                _reservations = []; // Simulate not finding data
+                Logger.LogError(apiEx, "API Error fetching reservations for {CustomerName}", CustomerNameToFetch);
+                _errorMessage = $"API Error: {apiEx.Message}";
             }
-            // --- End Placeholder Simulation ---
-
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error fetching status: {ex.Message}");
-            _errorMessage = "Failed to load data. Please try again.";
+            Logger.LogError(ex, "General error fetching reservations for {CustomerName}", CustomerNameToFetch);
+            _errorMessage = $"Error: {ex.Message}";
         }
         finally
         {
@@ -128,23 +255,145 @@
         }
     }
 
-    private string GetStatusClass(string? status) => status switch
+    private async Task ViewSagaLog(Guid reservationId)
     {
-        "Confirmed" => "text-green-700",
-        "Pending" => "text-yellow-700",
-        "Cancelled" => "text-red-700",
-        "Failed" => "text-red-800",
-        _ => "text-gray-600"
-    };
+        _selectedReservationId = reservationId;
+        _showSagaLogModal = true;
+        _loadingSagaLog = true;
+        _sagaLog = null;
+        _sagaLogError = null;
+        StateHasChanged();
 
-    // Class to represent the reservation data from the backend API
-    // Adapt properties based on your actual API response (BookingInfo)
-    private class BookingInfo
+        try
+        {
+            // Use the API client to get the saga log
+            _sagaLog = await ApiClient.GetSagaLogAsync(reservationId);
+            
+            if (_sagaLog == null)
+            {
+                _sagaLogError = "No saga log found for this reservation.";
+                Logger.LogWarning("No saga log found for reservation {ReservationId}", reservationId);
+            }
+        }
+        catch (Exception ex)
+        {
+            _sagaLogError = ex.Message;
+            Logger.LogError(ex, "Error retrieving saga log for reservation {ReservationId}", reservationId);
+        }
+        finally
+        {
+            _loadingSagaLog = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task AttemptAlternateSagaLogFetch()
     {
-        public Guid ReservationId { get; set; }
-        public string? CustomerName { get; set; }
-        public string? CarClass { get; set; }
-        public bool IsReserved { get; set; } // From backend example
-        public string Status { get; set; } = "Unknown"; // Add a status property if your API provides it
+        _loadingSagaLog = true;
+        _sagaLog = null;
+        _sagaLogError = null;
+        StateHasChanged();
+
+        try
+        {
+            // Try direct fetch with HttpClient as a fallback
+            var response = await Http.GetAsync($"/saga-log/{_selectedReservationId}");
+            
+            if (response.IsSuccessStatusCode)
+            {
+                _sagaLog = await response.Content.ReadAsStringAsync();
+            }
+            else
+            {
+                _sagaLogError = $"Direct API call failed with status: {response.StatusCode}";
+                Logger.LogWarning("Direct saga log fetch failed for reservation {ReservationId} with status {StatusCode}", 
+                    _selectedReservationId, response.StatusCode);
+            }
+        }
+        catch (Exception ex)
+        {
+            _sagaLogError = $"Direct API call error: {ex.Message}";
+            Logger.LogError(ex, "Error during direct saga log fetch for reservation {ReservationId}", _selectedReservationId);
+        }
+        finally
+        {
+            _loadingSagaLog = false;
+            StateHasChanged();
+        }
+    }
+
+    private void CloseSagaLogModal()
+    {
+        _showSagaLogModal = false;
+        _sagaLog = null;
+        StateHasChanged();
+    }
+
+    private async Task DebugApiCall()
+    {
+        _showDebugModal = true;
+        _debugApiResponse = "Loading...";
+        StateHasChanged();
+        
+        try
+        {
+            if (string.IsNullOrWhiteSpace(CustomerNameToFetch))
+            {
+                _debugApiResponse = "No customer name provided";
+                return;
+            }
+            
+            var url = $"/reservations/{Uri.EscapeDataString(CustomerNameToFetch)}";
+            var response = await Http.GetAsync(url);
+            
+            _debugApiResponse = $"URL: {url}\nStatus: {response.StatusCode}\n\n";
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                _debugApiResponse += content;
+            }
+            else
+            {
+                _debugApiResponse += $"Error: {response.ReasonPhrase}";
+
+                try
+                {
+	                var errorContent = await response.Content.ReadAsStringAsync();
+	                if (!string.IsNullOrWhiteSpace(errorContent))
+	                {
+		                _debugApiResponse += $"\n\nResponse Content:\n{errorContent}";
+	                }
+                }
+                catch
+                {
+					_debugApiResponse += "\n\nFailed to read error content.";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _debugApiResponse = $"Exception occurred: {ex.Message}\n\n{ex.StackTrace}";
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+
+    private string GetStatusClass(bool isReserved) => isReserved 
+        ? "text-green-700 bg-green-100" 
+        : "text-red-700 bg-red-100";
+
+    private string GetCarImageForClass(string? carClass)
+    {
+        // Map car class to corresponding image
+        return carClass?.ToUpperInvariant() switch
+        {
+            "ECON" => "images/EconomyCar.png",
+            "STD" => "images/StandardCar.png",
+            "LUX" => "images/LuxuryCar.png",
+            _ => "images/DefaultCar.png" // Default image if car class is unknown
+        };
     }
 }

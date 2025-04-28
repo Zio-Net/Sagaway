@@ -30,4 +30,12 @@ public interface IReservationApiClient
     /// <param name="reservationId">The ID of the reservation to cancel.</param>
     /// <returns>True if the cancellation request was accepted, false otherwise.</returns>
     Task<bool> CancelReservationAsync(Guid reservationId);
+
+    /// <summary>
+    /// Retrieves the saga log for a specific reservation.
+    /// </summary>
+    /// <param name="reservationId">The ID of the reservation whose saga log to fetch.</param>
+    /// <returns>The saga log as a string, or null if not found or an error occurred.</returns>
+    Task<string?> GetSagaLogAsync(Guid reservationId);
+
 }

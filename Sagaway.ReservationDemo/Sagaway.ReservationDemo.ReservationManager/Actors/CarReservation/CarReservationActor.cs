@@ -26,10 +26,10 @@ public class CarReservationActor : DaprActorHost<CarReservationActorOperations>,
     protected override ISaga<CarReservationActorOperations> ReBuildSaga()
     {
         var saga = Saga<CarReservationActorOperations>.Create(_actorHost.Id.ToString(), this, _logger)
-            .WithOnSuccessCompletionCallback(OnSuccessCompletionCallbackAsync)
-            .WithOnRevertedCallback(OnRevertedCallbackAsync)
-            .WithOnFailedRevertedCallback(OnFailedRevertedCallbackAsync)
-            .WithOnFailedCallback(OnFailedCallbackAsync)
+            .WithOnSuccessCompletionCallback(OnSuccessCompletionCallback)
+            .WithOnRevertedCallback(OnRevertedCallback)
+            .WithOnFailedRevertedCallback(OnFailedRevertedCallback)
+            .WithOnFailedCallback(OnFailedCallback)
 
             .WithOperation(CarReservationActorOperations.CarBooking)
             .WithDoOperation(BookCarReservationAsync)
@@ -336,44 +336,54 @@ public class CarReservationActor : DaprActorHost<CarReservationActorOperations>,
 
     #region Saga Completion Methods
 
-    private async void OnFailedRevertedCallbackAsync(string sagaLog)
+    private void OnFailedRevertedCallback(string sagaLog)
     {
         _logger.LogError("The car reservation has failed and left some unused resources.");
         _logger.LogError("The car reservation log:" + Environment.NewLine + sagaLog);
-
-        await Task.CompletedTask;
     }
 
-    private async void OnRevertedCallbackAsync(string sagaLog)
+    private void OnRevertedCallback(string sagaLog)
     {
         _logger.LogError("The car reservation has failed and all resources are deleted.");
         _logger.LogError("The car reservation log:" + Environment.NewLine + sagaLog);
-
-        await Task.CompletedTask;
     }
 
-    private async void OnFailedCallbackAsync(string sagaLog)
+    private void OnFailedCallback(string sagaLog)
     {
         _logger.LogError("The car reservation has failed starting reverting resources.");
         _logger.LogError("The car reservation log:" + Environment.NewLine + sagaLog);
-
-        await Task.CompletedTask;
-        //Option: Send a message to the customer
     }
 
-    private async void OnSuccessCompletionCallbackAsync(string sagaLog)
+    private void OnSuccessCompletionCallback(string sagaLog)
     {
         _logger.LogInformation("The car reservation has succeeded.");
         _logger.LogInformation("The car reservation log:" + Environment.NewLine + sagaLog);
-
-        await Task.CompletedTask;
-        //Option: Send a message to the customer
     }
 
     private async Task OnSagaCompletedAsync(object? _, SagaCompletionEventArgs e)
     {
         _logger.LogInformation($"Saga {e.SagaId} completed with status {e.Status}");
-        await Task.CompletedTask;
+
+        if (_reservationInfo == null)
+        {
+            _logger.LogWarning("Cannot save saga log: reservation info is null");
+            return;
+        }
+        
+        var metadata = new Dictionary<string, string>
+        {
+            { "ttlInSeconds", "300" } // 5 minutes TTL
+        };
+
+        var key = _reservationInfo.ReservationId.ToString();
+
+        await DaprClient.SaveStateAsync(
+            "statestore",
+            $"saga-log-{key}",
+            e.Log,
+            metadata: metadata);
+
+        _logger.LogInformation($"Saved saga log for reservation {key} with 5 minutes TTL");
     }
 
     #endregion

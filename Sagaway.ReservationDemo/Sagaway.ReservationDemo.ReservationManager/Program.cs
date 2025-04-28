@@ -10,6 +10,7 @@ using Sagaway.OpenTelemetry;
 using Sagaway.ReservationDemo.ReservationManager.Actors;
 using Sagaway.ReservationDemo.ReservationManager.Actors.CarReservation;
 using Sagaway.ReservationDemo.ReservationManager.Actors.CarReservationCancellation;
+using Grpc.Core;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -120,6 +121,39 @@ app.MapGet("/reservations/{customerName}", async (
         }
     })
     .WithName("GetReservations")
+    .WithOpenApi();
+
+
+app.MapGet("/saga-log/{reservationId}", async (
+        [FromRoute] Guid reservationId,
+        [FromServices] DaprClient daprClient,
+        [FromServices] ILogger<Program> logger) =>
+    {
+        logger.LogInformation("Received request to get saga log for reservation: {ReservationId}", reservationId);
+
+        try
+        {
+            var key = $"saga-log-{reservationId:D}";
+
+            // Attempt to retrieve the saga log from Dapr state
+            var sagaLog = await daprClient.GetStateAsync<string>("statestore", key);
+
+            if (string.IsNullOrEmpty(sagaLog))
+            {
+                logger.LogWarning("Saga log not found for reservation: {ReservationId}", reservationId);
+                return Results.NotFound("Saga log not found.");
+            }
+
+            logger.LogInformation("Successfully retrieved saga log for reservation: {ReservationId}", reservationId);
+            return Results.Ok(sagaLog);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving saga log for reservation: {ReservationId}", reservationId);
+            return Results.Problem("An error occurred while retrieving the saga log. Please try again later.");
+        }
+    })
+    .WithName("GetSagaLog")
     .WithOpenApi();
 
 app.MapPost("/reserve", async (

@@ -164,6 +164,49 @@ namespace Sagaway.ReservationDemo.ReservationUI.Services
             }
         }
 
+        /// <summary>
+        /// Retrieves the saga log for a specific reservation via GET /saga-log/{reservationId}.
+        /// </summary>
+        public async Task<string?> GetSagaLogAsync(Guid reservationId)
+        {
+            var relativePath = $"saga-log/{reservationId:D}";
+            var absoluteUri = _navigationManager.ToAbsoluteUri(relativePath); // Construct absolute URI
+            _logger.LogInformation("Sending GET request for saga log to absolute URI: {AbsoluteUri}", absoluteUri);
+
+            using var request = new HttpRequestMessage(HttpMethod.Get, absoluteUri); // Use absolute URI
+
+            try
+            {
+                using var response = await _http.SendAsync(request);
+
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    _logger.LogInformation("Saga log for reservation {ReservationId} not found via {AbsoluteUri} (404)",
+                        reservationId, absoluteUri);
+                    return null;
+                }
+
+                response.EnsureSuccessStatusCode();
+
+                var sagaLog = await response.Content.ReadAsStringAsync();
+                _logger.LogInformation(
+                    "Successfully retrieved saga log for reservation {ReservationId} via {AbsoluteUri}",
+                    reservationId, absoluteUri);
+                return sagaLog;
+            }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogError(ex, "HTTP request failed when calling {AbsoluteUri} for saga log. Status Code: {StatusCode}",
+                    absoluteUri, ex.StatusCode);
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "An unexpected error occurred during GetSagaLogAsync for URI {AbsoluteUri}", absoluteUri);
+                return null;
+            }
+        }
 
         /// <summary>
         /// Initiates the cancellation process for a specific reservation via POST /cancel.
