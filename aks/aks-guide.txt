@@ -24,17 +24,10 @@ dapr init -k
 # Verify Dapr is running
 kubectl get pods -n dapr-system
 
-//////////// push components of dapr:
-# Create the namespace first
+# Create the namespace
 kubectl create namespace sagaway
 kubectl config set-context --current --namespace=sagaway
 
-# Apply all Dapr components (need to be in sagaway root folder and then in aks folder)
-kubectl apply -f dapr/components/
-
-# Apply the Dapr configuration (need to be in sagaway root folder and then in aks folder)
-kubectl apply -f dapr/config.yaml
-//////////// 
 
 # Create Azure Container Registry (ACR) -- ( i made with "sagaway222acr" , so rest of the commands will be with this, for you you might need to change)
 az acr create --resource-group myResourceGroup --name sagaway222acr --sku Basic
@@ -99,7 +92,13 @@ and
 curl -X GET "http://<the_external_ip_we_get_from_the_last_step>:8080/reservations/JohnDoe"
 
 
-###Extra:
+
+###Done###
+
+
+
+
+###Extra (testing with static ip , ignore for now):
 kubectl patch svc reservation-manager \
   -p '{"metadata":{"annotations":{"service.beta.kubernetes.io/azure-dns-label-name":"sagaway-reserve"}}}'
 
