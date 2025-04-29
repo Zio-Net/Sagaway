@@ -88,6 +88,42 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "aks", "aks", "{9209265B-D65
 		aks\aks-guide.txt = aks\aks-guide.txt
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "yamls", "yamls", "{3928B5AE-0528-4959-84FD-8A754591FA41}"
+	ProjectSection(SolutionItems) = preProject
+		aks\yamls\billing-management.yaml = aks\yamls\billing-management.yaml
+		aks\yamls\booking-management.yaml = aks\yamls\booking-management.yaml
+		aks\yamls\inventory-management.yaml = aks\yamls\inventory-management.yaml
+		aks\yamls\kubernetes-secret.yaml = aks\yamls\kubernetes-secret.yaml
+		aks\yamls\orchestration-service.yaml = aks\yamls\orchestration-service.yaml
+		aks\yamls\rabbitmq.yaml = aks\yamls\rabbitmq.yaml
+		aks\yamls\redis.yaml = aks\yamls\redis.yaml
+		aks\yamls\reservation-manager.yaml = aks\yamls\reservation-manager.yaml
+		aks\yamls\signalr-emulator.yaml = aks\yamls\signalr-emulator.yaml
+		aks\yamls\step-recorder-test.yaml = aks\yamls\step-recorder-test.yaml
+		aks\yamls\test-service.yaml = aks\yamls\test-service.yaml
+		aks\yamls\test-sub-saga-communication.yaml = aks\yamls\test-sub-saga-communication.yaml
+		aks\yamls\zipkin.yaml = aks\yamls\zipkin.yaml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "dapr", "dapr", "{81605FBF-F613-4E81-BFCA-C047597A530D}"
+	ProjectSection(SolutionItems) = preProject
+		aks\dapr\config.yaml = aks\dapr\config.yaml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "components", "components", "{DCA1927C-BBC9-4600-BA9C-709055F9C5D1}"
+	ProjectSection(SolutionItems) = preProject
+		aks\dapr\components\billing-queue.yaml = aks\dapr\components\billing-queue.yaml
+		aks\dapr\components\booking-queue.yaml = aks\dapr\components\booking-queue.yaml
+		aks\dapr\components\dapr-secretstore.json = aks\dapr\components\dapr-secretstore.json
+		aks\dapr\components\inventory-queue.yaml = aks\dapr\components\inventory-queue.yaml
+		aks\dapr\components\reservation-response-queue.yaml = aks\dapr\components\reservation-response-queue.yaml
+		aks\dapr\components\secretstore.yaml = aks\dapr\components\secretstore.yaml
+		aks\dapr\components\statestore.yaml = aks\dapr\components\statestore.yaml
+		aks\dapr\components\test-queue.yaml = aks\dapr\components\test-queue.yaml
+		aks\dapr\components\test-response-queue.yaml = aks\dapr\components\test-response-queue.yaml
+		aks\dapr\components\testcallback.yaml = aks\dapr\components\testcallback.yaml
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -170,6 +206,9 @@ Global
 		{B962A366-5569-4C6E-AE25-707750522035} = {7D12D337-63BB-43AF-88EB-9AF71921AC6C}
 		{D25065BB-282F-47CD-B2EB-4A2181860E7D} = {DBBB1856-3CF3-45F6-8284-627DF1BA9AB1}
 		{4615A789-C36B-4CAF-9842-3872DC02E780} = {DBBB1856-3CF3-45F6-8284-627DF1BA9AB1}
+		{3928B5AE-0528-4959-84FD-8A754591FA41} = {9209265B-D65F-4A58-BC2A-3F8B8EF1AF22}
+		{81605FBF-F613-4E81-BFCA-C047597A530D} = {9209265B-D65F-4A58-BC2A-3F8B8EF1AF22}
+		{DCA1927C-BBC9-4600-BA9C-709055F9C5D1} = {81605FBF-F613-4E81-BFCA-C047597A530D}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {27AF5C62-89C5-4AE2-B5DD-7DC1D1DDA605}
