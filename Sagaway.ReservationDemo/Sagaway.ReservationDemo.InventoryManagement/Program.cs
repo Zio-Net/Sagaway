@@ -191,11 +191,11 @@ app.MapPost("/inventory-queue", async (
 
     async Task CancelCarReservationAsync()
     {
-        // TTL set for 5 minutes, this has the effect of deleting the entry
+        // TTL set for 1 minute, this has the effect of deleting the entry
         // but only after the Saga is done, support for compensation
         var metadata = new Dictionary<string, string>
         {
-            { "ttlInSeconds", "300" } 
+            { "ttlInSeconds", "60" } 
         };
 
         //get the number of car reserved in the class

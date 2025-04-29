@@ -180,11 +180,11 @@ app.MapPost("/booking-queue", async (
 
             reservationState.IsReserved = false;
 
-            // TTL set for 5 minutes, this has the effect of deleting the entry
+            // TTL set for 1 minute, this has the effect of deleting the entry
             // but only after the Saga is done, support for compensation
             var metadata = new Dictionary<string, string>
             {
-                { "ttlInSeconds", "300" },
+                { "ttlInSeconds", "60" },
                 { "contentType", "application/json" }
             };
 
@@ -273,8 +273,8 @@ app.MapGet("/customer-reservations", async ([FromQuery] string customerName, [Fr
 
             return Results.Ok(customerReservations.Select(r => r.Data).ToArray());
         }
-        catch (Grpc.Core.RpcException grpcEx)
-            when (grpcEx.StatusCode == Grpc.Core.StatusCode.Internal
+        catch (DaprException daprException)
+            when (daprException.InnerException is Grpc.Core.RpcException { StatusCode: Grpc.Core.StatusCode.Internal } grpcEx
                   && grpcEx.Status.Detail.Contains("invalid output"))
         {
             // Workaround for Dapr bug: treat "invalid output" as empty result set - dapr bug #3787
