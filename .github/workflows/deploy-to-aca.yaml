@@ -8,6 +8,7 @@ on:
       - 'infra/**'
       - '.github/workflows/deploy-to-aca.yaml'
 
+
 jobs:
   deploy-to-aca:
     runs-on: ubuntu-latest
