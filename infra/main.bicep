@@ -80,12 +80,6 @@ resource cosmosdb_account 'Microsoft.DocumentDB/databaseAccounts@2023-11-15' = {
     consistencyPolicy: {
       defaultConsistencyLevel: 'Session'
     }
-    // backupPolicy: {
-    //   type: 'Continuous'
-    //   continuousModeProperties: {
-    //     tier: 'Continuous7Days'
-    //   }
-    // }
   }
 }
 
