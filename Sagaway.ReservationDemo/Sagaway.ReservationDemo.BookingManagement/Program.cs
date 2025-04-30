@@ -268,9 +268,18 @@ app.MapGet("/customer-reservations", async ([FromQuery] string customerName, [Fr
 
             var reservations = await daprClient.QueryStateAsync<ReservationState>("statestore", query, metadata);
 
-            var customerReservations = reservations.Results;
+      
+            var customerReservations = reservations.Results
+                .Where(r => 
+                    Guid.TryParse(r.Key, out _) && 
+                    r.Data != null && 
+                    r.Data.Id != Guid.Empty && 
+                    r.Data.CustomerName != null && 
+                    r.Data.CustomerName.Equals(customerName, StringComparison.OrdinalIgnoreCase))
+                .Select(r => r.Data)
+                .ToArray();
 
-            return Results.Ok(customerReservations.Select(r => r.Data).ToArray());
+            return Results.Ok(customerReservations);
         }
         catch (Exception ex)
         {

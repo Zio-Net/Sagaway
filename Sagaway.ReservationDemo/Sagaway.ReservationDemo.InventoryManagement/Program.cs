@@ -128,11 +128,11 @@ app.MapPost("/inventory-queue", async (
             break;
     }
 
-    async Task ReserveCarAsync()
-    {
+async Task ReserveCarAsync()
+{ 
         //get the number of car reserved in the class
         var (carClassState, carClassEtag) = await daprClient.GetStateAndETagAsync<int>("statestore", request.CarClass);
-
+        
         //demonstrating 2 cars per class limits that can be reserved
         if (carClassState == 2)
         {
@@ -156,37 +156,50 @@ app.MapPost("/inventory-queue", async (
             carClassState += 1;
         }
 
-        var carClassStateUpdate = new StateTransactionRequest(request.CarClass, 
-            System.Text.Encoding.UTF8.GetBytes(carClassState.ToString()),
-            StateOperationType.Upsert, carClassEtag);
-
-        var reservationStateUpdate = new StateTransactionRequest(orderId, 
-                       JsonSerializer.SerializeToUtf8Bytes(reservationState),
-                                  StateOperationType.Upsert, orderIdEtag);
-
-        var transactionOperations = new List<StateTransactionRequest>()
-        {
-            carClassStateUpdate,
-            reservationStateUpdate
-        };
-
+      
         try
         {
-            await daprClient.ExecuteStateTransactionAsync("statestore", transactionOperations);
-            logger.LogInformation("Car class {CarClass} reserved for order id {orderId} - {CarClassState} cars reserved",
-                               request.CarClass, request.OrderId, carClassState + 1);
+            var successCarClass = await daprClient.TrySaveStateAsync(
+                "statestore",
+                request.CarClass,
+                carClassState,
+                etag: carClassEtag
+            );
 
-            reservationOperationResult.IsSuccess = true;
-            await daprClient.InvokeBindingAsync(callbackBindingNameProvider.CallbackBindingName, "create", reservationOperationResult);
+ 
+            var successReservation = await daprClient.TrySaveStateAsync(
+                "statestore",
+                orderId,
+                reservationState,
+                etag: orderIdEtag
+            );
 
+            if (successCarClass && successReservation)
+            {
+                logger.LogInformation("Car class {CarClass} reserved for order id {orderId} - {CarClassState} cars reserved",
+                    request.CarClass, request.OrderId, carClassState+1);
+
+                reservationOperationResult.IsSuccess = true;
+            }
+            else
+            {
+                logger.LogWarning("Failed to reserve due to ETag mismatch. CarClassSuccess: {carSuccess}, ReservationSuccess: {resSuccess}",
+                    successCarClass, successReservation);
+                reservationOperationResult.IsSuccess = false;
+            }
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            logger.LogError(e, "Failed to reserve car class {CarClass} for order id {orderId}", request.CarClass, request.OrderId);
+            logger.LogError(ex, "Unexpected failure while reserving car class {CarClass} for order id {orderId}", request.CarClass, request.OrderId);
             reservationOperationResult.IsSuccess = false;
-            await daprClient.InvokeBindingAsync(callbackBindingNameProvider.CallbackBindingName, "create", reservationOperationResult);
         }
-    }
+
+        await daprClient.InvokeBindingAsync(callbackBindingNameProvider.CallbackBindingName, "create", reservationOperationResult);
+}
+
+
+
+  
 
 
     async Task CancelCarReservationAsync()
@@ -201,7 +214,6 @@ app.MapPost("/inventory-queue", async (
         //get the number of car reserved in the class
         var (carClassState, carClassEtag) = await daprClient.GetStateAndETagAsync<int>("statestore", request.CarClass);
 
-        // Cancel the reservation
         if (reservationState.IsReserved)
         {
             reservationState.IsReserved = false;
@@ -209,41 +221,47 @@ app.MapPost("/inventory-queue", async (
             carClassState = Math.Max(0, carClassState - 1); // Ensure it doesn't go below 0
         }
 
-        //we need transactional update to the number of cars reserved in the class and the reservation state
-        var carClassStateUpdate = new StateTransactionRequest(request.CarClass,
-            System.Text.Encoding.UTF8.GetBytes(carClassState.ToString()),
-            StateOperationType.Upsert, carClassEtag);
-
-        var reservationStateUpdate = new StateTransactionRequest(orderId,
-            JsonSerializer.SerializeToUtf8Bytes(carClassState),
-            StateOperationType.Upsert, orderIdEtag, metadata);
-
-        var transactionOperations = new List<StateTransactionRequest>()
-        {
-            carClassStateUpdate,
-            reservationStateUpdate
-        };
-
+       
         try
         {
-            await daprClient.ExecuteStateTransactionAsync("statestore", transactionOperations);
-            logger.LogInformation("Car class {CarClass} for order id {orderId} canceled - {CarClassState} cars reserved",
-                request.CarClass, request.OrderId, carClassState);
+            var successCarClass = await daprClient.TrySaveStateAsync(
+                "statestore",
+                request.CarClass,
+                carClassState,
+                etag: carClassEtag
+            );
 
-            reservationOperationResult.IsSuccess = true;
+            var successReservation = await daprClient.TrySaveStateAsync(
+                "statestore",
+                orderId,
+                reservationState,
+                etag: orderIdEtag,
+                metadata: metadata
+            );
 
-            await daprClient.InvokeBindingAsync(callbackBindingNameProvider.CallbackBindingName, "create", reservationOperationResult);
+            if (successCarClass && successReservation)
+            {
+                logger.LogInformation("Car class {CarClass} for order id {orderId} canceled - {CarClassState} cars reserved",
+                    request.CarClass, request.OrderId, carClassState);
 
+                reservationOperationResult.IsSuccess = true;
+            }
+            else
+            {
+                logger.LogWarning("Failed to cancel due to ETag mismatch. CarClassSuccess: {carSuccess}",successCarClass);
+                reservationOperationResult.IsSuccess = false;
+            }
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            logger.LogError(e, "Failed to cancel car class {CarClass} for order id {orderId}", request.CarClass, request.OrderId);
+            logger.LogError(ex, "Unexpected failure while cancelling car class {CarClass} for order id {orderId}", request.CarClass, request.OrderId);
             reservationOperationResult.IsSuccess = false;
-            await daprClient.InvokeBindingAsync(callbackBindingNameProvider.CallbackBindingName, "create", reservationOperationResult);
         }
-    }
-})
-    .WithName("CarReservation")
+
+        await daprClient.InvokeBindingAsync(callbackBindingNameProvider.CallbackBindingName, "create", reservationOperationResult);
+}
+
+}).WithName("CarReservation")
     .WithOpenApi();
 
 app.MapGet("/reservation-state/{orderId}", async (
@@ -253,6 +271,7 @@ app.MapGet("/reservation-state/{orderId}", async (
 {
     try
     {
+        logger.LogInformation("Received request to get reservation state for order id: {OrderId}", orderId);
         // Attempt to fetch the reservation state for the given order ID from the Dapr state store
         var reservationState = await daprClient.GetStateAsync<ReservationState>("statestore", orderId.ToString());
 
