@@ -12,6 +12,8 @@ spec:
       labels:
         app: rabbitmq
     spec:
+      imagePullSecrets:
+        - name: acr-secret
       containers:
       - name: rabbitmq
         image: rabbitmq:3-management-alpine

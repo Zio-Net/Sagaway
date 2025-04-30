@@ -12,6 +12,8 @@ spec:
       labels:
         app: redis
     spec:
+      imagePullSecrets:
+        - name: acr-secret
       containers:
       - name: redis
         image: redis/redis-stack-server:latest

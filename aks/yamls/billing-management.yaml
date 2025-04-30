@@ -18,6 +18,8 @@ spec:
         dapr.io/app-port: "8080"
         dapr.io/config: "default"
     spec:
+      imagePullSecrets:
+        - name: acr-secret
       containers:
       - name: billing-management
         image: ${ACR_NAME}.azurecr.io/sagawayreservationdemobillingmanagement:latest

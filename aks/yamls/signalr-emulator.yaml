@@ -12,6 +12,8 @@ spec:
       labels:
         app: signalr
     spec:
+      imagePullSecrets:
+        - name: acr-secret
       containers:
       - name: signalr
         image: ${ACR_NAME}.azurecr.io/signalremulator:latest

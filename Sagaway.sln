@@ -85,7 +85,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sagaway.IntegrationTests.St
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "aks", "aks", "{9209265B-D65F-4A58-BC2A-3F8B8EF1AF22}"
 	ProjectSection(SolutionItems) = preProject
-		aks\aks-guide.txt = aks\aks-guide.txt
+		aks\.env = aks\.env
+		aks\deploy.sh = aks\deploy.sh
+		aks\get_ip.sh = aks\get_ip.sh
+		aks\how to get .env credentials .txt = aks\how to get .env credentials .txt
+		aks\main.bicep = aks\main.bicep
+		aks\old way (manual) aks-guide.txt = aks\old way (manual) aks-guide.txt
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "yamls", "yamls", "{3928B5AE-0528-4959-84FD-8A754591FA41}"

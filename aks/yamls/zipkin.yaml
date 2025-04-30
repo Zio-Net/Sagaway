@@ -12,6 +12,8 @@ spec:
       labels:
         app: zipkin
     spec:
+      imagePullSecrets:
+        - name: acr-secret
       containers:
       - name: zipkin
         image: openzipkin/zipkin
