@@ -1,0 +1,46 @@
+name: Deploy to SagawayDemoACA
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - yosef/deploy-to-aca
+    paths:
+      - 'infra/**'
+      - '.github/workflows/deploy-to-aca.yaml'
+
+jobs:
+  deploy-to-aca:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Azure CLI login
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            az login --tenant ${{secrets.AZURE_TENANT_ID}} --allow-no-subscriptions || echo "Interactive login not available in GitHub Actions"
+            echo "Using Container Registry credentials for authentication"
+            echo ${{ secrets.ACR_SAGAWAYSHARED_PASSWORD }} | az login --service-principal -u ${{ secrets.ACR_SAGAWAYSHARED_USERNAME }} -p @- --tenant ${{secrets.AZURE_TENANT_ID}}
+            az account set --subscription ${{secrets.AZURE_SUBSCRIPTION_ID}}
+
+      # - name: Create Resource Group (if not exists)
+      #   run: |
+      #     az group show --name SagawayDemoACA --query name || az group create --name SagawayDemoACA --location northeurope
+
+      - name: Deploy Azure resources
+        run: |
+          az deployment group create \
+            --resource-group SagawayDemoACA \
+            --template-file ./infra/main.bicep \
+            --parameters containerRegistry=sagawayshared.azurecr.io \
+            --parameters containerRegistryUsername=${{ secrets.ACR_SAGAWAYSHARED_USERNAME }} \
+            --parameters containerRegistryPassword=${{ secrets.ACR_SAGAWAYSHARED_PASSWORD }} \
+            --parameters cosmosAccountName=sagaway-cosmosdb-demo \
+            --parameters cosmosDbName=sagaway-db \
+            --parameters cosmosContainerName=dapr-state
+
+      - name: Print deployment outputs
+        run: |
+          echo "Deployment to SagawayDemoACA completed successfully"
+          echo "Resource Group: SagawayDemoACA"

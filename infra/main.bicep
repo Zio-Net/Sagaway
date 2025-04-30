@@ -1,12 +1,13 @@
 param containerRegistry string
+
 param containerRegistryUsername string
 @secure()
 param containerRegistryPassword string
-param location string = 'northeurope' 
-param cosmosLocation string ='northeurope' //'israelcentral'
-param cosmosAccountName string = 'sagaway-cosmosdb-new-demo'
-param cosmosDbName string = 'sagaway-db'
-param cosmosContainerName string = 'dapr-state'
+
+param location string = resourceGroup().location
+param cosmosAccountName string 
+param cosmosDbName string 
+param cosmosContainerName string 
 
 // Container App Environment
 resource containerEnv 'Microsoft.App/managedEnvironments@2023-05-01' = {
@@ -66,13 +67,13 @@ resource reservationResponseQueue 'Microsoft.ServiceBus/namespaces/queues@2022-1
 // Cosmos DB
 resource cosmosdb_account 'Microsoft.DocumentDB/databaseAccounts@2023-11-15' = {
   name: cosmosAccountName
-  location: cosmosLocation
+  location: location
   kind: 'GlobalDocumentDB'
   properties: {
     databaseAccountOfferType: 'Standard'
     locations: [
       {
-        locationName: cosmosLocation
+        locationName: location
         failoverPriority: 0
         isZoneRedundant: false
       }
