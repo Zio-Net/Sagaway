@@ -20,19 +20,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
       - name: Login to Azure Container Registry
         uses: azure/docker-login@v1
         with:
           login-server: sagawayshared.azurecr.io
           username: ${{ secrets.ACR_SAGAWAYSHARED_USERNAME }}
           password: ${{ secrets.ACR_SAGAWAYSHARED_PASSWORD }}
-
-      - name: Login to Azure
-        uses: azure/login@v1
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Deploy to Azure Container Apps
         uses: azure/arm-deploy@v1
@@ -50,4 +48,3 @@ jobs:
       - name: Print deployment outputs
         run: |
           echo "Deployment to SagawayDemoACA completed successfully"
-          echo "Resource Group: SagawayDemoACA"
