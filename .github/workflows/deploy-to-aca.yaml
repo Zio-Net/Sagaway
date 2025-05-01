@@ -15,8 +15,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Setup Azure CLI
-        uses: azure/cli@v1.0.7
+      # - name: Setup Azure CLI
+      #   uses: azure/cli@v1.0.7
 
       - name: Login to Azure Container Registry
         uses: azure/docker-login@v1
