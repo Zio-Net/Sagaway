@@ -16,6 +16,7 @@
     <PackageReference Include="Dapr.AspNetCore" Version="1.15.3" />
     <PackageReference Include="Dapr.Actors" Version="1.15.3" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.4" />
+    <PackageReference Include="Microsoft.Azure.SignalR.Management" Version="1.30.2" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.21.2" />
     <PackageReference Include="OpenTelemetry" Version="1.11.2" />
     <PackageReference Include="OpenTelemetry.Api.ProviderBuilderExtensions" Version="1.11.2" />

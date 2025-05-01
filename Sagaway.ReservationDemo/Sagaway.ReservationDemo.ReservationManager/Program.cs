@@ -10,7 +10,8 @@ using Sagaway.OpenTelemetry;
 using Sagaway.ReservationDemo.ReservationManager.Actors;
 using Sagaway.ReservationDemo.ReservationManager.Actors.CarReservation;
 using Sagaway.ReservationDemo.ReservationManager.Actors.CarReservationCancellation;
-using Grpc.Core;
+using Sagaway.ReservationDemo.ReservationManager;
+using Sagaway.ReservationDemo.ReservationManager.Actors.Publisher;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -47,6 +48,17 @@ builder.Services.AddActors(options =>
     };
 });
 
+builder.Services.AddSingleton<SignalRService>()
+#pragma warning disable CS8631 // The type cannot be used as type parameter in the generic type or method. Nullability of type argument doesn't match constraint type.
+#pragma warning disable CS8634 // The type cannot be used as type parameter in the generic type or method. Nullability of type argument doesn't match 'class' constraint.
+    .AddHostedService(sp => sp.GetService<SignalRService>()!)
+#pragma warning restore CS8634 // The type cannot be used as type parameter in the generic type or method. Nullability of type argument doesn't match 'class' constraint.
+#pragma warning restore CS8631 // The type cannot be used as type parameter in the generic type or method. Nullability of type argument doesn't match constraint type.
+    .AddSingleton<IHubContextStore>(sp => sp.GetService<SignalRService>()!)
+    .AddDaprClient();
+
+builder.Services.AddSingleton<ISagaResultPublisher, SagaResultPublisher>();
+
 builder.Services.AddSagawayOpenTelemetry(configureTracerProvider =>
 {
     configureTracerProvider
@@ -64,6 +76,8 @@ builder.Services.AddSagawayOpenTelemetry(configureTracerProvider =>
 builder.Services.AddHealthChecks();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services.AddHostedService<SignalRService>();
 
 var app = builder.Build();
 
@@ -259,6 +273,27 @@ app.MapPost("/cancel", async (
     .WithName("Cancel")
     .WithOpenApi();
 
+
+app.MapPost("/negotiate", async (
+    [FromServices] IHubContextStore store,
+    [FromServices] ILogger<Program> logger) =>
+{
+    var accountManagerCallbackHubContext = store.AccountManagerCallbackHubContext;
+
+    logger.LogInformation("MessageHubNegotiate: SignalR negotiate for user");
+
+    var negotiateResponse = await accountManagerCallbackHubContext!.NegotiateAsync(new()
+    {
+        UserId = "demoUser", //user,
+        EnableDetailedErrors = true
+    });
+
+    return Results.Json(new Dictionary<string, string>()
+    {
+        { "url", negotiateResponse.Url! },
+        { "accessToken", negotiateResponse.AccessToken! }
+    });
+});
 
 app.MapHealthChecks("/healthz");
 app.MapControllers();

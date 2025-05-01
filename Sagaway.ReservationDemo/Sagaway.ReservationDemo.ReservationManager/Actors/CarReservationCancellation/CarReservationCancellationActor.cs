@@ -3,6 +3,7 @@ using Sagaway.Hosts;
 using Sagaway.ReservationDemo.ReservationManager.Actors.BillingDto;
 using Sagaway.ReservationDemo.ReservationManager.Actors.BookingDto;
 using Sagaway.ReservationDemo.ReservationManager.Actors.InventoryDto;
+using Sagaway.ReservationDemo.ReservationManager.Actors.Publisher;
 
 namespace Sagaway.ReservationDemo.ReservationManager.Actors.CarReservationCancellation;
 
@@ -14,14 +15,16 @@ public class CarReservationCancellationActor : DaprActorHost<CarCancelReservatio
     private readonly ILogger<CarReservationCancellationActor> _logger;
     private readonly ActorHost _actorHost;
     private ReservationInfo? _reservationInfo;
+    private readonly ISagaResultPublisher _sagaResultPublisher;
 
     // ReSharper disable once ConvertToPrimaryConstructor
     public CarReservationCancellationActor(ActorHost host, ILogger<CarReservationCancellationActor> logger
-            ,IServiceProvider serviceProvider)
+            ,ISagaResultPublisher sagaResultPublisher ,IServiceProvider serviceProvider)
         : base(host, logger, serviceProvider)
     {
         _actorHost = host;
         _logger = logger;
+        _sagaResultPublisher = sagaResultPublisher;
     }
 
     protected override ISaga<CarCancelReservationActorOperations> ReBuildSaga()
@@ -386,24 +389,22 @@ public class CarReservationCancellationActor : DaprActorHost<CarCancelReservatio
     {
         _logger.LogInformation($"Saga {e.SagaId} completed with status {e.Status}");
 
-        var metadata = new Dictionary<string, string>
-        {
-            { "ttlInSeconds", "900" } // 15 minutes TTL
-        };
-
         if (_reservationInfo == null)
         {
             _logger.LogWarning("Cannot save saga log: reservation info is null");
             return;
         }
+        
+        var sagaResult = new SagaResult
+        {
+            ReservationId = _reservationInfo.ReservationId,
+            Outcome = "Cancellation " + e.Status,
+            Log = e.Log,
+            CarClass = _reservationInfo.CarClass,
+            CustomerName = _reservationInfo.CustomerName
+        };
 
-        var key = _reservationInfo.ReservationId.ToString();
-
-        await DaprClient.SaveStateAsync(
-            "statestore",
-            $"saga-log-{key}",
-            e.Log,
-            metadata: metadata);
+        await _sagaResultPublisher.PublishMessageToSignalRAsync(sagaResult);
     }
     #endregion
 }

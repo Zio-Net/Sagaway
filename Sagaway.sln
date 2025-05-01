@@ -29,6 +29,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "components", "components", 
 		dapr\components\dapr-secretstore.json = dapr\components\dapr-secretstore.json
 		dapr\components\inventory-queue.yaml = dapr\components\inventory-queue.yaml
 		dapr\components\reservation-response-queue.yaml = dapr\components\reservation-response-queue.yaml
+		dapr\components\reservationcallback.yaml = dapr\components\reservationcallback.yaml
 		dapr\components\secretstore.yaml = dapr\components\secretstore.yaml
 		dapr\components\statestore.yaml = dapr\components\statestore.yaml
 		dapr\components\test-queue.yaml = dapr\components\test-queue.yaml

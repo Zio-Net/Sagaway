@@ -13,6 +13,7 @@ services:
       - sagaway-network
     environment:
       - ACTOR_TYPE=CarReservationActor,CarReservationCancellationActor
+      - AZURE__SignalR__ConnectionString=Endpoint=http://localhost:8888;Port=8888;AccessKey=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGH;Version=1.0;
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://reservation-manager:80
     depends_on:

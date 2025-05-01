@@ -1,8 +1,10 @@
-﻿using Dapr.Actors.Runtime;
+﻿using System.Text.Json;
+using Dapr.Actors.Runtime;
 using Sagaway.Hosts;
 using Sagaway.ReservationDemo.ReservationManager.Actors.BillingDto;
 using Sagaway.ReservationDemo.ReservationManager.Actors.BookingDto;
 using Sagaway.ReservationDemo.ReservationManager.Actors.InventoryDto;
+using Sagaway.ReservationDemo.ReservationManager.Actors.Publisher;
 
 namespace Sagaway.ReservationDemo.ReservationManager.Actors.CarReservation;
 
@@ -14,13 +16,16 @@ public class CarReservationActor : DaprActorHost<CarReservationActorOperations>,
     private readonly ILogger<CarReservationActor> _logger;
     private readonly ActorHost _actorHost;
     private ReservationInfo? _reservationInfo;
+    private readonly ISagaResultPublisher _sagaResultPublisher;
 
     // ReSharper disable once ConvertToPrimaryConstructor
-    public CarReservationActor(ActorHost host, ILogger<CarReservationActor> logger, IServiceProvider? serviceProvider)
+    public CarReservationActor(ActorHost host, ILogger<CarReservationActor> logger,
+        ISagaResultPublisher sagaResultPublisher, IServiceProvider? serviceProvider)
         : base(host, logger, serviceProvider)
     {
         _actorHost = host;
         _logger = logger;
+        _sagaResultPublisher = sagaResultPublisher;
     }
 
     protected override ISaga<CarReservationActorOperations> ReBuildSaga()
@@ -370,22 +375,20 @@ public class CarReservationActor : DaprActorHost<CarReservationActorOperations>,
             return;
         }
         
-        var metadata = new Dictionary<string, string>
+        var sagaResult = new SagaResult
         {
-            { "ttlInSeconds", "900" } // 15 minutes TTL
+            ReservationId = _reservationInfo.ReservationId,
+            Outcome = "Reservation " + e.Status,
+            Log = e.Log,
+            CarClass = _reservationInfo.CarClass,
+            CustomerName = _reservationInfo.CustomerName
         };
 
-        var key = _reservationInfo.ReservationId.ToString();
-
-        await DaprClient.SaveStateAsync(
-            "statestore",
-            $"saga-log-{key}",
-            e.Log,
-            metadata: metadata);
-
-        _logger.LogInformation($"Saved saga log for reservation {key} with 5 minutes TTL");
+        await _sagaResultPublisher.PublishMessageToSignalRAsync(sagaResult);
     }
 
+
+    
     #endregion
 
 

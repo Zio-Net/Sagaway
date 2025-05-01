@@ -7,7 +7,8 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
-builder.Services.AddScoped(sp => new HttpClient());
+builder.Services.AddScoped(_ => new HttpClient());
 builder.Services.AddScoped<IReservationApiClient, ReservationApiClient>();
+builder.Services.AddSingleton<ISignalRService, SignalRService>();
 
 await builder.Build().RunAsync();
