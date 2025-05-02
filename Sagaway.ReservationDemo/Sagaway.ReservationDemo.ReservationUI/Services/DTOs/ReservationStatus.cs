@@ -12,10 +12,10 @@ public class ReservationStatus // Renamed for clarity on client-side, but maps t
     public Guid ReservationId { get; set; } // Renamed from 'Id' for client-side consistency
 
     [JsonPropertyName("customerName")]
-    public string? CustomerName { get; set; }
+    public required string CustomerName { get; set; }
 
     [JsonPropertyName("carClass")] 
-    public string? CarClass { get; set; }
+    public required string CarClass { get; set; }
 
     [JsonPropertyName("isReserved")] // Maps to BookingInfo.IsReserved
     public bool IsReserved { get; set; }

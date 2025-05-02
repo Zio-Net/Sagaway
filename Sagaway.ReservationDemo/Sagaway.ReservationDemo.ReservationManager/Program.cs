@@ -11,6 +11,7 @@ using Sagaway.ReservationDemo.ReservationManager.Actors;
 using Sagaway.ReservationDemo.ReservationManager.Actors.CarReservation;
 using Sagaway.ReservationDemo.ReservationManager.Actors.CarReservationCancellation;
 using Sagaway.ReservationDemo.ReservationManager;
+using Sagaway.ReservationDemo.ReservationManager.Actors.InventoryDto;
 using Sagaway.ReservationDemo.ReservationManager.Actors.Publisher;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -294,6 +295,83 @@ app.MapPost("/negotiate", async (
         { "accessToken", negotiateResponse.AccessToken! }
     });
 });
+
+
+//For the demo purpose, we have these two APIs to manage the inventory:
+
+// GET endpoint for car inventory
+app.MapGet("/car-inventory", async (
+    [FromServices] DaprClient daprClient,
+    [FromServices] ILogger<Program> logger) =>
+{
+    logger.LogInformation("Received request to get car inventory");
+
+    try
+    {
+        // Forward the request to inventory-management service using Dapr service invocation
+        var inventory = await daprClient.InvokeMethodAsync<CarInventoryResponse>(
+            HttpMethod.Get,
+            "inventory-management",
+            "/car-inventory");
+
+        logger.LogInformation("Successfully retrieved car inventory with {Count} car classes",
+            inventory.CarClasses.Count);
+
+        return Results.Ok(inventory);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Error getting car inventory");
+        return Results.Problem("An error occurred while retrieving car inventory. Please try again later.");
+    }
+})
+.WithName("GetCarInventory")
+.WithOpenApi();
+
+//This API is a simplification for the Demo, in reality this should also be done an async call
+// POST endpoint for updating car class allocation
+app.MapPost("/update-allocation", async (
+        [FromBody] CarClassAllocationRequest request,
+        [FromServices] DaprClient daprClient,
+        [FromServices] ILogger<Program> logger) =>
+    {
+        if (string.IsNullOrWhiteSpace(request.CarClass))
+        {
+            return Results.BadRequest("Car class code is required");
+        }
+
+        if (request.MaxAllocation < 0)
+        {
+            return Results.BadRequest("Maximum allocation must be non-negative");
+        }
+
+        logger.LogInformation("Received request to update allocation for car class {CarClass} to {MaxAllocation}",
+            request.CarClass, request.MaxAllocation);
+
+        try
+        {
+            // Correct way to invoke a POST method with a body using Dapr
+            var result = await daprClient.InvokeMethodAsync<CarClassAllocationRequest, CarClassInfo>(
+                HttpMethod.Post,
+                "inventory-management",
+                "/car-inventory",
+                request);
+
+            logger.LogInformation("Successfully updated allocation for car class {CarClass} to {MaxAllocation}",
+                result.Code, result.MaxAllocation);
+
+            return Results.Ok(result);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error updating car class allocation for {CarClass}", request.CarClass);
+            return Results.Problem($"Failed to update car class allocation for {request.CarClass}. Please try again later.");
+        }
+    })
+    .WithName("UpdateCarClassAllocation")
+    .WithOpenApi();
+
+
 
 app.MapHealthChecks("/healthz");
 app.MapControllers();

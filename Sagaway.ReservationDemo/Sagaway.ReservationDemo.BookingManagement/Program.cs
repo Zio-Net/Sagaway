@@ -180,18 +180,10 @@ app.MapPost("/booking-queue", async (
 
             reservationState.IsReserved = false;
 
-            // TTL set for 1 minute, this has the effect of deleting the entry
-            // but only after the Saga is done, support for compensation
-            var metadata = new Dictionary<string, string>
-            {
-                { "ttlInSeconds", "60" },
-                { "contentType", "application/json" }
-            };
-
             try
             {
                 var result = await daprClient.TrySaveStateAsync("statestore", reservationId, reservationState, 
-                    etag, stateOptions, metadata);
+                    etag, stateOptions);
 
                 reservationOperationResult.IsSuccess = result;
                 logger.LogInformation("Reservation id {reservationId} {result} cancelled for {CustomerName}",

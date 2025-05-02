@@ -2,6 +2,7 @@
 using System.Reactive.Subjects;
 using System.Collections.Concurrent;
 
+
 namespace Sagaway.ReservationDemo.ReservationUI.Services;
 
 // Type aliases for complex dictionary types
@@ -129,7 +130,7 @@ public class ReservationManager : IReservationManager, IAsyncDisposable
             CustomerId = customerId,
             CustomerName = customerName,
             CarClassCode = carClass,
-            Status = "Pending",  // Initial status is always Pending
+            Status = ReservationStatusType.Pending,  // Initial status is always Reservation Pending
             IsProcessing = true, // New reservations are always processing
             CreatedAt = DateTime.UtcNow,
             SagaLog = string.Empty
@@ -163,6 +164,7 @@ public class ReservationManager : IReservationManager, IAsyncDisposable
         var apiReservationIds = new HashSet<Guid>(reservationStatusEnumerable.Select(r => r.ReservationId));
 
         // Remove reservations that are no longer in the API response
+        //keep in mind that this may remove reservations that are still in the process of being created, but they will be added back
         foreach (var reservationId in userReservations.Keys.ToList().Where(reservationId => !apiReservationIds.Contains(reservationId)))
         {
             userReservations.TryRemove(reservationId, out _);
@@ -178,43 +180,80 @@ public class ReservationManager : IReservationManager, IAsyncDisposable
             if (apiRes.ReservationId == Guid.Empty)
                 continue;
 
-            // Determine status based on the IsReserved property
-            string status = apiRes.IsReserved ? "Confirmed" : "Failed";
-            bool isProcessing = false;
-
-            // Check if we already have this reservation
-            if (userReservations.TryGetValue(apiRes.ReservationId, out var existingReservation))
-            {
-                // Update existing reservation while preserving saga log if it exists
-                var updatedReservation = existingReservation with
-                {
-                    Status = status,
-                    IsProcessing = isProcessing,
-                    // Keep the existing saga log
-                };
-                userReservations[apiRes.ReservationId] = updatedReservation;
-            }
-            else
-            {
-                // Create new reservation
-                userReservations[apiRes.ReservationId] = new ReservationState
-                {
-                    ReservationId = apiRes.ReservationId,
-                    CustomerId = customerId,
-                    CustomerName = customerName,
-                    CarClassCode = apiRes.CarClass ?? string.Empty,
-                    Status = status,
-                    IsProcessing = isProcessing,
-                    CreatedAt = DateTime.UtcNow,
-                    SagaLog = string.Empty
-                };
-
-                // Add to lookup index
-                _reservationToCustomerId[apiRes.ReservationId] = customerId;
-            }
+            UpdateCustomerReservation(customerId, customerName, apiRes);
         }
 
         NotifyStateChanged(customerId);
+    }
+
+    private void UpdateCustomerReservation(Guid customerId, string customerName, ReservationStatus newReservationStatus)
+    {
+        var previousReservationStatus = ReservationStatusType.Pending;
+        ReservationState? existingReservation = null;
+
+        //try to get the user reservation by the customerId and the reservation id from the newReservationStatus 
+        if (!_userReservations.TryGetValue(customerId, out var userReservations) ||
+            !userReservations.TryGetValue(newReservationStatus.ReservationId, out existingReservation))
+        {
+            // If not found, create a new dictionary for the user
+            userReservations = _userReservations.GetOrAdd(customerId, _ =>
+                new ConcurrentDictionary<Guid, ReservationState>());
+        }
+        else
+        {
+            previousReservationStatus = existingReservation.Status;
+        }
+
+        ReservationStatusType status = (newReservationStatus.IsReserved, previousResevationStatus: previousReservationStatus) switch
+        {
+            // If it's reserved and was pending, it's now confirmed/reserved
+            (true, ReservationStatusType.Pending) => ReservationStatusType.Reserved,
+
+            // If it's reserved and was in CancelPending, cancellation failed (still reserved)
+            (true, ReservationStatusType.CancelPending) => ReservationStatusType.CancelFailed,
+
+            // If it's not reserved and was pending, reservation failed
+            (false, ReservationStatusType.Pending) => ReservationStatusType.Failed,
+
+            // If it's not reserved and was in CancelPending, cancellation succeeded
+            (false, ReservationStatusType.CancelPending) => ReservationStatusType.Cancelled,
+
+            // If it was Reserved and is now not reserved, it was cancelled
+            (false, ReservationStatusType.Reserved) => ReservationStatusType.Cancelled,
+
+            // Default: maintain current status
+            _ => previousReservationStatus
+        };
+
+
+        if (existingReservation != null)
+        {
+            // Update existing reservation while preserving saga log if it exists
+            var updatedReservation = existingReservation with
+            {
+                Status = status,
+                IsProcessing = false,
+                // Keep the existing saga log
+            };
+            userReservations[newReservationStatus.ReservationId] = updatedReservation;
+            return;
+        }
+
+        // Create new reservation
+        userReservations[newReservationStatus.ReservationId] = new ReservationState
+        {
+            ReservationId = newReservationStatus.ReservationId,
+            CustomerId = customerId,
+            CustomerName = customerName,
+            CarClassCode = newReservationStatus.CarClass,
+            Status = status,
+            IsProcessing = false,
+            CreatedAt = DateTime.UtcNow,
+            SagaLog = string.Empty
+        };
+
+        // Add to lookup index
+        _reservationToCustomerId[newReservationStatus.ReservationId] = customerId;
     }
 
 
@@ -337,26 +376,28 @@ public class ReservationManager : IReservationManager, IAsyncDisposable
             new ConcurrentDictionary<Guid, ReservationState>());
 
         // Determine the status based on the saga outcome
-        string status;
+        ReservationStatusType status;
         bool isProcessing = false;
 
         if (update.Outcome.StartsWith("Reservation", StringComparison.OrdinalIgnoreCase))
         {
             // For reservation creation saga
             status = update.Outcome.Equals("Reservation Succeeded", StringComparison.OrdinalIgnoreCase)
-                ? "Confirmed" : "Failed";
+                ? ReservationStatusType.Reserved : ReservationStatusType.Failed;
         }
         else if (update.Outcome.StartsWith("Cancellation", StringComparison.OrdinalIgnoreCase))
         {
             // For cancellation saga
             status = update.Outcome.Equals("Cancellation Succeeded", StringComparison.OrdinalIgnoreCase)
-                ? "Cancelled" : "Confirmed"; // If cancellation fails, reservation remains confirmed
+                ? ReservationStatusType.Cancelled
+                : ReservationStatusType.CancelFailed;
         }
         else
         {
             // Generic outcome handling
             status = update.Outcome.Contains("Success", StringComparison.OrdinalIgnoreCase)
-                ? "Confirmed" : "Failed";
+                ? ReservationStatusType.Reserved
+                : ReservationStatusType.Failed;
         }
 
         // Check if we already have this reservation
@@ -424,8 +465,9 @@ public class ReservationManager : IReservationManager, IAsyncDisposable
             return false;
         }
 
-        // Only allow cancelling confirmed reservations that are not already being processed
-        if (reservation.Status != "Confirmed" || reservation.IsProcessing)
+        // Reject cancellation if not in a cancellable state
+        if (reservation.Status is not (ReservationStatusType.Reserved or ReservationStatusType.CancelFailed) ||
+            reservation.IsProcessing)
         {
             _logger.LogWarning("Cannot cancel reservation {ReservationId} - status is {Status}, IsProcessing: {IsProcessing}",
                 reservationId, reservation.Status, reservation.IsProcessing);
@@ -447,7 +489,7 @@ public class ReservationManager : IReservationManager, IAsyncDisposable
                 var updatedReservation = reservation with
                 {
                     IsProcessing = true,
-                    Status = "Confirmed" // Status doesn't change yet
+                    Status = ReservationStatusType.CancelPending
                 };
 
                 // Update in the dictionary
@@ -470,6 +512,63 @@ public class ReservationManager : IReservationManager, IAsyncDisposable
         }
     }
 
+
+    public async Task<List<CarClassInfo>> GetCarInventoryAsync()
+    {
+        try
+        {
+            var inventoryResponse = await _apiClient.GetCarInventoryAsync();
+
+            return inventoryResponse.CarClasses;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error occurred while retrieving car inventory.");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Updates the maximum allocation for a specific car class.
+    /// </summary>
+    /// <param name="carClass">The car class code to update.</param>
+    /// <param name="maxAllocation">The new maximum allocation value.</param>
+    /// <returns>The updated car class information.</returns>
+    public async Task<CarClassInfo> UpdateCarClassAllocationAsync(string carClass, int maxAllocation)
+    {
+        if (string.IsNullOrWhiteSpace(carClass))
+        {
+            throw new ArgumentException("Car class code is required.", nameof(carClass));
+        }
+
+        if (maxAllocation < 0)
+        {
+            throw new ArgumentException("Maximum allocation must be non-negative.", nameof(maxAllocation));
+        }
+
+        try
+        {
+            var allocationRequest = new CarClassAllocationRequest
+            {
+                CarClass = carClass,
+                MaxAllocation = maxAllocation
+            };
+
+            var updatedCarClassInfo = await _apiClient.UpdateCarClassAllocationAsync(allocationRequest);
+            if (updatedCarClassInfo == null)
+            {
+                _logger.LogWarning("Failed to update car class allocation for {CarClass}.", carClass);
+                throw new InvalidOperationException("Failed to update car class allocation.");
+            }
+
+            return updatedCarClassInfo;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error occurred while updating car class allocation for {CarClass}.", carClass);
+            throw;
+        }
+    }
 
 
     public async ValueTask DisposeAsync()

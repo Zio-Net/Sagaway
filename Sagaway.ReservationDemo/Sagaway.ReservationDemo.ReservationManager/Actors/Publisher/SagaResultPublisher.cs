@@ -31,7 +31,10 @@ public class SagaResultPublisher : ISagaResultPublisher
                 "statestore",
                 $"saga-log-{key}");
             
-            existingState = existingState == null ? string.Empty : existingState + Environment.NewLine;
+            existingState = existingState == null ? string.Empty : 
+                existingState + Environment.NewLine + Environment.NewLine +
+                "***************************************************************************" + 
+                Environment.NewLine + Environment.NewLine;
 
             result.Log = existingState + result.Log;
 

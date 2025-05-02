@@ -40,4 +40,16 @@ public interface IReservationApiClient
     /// <returns>The saga log as a string, or null if not found or an error occurred.</returns>
     Task<string?> GetSagaLogAsync(Guid reservationId);
 
+    /// <summary>
+    /// Updates the car class allocation with the provided request details.
+    /// </summary>
+    /// <param name="allocationRequest">The request containing car class and allocation details.</param>
+    /// <returns>A CarClassInfo object containing updated allocation details.</returns>
+    Task<CarClassInfo> UpdateCarClassAllocationAsync(CarClassAllocationRequest allocationRequest);
+
+    /// <summary>
+    /// Retrieves the current car inventory details.
+    /// </summary>
+    /// <returns>A CarInventoryResponse object containing the list of car classes and their allocation details.</returns>
+    Task<CarInventoryResponse> GetCarInventoryAsync();
 }

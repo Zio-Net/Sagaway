@@ -209,6 +209,76 @@ namespace Sagaway.ReservationDemo.ReservationUI.Services
             }
         }
 
+        public async Task<CarClassInfo> UpdateCarClassAllocationAsync(CarClassAllocationRequest allocationRequest)
+        {
+            // Define the relative path for updating car class allocation.
+            var relativePath = "update-allocation";
+            var absoluteUri = _navigationManager.ToAbsoluteUri(relativePath);
+            _logger.LogInformation("Sending POST request to absolute URI: {AbsoluteUri} for updating allocation", absoluteUri);
+
+            // Prepare the HTTP POST request with JSON content.
+            using var request = new HttpRequestMessage(HttpMethod.Post, absoluteUri);
+            request.Content = JsonContent.Create(allocationRequest);
+
+            try
+            {
+                using var response = await _http.SendAsync(request);
+                response.EnsureSuccessStatusCode();
+
+                var result = await response.Content.ReadFromJsonAsync<CarClassInfo>();
+                _logger.LogInformation("Successfully updated car class allocation for {CarClass}", allocationRequest.CarClass);
+                return result ?? throw new InvalidOperationException("Response deserialization returned null.");
+            }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogError(ex, "HTTP request failed when calling {AbsoluteUri}. Status Code: {StatusCode}", absoluteUri, ex.StatusCode);
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An unexpected error occurred during UpdateCarClassAllocationAsync for URI {AbsoluteUri}", absoluteUri);
+                throw;
+            }
+        }
+
+        public async Task<CarInventoryResponse> GetCarInventoryAsync()
+        {
+            // Change from relative path to use the correct inventory service endpoint
+            var relativePath = "/car-inventory";  // Start with a slash to ensure correct path resolution
+            var absoluteUri = _navigationManager.ToAbsoluteUri(relativePath);
+            _logger.LogInformation("Sending GET request to absolute URI: {AbsoluteUri}", absoluteUri);
+
+            using var request = new HttpRequestMessage(HttpMethod.Get, absoluteUri);
+
+            try
+            {
+                using var response = await _http.SendAsync(request);
+
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    _logger.LogInformation("Car inventory not found at {AbsoluteUri} (404)", absoluteUri);
+                    return new CarInventoryResponse { CarClasses = new List<CarClassInfo>() };
+                }
+
+                response.EnsureSuccessStatusCode();
+
+                var inventory = await response.Content.ReadFromJsonAsync<CarInventoryResponse>();
+                _logger.LogInformation("Successfully retrieved car inventory from {AbsoluteUri}", absoluteUri);
+                return inventory ?? new CarInventoryResponse { CarClasses = new List<CarClassInfo>() };
+            }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogError(ex, "HTTP request failed when calling {AbsoluteUri}. Status Code: {StatusCode}",
+                    absoluteUri, ex.StatusCode);
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An unexpected error occurred during GetCarInventoryAsync for URI {AbsoluteUri}", absoluteUri);
+                throw;
+            }
+        }
+
         /// <summary>
         /// Initiates the cancellation process for a specific reservation via POST /cancel.
         /// </summary>
