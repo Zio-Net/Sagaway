@@ -1,5 +1,6 @@
 ﻿using System.Net.Http.Json;
 using Microsoft.AspNetCore.Components;
+using Sagaway.ReservationDemo.ReservationUI.Services.DTOs;
 
 namespace Sagaway.ReservationDemo.ReservationUI.Services
 {

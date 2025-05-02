@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace Sagaway.ReservationDemo.ReservationUI.Services;
+namespace Sagaway.ReservationDemo.ReservationUI.Services.DTOs;
 
 /// <summary>
 /// Represents the status/details of a single reservation.

@@ -49,11 +49,11 @@ public class CarReservationActor : DaprActorHost<CarReservationActorOperations>,
             .WithOperation(CarReservationActorOperations.InventoryReserving)
             .WithDoOperation(ReserveInventoryAsync)
             .WithMaxRetries(3)
-            .WithRetryIntervalTime(ExponentialBackoff.InMinutes()) //An example of an exponential backoff in minutes
+            .WithRetryIntervalTime(ExponentialBackoff.InSeconds()) //An example of an exponential backoff in seconds
             .WithValidateFunction(ValidateReserveInventoryAsync)
             .WithUndoOperation(RevertReserveInventoryAsync)
             .WithMaxRetries(3)
-            .WithUndoRetryInterval(ExponentialBackoff.InMinutes())
+            .WithUndoRetryInterval(ExponentialBackoff.InSeconds())
             .WithValidateFunction(ValidateRevertReserveInventoryAsync)
 
             .WithOperation(CarReservationActorOperations.Billing)

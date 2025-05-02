@@ -1,6 +1,6 @@
-using System.Text.Json;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.SignalR.Client;
+using Sagaway.ReservationDemo.ReservationUI.Services.DTOs;
 
 namespace Sagaway.ReservationDemo.ReservationUI.Services;
 

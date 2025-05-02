@@ -1,8 +1,4 @@
-using Microsoft.Extensions.Logging;
-using System;
-using System.Threading.Tasks;
-
-namespace Sagaway.ReservationDemo.ReservationUI.Services
+namespace Sagaway.ReservationDemo.ReservationUI.Services.DTOs
 {
     public class SagaUpdate
     {

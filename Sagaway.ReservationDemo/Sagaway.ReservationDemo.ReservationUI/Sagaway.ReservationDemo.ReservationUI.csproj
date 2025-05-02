@@ -13,6 +13,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="9.0.4" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="9.0.4" PrivateAssets="all" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="9.0.4" />
+    <PackageReference Include="System.Reactive" Version="6.0.1" />
   </ItemGroup>
 
   <ItemGroup>

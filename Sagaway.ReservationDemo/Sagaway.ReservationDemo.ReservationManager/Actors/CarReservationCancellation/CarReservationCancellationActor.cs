@@ -58,12 +58,12 @@ public class CarReservationCancellationActor : DaprActorHost<CarCancelReservatio
             .WithOperation(CarCancelReservationActorOperations.Refund)
             .WithDoOperation(RefundReservationBillingAsync)
             .WithMaxRetries(3)
-            .WithRetryIntervalTime(TimeSpan.FromSeconds(10))
+            .WithRetryIntervalTime(ExponentialBackoff.InSeconds(1))
             .WithValidateFunction(ValidateRefundReservationAsync)
             .WithPreconditions(CarCancelReservationActorOperations.CancelBooking | CarCancelReservationActorOperations.CancelInventoryReserving)
             .WithUndoOperation(ChargeReservationAsync)
             .WithMaxRetries(3)
-            .WithUndoRetryInterval(TimeSpan.FromSeconds(10))
+            .WithUndoRetryInterval(ExponentialBackoff.InSeconds(1))
             .WithValidateFunction(ValidateChargingReservationAsync)
 
             .Build();

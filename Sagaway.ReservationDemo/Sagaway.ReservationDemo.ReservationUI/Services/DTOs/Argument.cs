@@ -1,6 +1,6 @@
 using System.Text.Json.Nodes;
 
-namespace Sagaway.ReservationDemo.ReservationUI.Services;
+namespace Sagaway.ReservationDemo.ReservationUI.Services.DTOs;
 
 public record Argument
 {

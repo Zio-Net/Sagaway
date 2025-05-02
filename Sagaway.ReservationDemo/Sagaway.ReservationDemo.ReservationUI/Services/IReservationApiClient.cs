@@ -1,3 +1,5 @@
+using Sagaway.ReservationDemo.ReservationUI.Services.DTOs;
+
 namespace Sagaway.ReservationDemo.ReservationUI.Services;
 public interface IReservationApiClient
 {

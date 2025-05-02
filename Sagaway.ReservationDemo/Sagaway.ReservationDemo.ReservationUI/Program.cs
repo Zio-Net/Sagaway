@@ -9,6 +9,7 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddScoped(_ => new HttpClient());
 builder.Services.AddScoped<IReservationApiClient, ReservationApiClient>();
+builder.Services.AddScoped<IReservationManager, ReservationManager>();
 builder.Services.AddSingleton<ISignalRService, SignalRService>();
 
 await builder.Build().RunAsync();
