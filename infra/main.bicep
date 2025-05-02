@@ -282,21 +282,22 @@ resource reservationResponseQueueBinding 'Microsoft.App/managedEnvironments/dapr
 var apps = [
   {
     name: 'reservation-manager'
-    image: '${containerRegistry}/sagawayreservationdemoreservationmanager:latest'
+    image: '${containerRegistry}/sagaway.demo.reservation.manager:latest'
   }
   {
     name: 'billing-management'
-    image: '${containerRegistry}/sagawayreservationdemobillingmanagement:latest'
+    image: '${containerRegistry}/sagaway.demo.billing.manager:latest'
   }
   {
     name: 'inventory-management'
-    image: '${containerRegistry}/sagawayreservationdemoinventorymanagement:latest'
+    image: '${containerRegistry}/sagaway.demo.inventory.manager:latest'
   }
   {
     name: 'booking-management'
-    image: '${containerRegistry}/sagawayreservationdemobookingmanagement:latest'
+    image: '${containerRegistry}/sagaway.demo.booking.manager:latest'
   }
 ]
+
 
 // Dapr State Store - CosmosDB
 resource statestore 'Microsoft.App/managedEnvironments/daprComponents@2023-05-01' = {
