@@ -6,6 +6,7 @@
 
 @inject IReservationManager ReservationManager
 @inject ILogger<ReservationStatusDisplay> Logger
+@inject IJSRuntime JSRuntime
 
 <div class="mt-8 p-4 border rounded-lg shadow bg-white">
     <h2 class="text-xl font-semibold mb-4 text-gray-700">
@@ -135,11 +136,16 @@
 
     @if (_showSagaLogModal)
     {
-        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" @onclick="CloseSagaLogModal">
-            <div class="bg-white rounded-lg shadow-lg p-6 w-11/12 max-w-4xl max-h-[80vh] flex flex-col" @onclick:stopPropagation="true">
-                <div class="flex justify-between items-center mb-4 pb-3 border-b">
-                    <h3 class="text-xl font-bold">Saga Log - Reservation @_selectedReservationId</h3>
-                    <button @onclick="CloseSagaLogModal" class="text-gray-500 hover:text-gray-700">
+        <div class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50" @onclick="CloseSagaLogModal">
+            <div class="bg-white rounded-xl shadow-2xl p-6 w-11/12 max-w-5xl max-h-[85vh] flex flex-col"
+                 @onclick:stopPropagation="true"
+                 style="animation: fadeIn 0.2s ease-out;">
+                <div class="flex justify-between items-center mb-4 pb-3 border-b border-gray-200">
+                    <h3 class="text-xl font-bold text-gray-800">
+                        <span class="text-indigo-600">Saga Log</span> - Reservation
+                        <span class="font-mono text-sm bg-gray-100 p-1 rounded">@_selectedReservationId</span>
+                    </h3>
+                    <button @onclick="CloseSagaLogModal" class="text-gray-500 hover:text-gray-700 transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -156,32 +162,82 @@
                     }
                     else if (!string.IsNullOrWhiteSpace(_sagaLogError))
                     {
-                        <div class="p-4 bg-red-100 text-red-700 rounded">
-                            <p>Error loading saga log: @_sagaLogError</p>
+                        <div class="p-4 bg-red-50 text-red-700 rounded-lg border border-red-200">
+                            <p class="flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                </svg>
+                                Error loading saga log: @_sagaLogError
+                            </p>
                         </div>
                     }
                     else if (string.IsNullOrWhiteSpace(_sagaLog))
                     {
-                        <div class="p-4 bg-yellow-100 text-yellow-700 rounded">
-                            <p>No saga log available for this reservation.</p>
+                        <div class="p-4 bg-yellow-50 text-yellow-700 rounded-lg border border-yellow-200">
+                            <p class="flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zm-1 7a1 1 0 102 0v-3a1 1 0 10-2 0v3z" clip-rule="evenodd" />
+                                </svg>
+                                No saga log available for this reservation.
+                            </p>
                         </div>
                     }
                     else // Display the formatted HTML log
                     {
-                        <div class="w-full h-96 p-3 border rounded bg-gray-100 font-mono text-sm overflow-y-auto whitespace-pre-wrap">
+                        <div class="w-full h-[550px] p-4 border border-gray-200 rounded-lg bg-gray-50 text-sm overflow-y-auto">
                             @_formattedSagaLog
                         </div>
                     }
                 </div>
 
-                <div class="flex justify-end gap-3 pt-3 border-t">
-                    <button @onclick="CloseSagaLogModal" class="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400">
+                <div class="flex justify-end gap-3 pt-3 border-t border-gray-200">
+                    <button @onclick="CloseSagaLogModal"
+                            class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400">
                         Close
                     </button>
                 </div>
             </div>
         </div>
+	        <style>
+	    @@keyframes fadeIn {
+	        from {
+	            opacity: 0;
+	            transform: translateY(-10px);
+	        }
+	        to {
+	            opacity: 1;
+	            transform: translateY(0);
+	        }
+	    }
+
+	    /* Additional styling for saga log display */
+	    .saga-modal-content {
+	        animation: fadeIn 0.3s ease-out forwards;
+	    }
+	    
+	    .saga-header {
+	        transition: all 0.2s ease-in-out;
+	        border-radius: 8px 8px 0 0;
+	    }
+	    
+	    .saga-header:hover {
+	        background-color: rgba(79, 70, 229, 0.1);
+	    }
+	    
+	    .saga-header.active {
+	        background-color: rgba(79, 70, 229, 0.15);
+	    }
+	    
+	    .chevron-icon {
+	        transition: transform 0.3s ease;
+	    }
+	    
+	    .chevron-icon.rotated {
+	        transform: rotate(180deg);
+	    }
+	</style>
     }
+
 </div>
 
 @code {
@@ -230,7 +286,7 @@
         }
         else if (CustomerId != Guid.Empty && CustomerId != GetCurrentSubscribedUserId())
         {
-            // If customer ID changed, setup a new subscription
+            // If customer ID changed, set up a new subscription
             SetupSubscription();
         }
     }
@@ -301,48 +357,55 @@
         }
     }
 
-    private void ViewSagaLog(Guid reservationId)
+    private async Task ViewSagaLog(Guid reservationId)
     {
-        _selectedReservationId = reservationId;
-        _showSagaLogModal = true;
-        _loadingSagaLog = true;
-        _sagaLog = null;
-        _formattedSagaLog = new MarkupString();
-        _sagaLogError = null;
-        StateHasChanged();
+	    _selectedReservationId = reservationId;
+	    _showSagaLogModal = true;
+	    _loadingSagaLog = true;
+	    _sagaLog = null;
+	    _formattedSagaLog = new MarkupString();
+	    _sagaLogError = null;
+	    StateHasChanged();
 
-        try
-        {
-            if (_reservations != null && _reservations.TryGetValue(reservationId, out var reservation))
-            {
-                _sagaLog = reservation.SagaLog;
+	    try
+	    {
+		    if (_reservations != null && _reservations.TryGetValue(reservationId, out var reservation))
+		    {
+			    _sagaLog = reservation.SagaLog;
 
-                if (string.IsNullOrWhiteSpace(_sagaLog))
-                {
-                    _sagaLogError = "No saga log available for this reservation.";
-                }
-                else
-                {
-                    _formattedSagaLog = FormatSagaLogAsHtml(_sagaLog);
-                }
-            }
-            else
-            {
-                _sagaLogError = "Reservation not found.";
-            }
-        }
-        catch (Exception ex)
-        {
-            _sagaLogError = $"Error retrieving or formatting saga log: {ex.Message}";
-            _formattedSagaLog = new MarkupString($"<div class='text-red-600'>Error processing log: {WebUtility.HtmlEncode(ex.Message)}</div>");
-            Logger.LogError(ex, "Error retrieving/formatting saga log for {ReservationId}", reservationId);
-        }
-        finally
-        {
-            _loadingSagaLog = false;
-            StateHasChanged();
-        }
+			    if (string.IsNullOrWhiteSpace(_sagaLog))
+			    {
+				    _sagaLogError = "No saga log available for this reservation.";
+			    }
+			    else
+			    {
+				    _formattedSagaLog = FormatSagaLogAsHtml(_sagaLog);
+				    StateHasChanged(); // Force render before initializing JavaScript
+                
+				    // Give DOM time to update before initializing the toggles
+				    await Task.Delay(100);
+				    await JSRuntime.InvokeVoidAsync("sagaLogFunctions.initializeSagaToggles");
+			    }
+		    }
+		    else
+		    {
+			    _sagaLogError = "Reservation not found.";
+		    }
+	    }
+	    catch (Exception ex)
+	    {
+		    _sagaLogError = $"Error retrieving or formatting saga log: {ex.Message}";
+		    _formattedSagaLog = new MarkupString($"<div class='text-red-600'>Error processing log: {WebUtility.HtmlEncode(ex.Message)}</div>");
+		    Logger.LogError(ex, "Error retrieving/formatting saga log for {ReservationId}", reservationId);
+	    }
+	    finally
+	    {
+		    _loadingSagaLog = false;
+		    StateHasChanged();
+	    }
     }
+
+
 
     private async Task HandleCancelReservation(Guid reservationId)
     {
@@ -428,6 +491,15 @@
         };
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+	    if (!firstRender)
+	    {
+		    // Initialize any saga toggles in the current view after rendering
+		    await JSRuntime.InvokeVoidAsync("sagaLogFunctions.initializeSagaToggles");
+	    }
+    }
+
     private MarkupString FormatSagaLogAsHtml(string rawLog)
     {
         if (string.IsNullOrWhiteSpace(rawLog))
@@ -448,58 +520,167 @@
         var lines = processedLog.Replace("\\n", "\n").Split('\n');
 
         // Define Tailwind classes
-        const string timestampClass = "text-gray-500 mr-2";
-        const string startExecutingClass = "text-blue-600";
-        const string successClass = "text-green-600";
-        const string failClass = "text-red-600";
+        const string timestampClass = "text-gray-500 mr-2 font-mono";
+        const string startExecutingClass = "text-blue-600 font-medium";
+        const string successClass = "text-emerald-600 font-medium";
+        const string failClass = "text-red-600 font-medium";
+        const string revertClass = "text-orange-600 font-medium";
         const string defaultClass = "text-gray-800";
-        const string lineBaseClass = "py-px";
+        const string lineBaseClass = "py-1 flex items-start";
+        const string headerClass = "saga-header border-t-2 border-indigo-400 bg-indigo-50 rounded-t-lg mt-6 p-3 text-center font-bold cursor-pointer";
+        const string contentClass = "saga-content bg-white p-4 rounded-b-lg mb-4 border-l border-r border-b border-indigo-200 shadow-sm";
 
+        // Generate unique IDs for collapsible sections
+        string uniqueId = Guid.NewGuid().ToString().Substring(0, 8);
+        int sagaCount = 0;
+        System.Text.StringBuilder currentSagaContent = new();
+        bool isFirstSaga = true;
+
+        // Create a list to store saga chunks for better analysis
+        List<(int Index, List<string> Lines)> sagaChunks = new();
+        List<string> currentChunkLines = new();
+
+        // First pass: identify saga chunks and separators
         foreach (var line in lines)
         {
             var trimmedLine = line.Trim();
             if (string.IsNullOrWhiteSpace(trimmedLine)) continue;
 
-            string timestamp = string.Empty;
-            string message;
-            string messageColorClass = defaultClass;
-
-            // Try to extract timestamp (e.g., [HH:mm:ss])
-            var match = Regex.Match(trimmedLine, @"^(\[.*?\])(.*)");
-            if (match.Success)
+            // Check if this is a separator line
+            if (trimmedLine.StartsWith("*******************") ||
+                trimmedLine.Contains("***************************************************************************"))
             {
-                timestamp = WebUtility.HtmlEncode(match.Groups[1].Value);
-                message = WebUtility.HtmlEncode(match.Groups[2].Value.Trim());
+                // If we've collected lines, this is the end of a chunk
+                if (currentChunkLines.Count > 0)
+                {
+                    sagaChunks.Add((sagaCount++, currentChunkLines.ToList()));
+                    currentChunkLines.Clear();
+                }
             }
             else
             {
-                message = WebUtility.HtmlEncode(trimmedLine);
+                // Add this line to the current chunk
+                currentChunkLines.Add(trimmedLine);
+            }
+        }
+
+        // Add the final chunk if there is one
+        if (currentChunkLines.Count > 0)
+        {
+            sagaChunks.Add((sagaCount, currentChunkLines.ToList()));
+        }
+
+        // Reset saga count for proper numbering
+        sagaCount = 0;
+
+        // Process each saga chunk
+        foreach (var chunk in sagaChunks)
+        {
+            sagaCount++;
+
+            // Analyze the chunk content to determine the saga type
+            string sagaTitle = "Processing...";
+            string badgeColor = "bg-blue-500";
+
+            // Check for keywords in the chunk lines
+            string chunkContent = string.Join(" ", chunk.Lines);
+            if (chunkContent.Contains("[CancelBooking]") || chunkContent.Contains("[Refund]") ||
+                chunkContent.Contains("[CancelInventoryReserving]"))
+            {
+                sagaTitle = "Cancellation Process";
+                badgeColor = "bg-red-500";
+            }
+            else if (chunkContent.Contains("[CarBooking]") || chunkContent.Contains("[Billing]") ||
+                     chunkContent.Contains("[InventoryReserving]"))
+            {
+                sagaTitle = "Reservation Process";
+                badgeColor = "bg-blue-500";
+            }
+            else if (chunkContent.Contains("[Billing]") &&
+                     (chunkContent.Contains("Billing Success") || chunkContent.Contains("validation successfully")))
+            {
+                sagaTitle = "Billing Completion";
+                badgeColor = "bg-green-500";
             }
 
-            // Determine message color class based on keywords
-            if (message.Contains("Success", StringComparison.OrdinalIgnoreCase))
-            {
-                messageColorClass = successClass;
-            }
-            else if (message.Contains("Start Executing", StringComparison.OrdinalIgnoreCase))
-            {
-                messageColorClass = startExecutingClass;
-            }
-            else if (message.Contains("Fail", StringComparison.OrdinalIgnoreCase) ||
-                     message.Contains("Error", StringComparison.OrdinalIgnoreCase) ||
-                     message.Contains("Revert", StringComparison.OrdinalIgnoreCase))
-            {
-                messageColorClass = failClass;
-            }
+            // Create the header for this chunk - using standard HTML without verbatim strings
+            htmlBuilder.Append("<div id=\"saga-header-").Append(uniqueId).Append("-").Append(sagaCount)
+                .Append("\" class=\"").Append(headerClass).Append(isFirstSaga ? " mt-2" : "")
+                .Append("\" data-saga-toggle=\"").Append(uniqueId).Append("-").Append(sagaCount).Append("\">");
 
-            // Build the HTML for the line
-            htmlBuilder.Append($"<div class=\"{lineBaseClass}\">");
-            if (!string.IsNullOrEmpty(timestamp))
-            {
-                htmlBuilder.Append($"<span class=\"{timestampClass}\">{timestamp}</span>");
-            }
-            htmlBuilder.Append($"<span class=\"{messageColorClass}\">{message}</span>");
+            htmlBuilder.Append("<div class=\"flex items-center justify-center\">");
+            htmlBuilder.Append("<span class=\"saga-badge inline-block px-2 py-1 text-xs text-white rounded-full ")
+                .Append(badgeColor).Append(" mr-2 shadow-sm saga-number-badge\">#").Append(sagaCount).Append("</span>");
+
+            htmlBuilder.Append("<span class=\"text-lg font-medium saga-title\">").Append(sagaTitle).Append("</span>");
+
+            htmlBuilder.Append("<svg id=\"chevron-").Append(uniqueId).Append("-").Append(sagaCount)
+                .Append("\" class=\"ml-2 h-5 w-5\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\" fill=\"currentColor\">");
+            htmlBuilder.Append("<path fill-rule=\"evenodd\" d=\"M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z\" clip-rule=\"evenodd\" />");
+            htmlBuilder.Append("</svg>");
             htmlBuilder.Append("</div>");
+            htmlBuilder.Append("</div>");
+
+            // Process the lines in this chunk
+            currentSagaContent.Clear();
+            foreach (var trimmedLine in chunk.Lines)
+            {
+                string timestamp = string.Empty;
+                string message;
+                string messageColorClass = defaultClass;
+
+                // Try to extract timestamp (e.g., [HH:mm:ss])
+                var match = Regex.Match(trimmedLine, @"^(\[.*?\])(.*)");
+                if (match.Success)
+                {
+                    timestamp = WebUtility.HtmlEncode(match.Groups[1].Value);
+                    message = WebUtility.HtmlEncode(match.Groups[2].Value.Trim());
+                }
+                else
+                {
+                    message = WebUtility.HtmlEncode(trimmedLine);
+                }
+
+                // Determine message color class based on keywords
+                if (message.Contains("Success", StringComparison.OrdinalIgnoreCase))
+                {
+                    messageColorClass = successClass;
+                }
+                else if (message.Contains("Start Executing", StringComparison.OrdinalIgnoreCase))
+                {
+                    messageColorClass = startExecutingClass;
+                }
+                else if (message.Contains("Fail", StringComparison.OrdinalIgnoreCase) ||
+                         message.Contains("Error", StringComparison.OrdinalIgnoreCase))
+                {
+                    messageColorClass = failClass;
+                }
+                else if (message.Contains("Revert", StringComparison.OrdinalIgnoreCase))
+                {
+                    messageColorClass = revertClass;
+                }
+
+                // Build the HTML for the line
+                currentSagaContent.Append("<div class=\"").Append(lineBaseClass).Append("\">");
+
+                if (!string.IsNullOrEmpty(timestamp))
+                {
+                    currentSagaContent.Append("<span class=\"").Append(timestampClass).Append("\">")
+                        .Append(timestamp).Append("</span>");
+                }
+
+                currentSagaContent.Append("<span class=\"").Append(messageColorClass).Append("\">")
+                    .Append(message).Append("</span>");
+                currentSagaContent.Append("</div>");
+            }
+
+            // Add the content section for this chunk
+            htmlBuilder.Append("<div id=\"saga-content-").Append(uniqueId).Append("-").Append(sagaCount)
+                .Append("\" class=\"").Append(contentClass).Append("\">");
+            htmlBuilder.Append(currentSagaContent);
+            htmlBuilder.Append("</div>");
+
+            isFirstSaga = false;
         }
 
         return new MarkupString(htmlBuilder.ToString());

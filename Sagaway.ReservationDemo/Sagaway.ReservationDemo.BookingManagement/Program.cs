@@ -43,6 +43,8 @@ builder.Services.AddSagawayContextPropagator();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+string MakeStateStoreKey(string reservationId) => "Booking_" + reservationId;
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -63,8 +65,8 @@ app.MapPost("/booking-queue", async (
         [FromServices] ICallbackBindingNameProvider callbackBindingNameProvider,
         [FromServices] DaprClient daprClient) =>
     {
-        logger.LogInformation("Received car reservation request for {CarClass} from {CustomerName}",
-            request.CarClass, request.CustomerName);
+        logger.LogInformation("Received car {request} request for {CarClass} from {CustomerName}",
+           request.ActionType, request.CarClass, request.CustomerName);
 
         var reservationId = request.ReservationId.ToString();
 
@@ -93,7 +95,7 @@ app.MapPost("/booking-queue", async (
 
         try
         {
-            (reservationState, etag) = await daprClient.GetStateAndETagAsync<ReservationState>("statestore", reservationId, metadata: jsonMetadata);
+            (reservationState, etag) = await daprClient.GetStateAndETagAsync<ReservationState>("statestore", MakeStateStoreKey(reservationId), metadata: jsonMetadata);
 
         }
         catch (DaprException ex) when (ex.InnerException is Grpc.Core.RpcException { Status.StatusCode: Grpc.Core.StatusCode.Internal } grpcEx)
@@ -154,7 +156,7 @@ app.MapPost("/booking-queue", async (
 
             try
             {
-                var result = await daprClient.TrySaveStateAsync("statestore", reservationId, 
+                var result = await daprClient.TrySaveStateAsync("statestore", MakeStateStoreKey(reservationId), 
                     reservationState, etag, stateOptions, jsonMetadata);
 
                 logger.LogInformation("Car class {CarClass} {result} reserved for {CustomerName}", 
@@ -182,8 +184,8 @@ app.MapPost("/booking-queue", async (
 
             try
             {
-                var result = await daprClient.TrySaveStateAsync("statestore", reservationId, reservationState, 
-                    etag, stateOptions);
+                var result = await daprClient.TrySaveStateAsync<ReservationState?>("statestore", MakeStateStoreKey(reservationId), reservationState, 
+                    etag, stateOptions, jsonMetadata);
 
                 reservationOperationResult.IsSuccess = result;
                 logger.LogInformation("Reservation id {reservationId} {result} cancelled for {CustomerName}",
@@ -207,10 +209,11 @@ app.MapPost("/booking-queue", async (
 app.MapGet("/reservations/{reservationId}", async ([FromRoute] Guid reservationId, [FromServices] DaprClient daprClient, [FromServices] ILogger<Program> logger) =>
     {
         logger.LogInformation($"Fetching reservation status for reservation ID: {reservationId}");
+        var stateStoreId = MakeStateStoreKey(reservationId.ToString());
 
         try
         {
-            var reservationState = await daprClient.GetStateAsync<ReservationState>("statestore", reservationId.ToString(), metadata: jsonMetadata);
+            var reservationState = await daprClient.GetStateAsync<ReservationState>("statestore", stateStoreId, metadata: jsonMetadata);
 
             if (reservationState == null)
             {
@@ -259,7 +262,7 @@ app.MapGet("/customer-reservations", async ([FromQuery] string customerName, [Fr
                 { "queryIndexName", "customerNameIndex" }
             };
 
-            var reservations = await daprClient.QueryStateAsync<ReservationState>("statestore", query, metadata);
+            var reservations = await daprClient.QueryStateAsync<ReservationState?>("statestore", query, metadata);
 
             var customerReservations = reservations.Results;
 

@@ -258,7 +258,7 @@ app.MapPost("/cancel", async (
         try
         {
             var proxy = actorProxyFactory.CreateActorProxy<ICarReservationCancellationActor>(
-                new ActorId(reservationId.ToString("D")), "CarReservationCancellationActor");
+                new ActorId(reservationId.ToString("D") + DateTime.Now.Ticks), "CarReservationCancellationActor");
 
             await proxy.CancelCarReservationAsync(reservationInfo);
 

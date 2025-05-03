@@ -24,6 +24,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "dapr", "dapr", "{F2614066-2
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "components", "components", "{D9272F34-3167-4C17-91FF-0ABD427E7DA8}"
 	ProjectSection(SolutionItems) = preProject
+		dapr\components\actorsecretstore.yaml = dapr\components\actorsecretstore.yaml
 		dapr\components\billing-queue.yaml = dapr\components\billing-queue.yaml
 		dapr\components\booking-queue.yaml = dapr\components\booking-queue.yaml
 		dapr\components\dapr-secretstore.json = dapr\components\dapr-secretstore.json
