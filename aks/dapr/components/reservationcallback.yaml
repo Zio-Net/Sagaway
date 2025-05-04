@@ -1,0 +1,16 @@
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: reservationcallback
+spec:
+  type: bindings.azure.signalr
+  version: v1
+  metadata:
+  - name: connectionString
+    secretKeyRef:
+      name: SignalRConnectionString
+      key: SignalRConnectionString
+  - name: hub 
+    value: reservationcallback
+auth:
+  secretStore: kubernetes

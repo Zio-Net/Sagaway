@@ -1,0 +1,18 @@
+apiVersion: dapr.io/v1alpha1
+kind: Configuration
+metadata:
+  name: daprConfig
+spec:
+  mtls:
+    enabled: false
+    logLevel: debug
+  tracing:
+    enabled: true
+    samplingRate: "1"
+    expandParams: true
+    includeBody: true
+    zipkin:
+      endpointAddress: http://zipkin:9411/api/v2/spans
+  features:
+  - name: SchedulerReminders
+    enabled: true

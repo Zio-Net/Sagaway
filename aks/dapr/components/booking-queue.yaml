@@ -1,0 +1,19 @@
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: booking-queue
+  namespace: default
+spec:
+  type: bindings.azure.servicebusqueues
+  version: v1
+  metadata:
+    - name: connectionString
+      secretKeyRef:
+        name: azure-servicebus-secret
+        key: connectionString
+    - name: queueName
+      value: booking-queue
+    - name: ttlInSeconds
+      value: "60"
+auth:
+  secretStore: kubernetes
