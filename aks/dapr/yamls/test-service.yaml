@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: testservice
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: testservice
+  template:
+    metadata:
+      labels:
+        app: testservice
+      annotations:
+        dapr.io/enabled: "true"
+        dapr.io/app-id: "testservice"
+        dapr.io/app-port: "8080"
+        dapr.io/config: "default"
+    spec:
+      imagePullSecrets:
+        - name: acr-secret
+      containers:
+      - name: testservice
+        image: ${ACR_NAME}.azurecr.io/sagawayintegrationteststestservice:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: ASPNETCORE_ENVIRONMENT
+          value: "Development"
+        - name: ASPNETCORE_URLS
+          value: "http://+:8080"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: testservice
+spec:
+  selector:
+    app: testservice
+  ports:
+  - port: 8080
+    targetPort: 8080
+  type: ClusterIP

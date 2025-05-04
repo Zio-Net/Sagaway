@@ -88,34 +88,28 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "aks", "aks", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "dapr", "dapr", "{20442DDD-0DFC-4347-A84E-C488A5259A54}"
-	ProjectSection(SolutionItems) = preProject
-		aks\dapr\config.yaml = aks\dapr\config.yaml
-	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "components", "components", "{F3888423-9830-478E-A958-372A922317EB}"
-	ProjectSection(SolutionItems) = preProject
-		aks\dapr\components\actorsecretstore.yaml = aks\dapr\components\actorsecretstore.yaml
-		aks\dapr\components\billing-queue.yaml = aks\dapr\components\billing-queue.yaml
-		aks\dapr\components\booking-queue.yaml = aks\dapr\components\booking-queue.yaml
-		aks\dapr\components\inventory-queue.yaml = aks\dapr\components\inventory-queue.yaml
-		aks\dapr\components\reservation-response-queue.yaml = aks\dapr\components\reservation-response-queue.yaml
-		aks\dapr\components\reservationcallback.yaml = aks\dapr\components\reservationcallback.yaml
-		aks\dapr\components\statestore.yaml = aks\dapr\components\statestore.yaml
-		aks\dapr\components\test-queue.yaml = aks\dapr\components\test-queue.yaml
-		aks\dapr\components\test-response-queue.yaml = aks\dapr\components\test-response-queue.yaml
-		aks\dapr\components\testcallback.yaml = aks\dapr\components\testcallback.yaml
-	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "IaC", "IaC", "{0255E31E-62C9-47CC-A6FE-828141CF0451}"
-	ProjectSection(SolutionItems) = preProject
-		aks\IaC\main.bicep = aks\IaC\main.bicep
-	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "modules", "modules", "{85BF778B-0D2B-4C3A-96CC-1BD1D64E58DB}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "yamls", "yamls", "{FAB3CAF3-EDCC-4C7B-B069-32313E52984E}"
 	ProjectSection(SolutionItems) = preProject
-		aks\IaC\modules\cosmosdb.bicep = aks\IaC\modules\cosmosdb.bicep
-		aks\IaC\modules\queue.bicep = aks\IaC\modules\queue.bicep
-		aks\IaC\modules\servicebus.bicep = aks\IaC\modules\servicebus.bicep
+		aks\dapr\yamls\billing-management.yaml = aks\dapr\yamls\billing-management.yaml
+		aks\dapr\yamls\booking-management.yaml = aks\dapr\yamls\booking-management.yaml
+		aks\dapr\yamls\inventory-management.yaml = aks\dapr\yamls\inventory-management.yaml
+		aks\dapr\yamls\kubernetes-secret.yaml = aks\dapr\yamls\kubernetes-secret.yaml
+		aks\dapr\yamls\orchestration-service.yaml = aks\dapr\yamls\orchestration-service.yaml
+		aks\dapr\yamls\rabbitmq.yaml = aks\dapr\yamls\rabbitmq.yaml
+		aks\dapr\yamls\redis.yaml = aks\dapr\yamls\redis.yaml
+		aks\dapr\yamls\reservation-manager.yaml = aks\dapr\yamls\reservation-manager.yaml
+		aks\dapr\yamls\signalr-emulator.yaml = aks\dapr\yamls\signalr-emulator.yaml
+		aks\dapr\yamls\step-recorder-test.yaml = aks\dapr\yamls\step-recorder-test.yaml
+		aks\dapr\yamls\test-service.yaml = aks\dapr\yamls\test-service.yaml
+		aks\dapr\yamls\test-sub-saga-communication.yaml = aks\dapr\yamls\test-sub-saga-communication.yaml
+		aks\dapr\yamls\zipkin.yaml = aks\dapr\yamls\zipkin.yaml
 	EndProjectSection
 EndProject
 Global
@@ -208,6 +202,7 @@ Global
 		{F3888423-9830-478E-A958-372A922317EB} = {20442DDD-0DFC-4347-A84E-C488A5259A54}
 		{0255E31E-62C9-47CC-A6FE-828141CF0451} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{85BF778B-0D2B-4C3A-96CC-1BD1D64E58DB} = {0255E31E-62C9-47CC-A6FE-828141CF0451}
+		{FAB3CAF3-EDCC-4C7B-B069-32313E52984E} = {F2614066-27C2-4DA8-82EC-DFA0209D3775}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {27AF5C62-89C5-4AE2-B5DD-7DC1D1DDA605}
