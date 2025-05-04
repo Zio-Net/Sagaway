@@ -1,0 +1,44 @@
+# Reservation UI
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reservation-ui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reservation-ui
+  template:
+    metadata:
+      labels:
+        app: reservation-ui
+      annotations:
+        dapr.io/enabled: "false"
+    spec:
+      imagePullSecrets:
+        - name: acr-secret
+      containers:
+        - name: reservation-ui
+          image: ${ACR_NAME}.azurecr.io/sagawayreservationdemoreservationui:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: "Development"
+            - name: ASPNETCORE_URLS
+              value: "http://+:8080"
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: reservation-ui
+spec:
+  selector:
+    app: reservation-ui
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+  type: LoadBalancer

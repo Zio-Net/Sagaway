@@ -8,7 +8,7 @@ spec:
   version: v1
   metadata:
     - name: url
-      value: https://<your-cosmos-db-account>.documents.azure.com:443/
+      value: https://sagaway-cosmosdb.documents.azure.com:443/
     - name: masterKey
       secretKeyRef:
         name: cosmosdb-secret

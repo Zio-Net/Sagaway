@@ -1,7 +1,8 @@
 param location string = resourceGroup().location
 
-var cosmosDbAccountName = '$SagaWay-CosmosDB'
-var serviceBusNamespaceName = '$SagaWay-SBNamespace'
+var cosmosDbAccountName = 'sagaway-cosmosdb'
+var serviceBusNamespaceName = 'sagaway-sbnamespace'
+var signalrName = 'sagaway-signalr'
 
 var billingQueueName = 'billing-queue'
 var bookingQueueName = 'booking-queue'
@@ -32,3 +33,17 @@ module serviceBusModule 'modules/servicebus.bicep' = {
   }
 }
 
+module AKSModule 'modules/aks.bicep' = {
+    name: 'KubernetesServiceModule'
+    params: {
+        location: location
+    }
+}
+
+module SignalRModule 'modules/signalr.bicep' = {
+    name: 'SignalRModule'
+    params: {
+        location: location
+        signalrName: signalrName
+    }
+}
