@@ -1,3 +1,4 @@
+using System.Net;
 using Sagaway.ReservationDemo.ReservationUI.Services.DTOs;
 
 namespace Sagaway.ReservationDemo.ReservationUI.Services;
@@ -30,8 +31,8 @@ public interface IReservationApiClient
     /// Initiates the cancellation process for a specific reservation.
     /// </summary>
     /// <param name="reservationId">The ID of the reservation to cancel.</param>
-    /// <returns>True if the cancellation request was accepted, false otherwise.</returns>
-    Task<bool> CancelReservationAsync(Guid reservationId);
+    /// <returns>A tuple containing: success status and HTTP status code if applicable</returns>
+    Task<(bool Success, HttpStatusCode StatusCode)> CancelReservationAsync(Guid reservationId);
 
     /// <summary>
     /// Retrieves the saga log for a specific reservation.

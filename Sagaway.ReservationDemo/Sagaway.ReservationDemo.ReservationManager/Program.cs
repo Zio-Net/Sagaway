@@ -127,6 +127,9 @@ app.MapGet("/reservations/{customerName}", async (
                 await daprClient.InvokeMethodAsync<IList<BookingInfo>>(HttpMethod.Get, "booking-management",
                 $"/customer-reservations?customerName={customerName}");
 
+            //log the number of reservations found
+            logger.LogInformation("Found {Count} reservations for customer: {CustomerName}", customerReservation.Count, customerName);
+
             return Results.Ok(customerReservation);
         }
         catch (Exception ex)

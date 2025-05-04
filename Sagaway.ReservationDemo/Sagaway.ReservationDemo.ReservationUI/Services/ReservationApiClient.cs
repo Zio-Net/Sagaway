@@ -1,4 +1,5 @@
-﻿using System.Net.Http.Json;
+﻿using System.Net;
+using System.Net.Http.Json;
 using Microsoft.AspNetCore.Components;
 using Sagaway.ReservationDemo.ReservationUI.Services.DTOs;
 
@@ -278,11 +279,11 @@ namespace Sagaway.ReservationDemo.ReservationUI.Services
                 throw;
             }
         }
-
         /// <summary>
         /// Initiates the cancellation process for a specific reservation via POST /cancel.
         /// </summary>
-        public async Task<bool> CancelReservationAsync(Guid reservationId)
+        /// <returns>A tuple containing: success status and HTTP status code</returns>
+        public async Task<(bool Success, HttpStatusCode StatusCode)> CancelReservationAsync(Guid reservationId)
         {
             var relativePathAndQuery = $"cancel?reservationId={reservationId:D}";
             var absoluteUri = _navigationManager.ToAbsoluteUri(relativePathAndQuery); // Construct absolute URI
@@ -293,35 +294,38 @@ namespace Sagaway.ReservationDemo.ReservationUI.Services
             try
             {
                 using var response = await _http.SendAsync(request);
+                var statusCode = response.StatusCode;
 
                 if (response.IsSuccessStatusCode)
                 {
                     _logger.LogInformation(
                         "Successfully requested cancellation for reservation {ReservationId} via {AbsoluteUri}",
                         reservationId, absoluteUri);
-                    return true;
+                    return (true, statusCode);
                 }
-                else
-                {
-                    var errorContent = await response.Content.ReadAsStringAsync();
-                    _logger.LogWarning(
-                        "Cancellation request failed for reservation {ReservationId} via {AbsoluteUri}. Status Code: {StatusCode}. Response: {Response}",
-                        reservationId, absoluteUri, response.StatusCode, errorContent);
-                    return false;
-                }
+                //else
+                
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogWarning(
+                    "Cancellation request failed for reservation {ReservationId} via {AbsoluteUri}. Status Code: {StatusCode}. Response: {Response}",
+                    reservationId, absoluteUri, response.StatusCode, errorContent);
+                return (false, statusCode);
+                
             }
             catch (HttpRequestException ex)
             {
+                var statusCode = ex.StatusCode ?? HttpStatusCode.InternalServerError;
+
                 _logger.LogError(ex, "HTTP request failed when calling {AbsoluteUri}. Status Code: {StatusCode}",
                     absoluteUri, ex.StatusCode);
-                return false;
+                return (false, statusCode);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex,
                     "An unexpected error occurred during CancelReservationAsync for URI {AbsoluteUri}",
                     absoluteUri);
-                return false;
+                return (false, HttpStatusCode.InternalServerError);
             }
         }
     }

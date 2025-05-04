@@ -9,9 +9,26 @@
 @inject IJSRuntime JSRuntime
 
 <div class="mt-8 p-4 border rounded-lg shadow bg-white">
-    <h2 class="text-xl font-semibold mb-4 text-gray-700">
-        Reservation Status (@(_customerName ?? "No customer selected"))
-    </h2>
+    <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-semibold text-gray-700">
+            <span>Reservation Status (@(_customerName ?? "No customer selected"))</span>
+        </h2>
+
+        <div class="flex items-center">
+            <select @onchange="OnCustomerSelected" class="form-select mr-2 rounded-md border-gray-300">
+                <option value="">Select a customer</option>
+                @foreach (var customer in _predefinedUsers)
+                {
+                    <option value="@customer.Key" selected="@(customer.Key.ToString() == CustomerId.ToString())">@customer.Value</option>
+                }
+            </select>
+            <button @onclick="RefreshReservations" class="p-1 text-blue-600 hover:text-blue-800" title="Refresh Reservations">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+                </svg>
+            </button>
+        </div>
+    </div>
 
     @if (_loading)
     {
@@ -23,6 +40,10 @@
     else if (!string.IsNullOrWhiteSpace(_errorMessage))
     {
         <p class="text-red-600">Error: @_errorMessage</p>
+    }
+    else if (CustomerId == Guid.Empty)
+    {
+        <p class="text-gray-600">Please select a customer to view their reservations.</p>
     }
     else if (_reservations == null || !_reservations.Any())
     {
@@ -62,48 +83,48 @@
                                 <span class="font-mono text-sm">@kvp.Key</span>
                             </td>
                             <td class="py-2 px-4">
-	                            <div class="flex items-center">
+                                <div class="flex items-center">
                                     @if (reservation.Status == ReservationStatusType.Pending || reservation.Status == ReservationStatusType.CancelPending || reservation.IsProcessing)
-		                            {
-			                            <div class="inline-block animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent mr-2"></div>
-		                            }
-		                            <span class="px-2 py-1 rounded-full text-sm @GetStatusClass(reservation.Status)">
-			                            @if (reservation is { Status: ReservationStatusType.CancelPending, IsProcessing: true })
-			                            {
-				                            <span>Cancelling...</span>
-			                            }
-			                            else
-			                            {
-				                            @reservation.Status
-			                            }
-		                            </span>
-	                            </div>
+                                    {
+                                        <div class="inline-block animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent mr-2"></div>
+                                    }
+                                    <span class="px-2 py-1 rounded-full text-sm @GetStatusClass(reservation.Status)">
+                                        @if (reservation is { Status: ReservationStatusType.CancelPending, IsProcessing: true })
+                                        {
+                                            <span>Cancelling...</span>
+                                        }
+                                        else
+                                        {
+                                            @reservation.Status
+                                        }
+                                    </span>
+                                </div>
                             </td>
                             <td class="py-2 px-4">
-	                            <div class="flex items-center gap-2">
-		                            <button @onclick="() => ViewSagaLog(kvp.Key)"
-		                                    disabled="@(string.IsNullOrWhiteSpace(reservation.SagaLog) || reservation.Status == ReservationStatusType.Pending || reservation.IsProcessing)"
-		                                    class="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:opacity-50 disabled:cursor-not-allowed">
-			                            View Saga Log
-		                            </button>
+                                <div class="flex items-center gap-2">
+                                    <button @onclick="() => ViewSagaLog(kvp.Key)"
+                                            disabled="@(string.IsNullOrWhiteSpace(reservation.SagaLog) || reservation.Status == ReservationStatusType.Pending || reservation.IsProcessing)"
+                                            class="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:opacity-50 disabled:cursor-not-allowed">
+                                        View Saga Log
+                                    </button>
 
-		                            @if (reservation is { Status: ReservationStatusType.Reserved or ReservationStatusType.CancelFailed, IsProcessing: false })
-		                            {
-			                            <button @onclick="() => HandleCancelReservation(kvp.Key)"
-			                                    disabled="@(_cancellingReservationId == kvp.Key)"
-			                                    class="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400 disabled:opacity-50 disabled:cursor-not-allowed">
-				                            @if (_cancellingReservationId == kvp.Key)
-				                            {
-					                            <span class="inline-block animate-spin rounded-full h-3 w-3 border border-white border-t-transparent mr-1"></span>
-					                            <span>Cancelling...</span>
-				                            }
-				                            else
-				                            {
-					                            <span>Cancel</span>
-				                            }
-			                            </button>
-		                            }
-	                            </div>
+                                    @if (reservation is { Status: ReservationStatusType.Reserved or ReservationStatusType.CancelFailed, IsProcessing: false })
+                                    {
+                                        <button @onclick="() => HandleCancelReservation(kvp.Key)"
+                                                disabled="@(_cancellingReservationId == kvp.Key)"
+                                                class="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400 disabled:opacity-50 disabled:cursor-not-allowed">
+                                            @if (_cancellingReservationId == kvp.Key)
+                                            {
+                                                <span class="inline-block animate-spin rounded-full h-3 w-3 border border-white border-t-transparent mr-1"></span>
+                                                <span>Cancelling...</span>
+                                            }
+                                            else
+                                            {
+                                                <span>Cancel</span>
+                                            }
+                                        </button>
+                                    }
+                                </div>
                             </td>
 
                         </tr>
@@ -114,32 +135,31 @@
     }
 
     <div class="mt-4 flex gap-2">
-	    <button @onclick="RefreshReservations"
-	            class="px-4 py-1 bg-blue-500 text-white text-sm font-medium rounded hover:bg-blue-600 disabled:opacity-50"
-	            disabled="@(_loading || CustomerId == Guid.Empty)">
-		    Refresh Status
-	    </button>
-    
-	    <!-- New button to toggle inventory view -->
-	    <button @onclick="ToggleInventoryView"
-	            class="px-4 py-1 bg-green-500 text-white text-sm font-medium rounded hover:bg-green-600">
-		    @(_showingInventory ? "Hide Inventory" : "Manage Car Inventory")
-	    </button>
+        <button @onclick="RefreshReservations"
+                class="px-4 py-1 bg-blue-500 text-white text-sm font-medium rounded hover:bg-blue-600 disabled:opacity-50"
+                disabled="@(_loading || CustomerId == Guid.Empty)">
+            Refresh Status
+        </button>
+
+        <!-- Button to toggle inventory view -->
+        <button @onclick="ToggleInventoryView"
+                class="px-4 py-1 bg-green-500 text-white text-sm font-medium rounded hover:bg-green-600">
+            @(_showingInventory ? "Hide Inventory" : "Manage Car Inventory")
+        </button>
     </div>
 
     <!-- Conditionally show the car inventory component -->
     @if (_showingInventory)
     {
-	    <CarInventoryManager />
+        <CarInventoryManager />
     }
 
 
     @if (_showSagaLogModal)
     {
         <div class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50" @onclick="CloseSagaLogModal">
-            <div class="bg-white rounded-xl shadow-2xl p-6 w-11/12 max-w-5xl max-h-[85vh] flex flex-col"
-                 @onclick:stopPropagation="true"
-                 style="animation: fadeIn 0.2s ease-out;">
+            <div class="bg-white rounded-xl shadow-2xl p-6 w-11/12 max-w-5xl max-h-[85vh] flex flex-col saga-modal-content"
+                 @onclick:stopPropagation="true">
                 <div class="flex justify-between items-center mb-4 pb-3 border-b border-gray-200">
                     <h3 class="text-xl font-bold text-gray-800">
                         <span class="text-indigo-600">Saga Log</span> - Reservation
@@ -198,112 +218,204 @@
                 </div>
             </div>
         </div>
-	        <style>
-	    @@keyframes fadeIn {
-	        from {
-	            opacity: 0;
-	            transform: translateY(-10px);
-	        }
-	        to {
-	            opacity: 1;
-	            transform: translateY(0);
-	        }
-	    }
+        <style>
+            @@keyframes fadeIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(-10px);
+                }
 
-	    /* Additional styling for saga log display */
-	    .saga-modal-content {
-	        animation: fadeIn 0.3s ease-out forwards;
-	    }
-	    
-	    .saga-header {
-	        transition: all 0.2s ease-in-out;
-	        border-radius: 8px 8px 0 0;
-	    }
-	    
-	    .saga-header:hover {
-	        background-color: rgba(79, 70, 229, 0.1);
-	    }
-	    
-	    .saga-header.active {
-	        background-color: rgba(79, 70, 229, 0.15);
-	    }
-	    
-	    .chevron-icon {
-	        transition: transform 0.3s ease;
-	    }
-	    
-	    .chevron-icon.rotated {
-	        transform: rotate(180deg);
-	    }
-	</style>
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            /* Additional styling for saga log display */
+            .saga-modal-content {
+                animation: fadeIn 0.3s ease-out forwards;
+            }
+
+            .saga-header {
+                transition: all 0.2s ease-in-out;
+                border-radius: 8px 8px 0 0;
+            }
+
+                .saga-header:hover {
+                    background-color: rgba(79, 70, 229, 0.1);
+                }
+
+                .saga-header.active {
+                    background-color: rgba(79, 70, 229, 0.15);
+                }
+
+            .chevron-icon {
+                transition: transform 0.3s ease;
+            }
+
+                .chevron-icon.rotated {
+                    transform: rotate(180deg);
+                }
+        </style>
     }
 
 </div>
 
 @code {
-    [Parameter]
-    public Guid CustomerId { get; set; }
+	[Parameter]
+	public Guid CustomerId { get; set; }
 
-    private string? _customerName;
-    private bool _loading;
-    private string? _errorMessage;
-    private Dictionary<Guid, ReservationState>? _reservations;
-    private IDisposable? _subscription;
+	private string? _customerName;
+	private bool _loading;
+	private string? _errorMessage;
+	private Dictionary<Guid, ReservationState>? _reservations;
+	private Dictionary<Guid, string> _predefinedUsers = new();
+	private IDisposable? _subscription;
+	private Guid _currentCustomerId;
 
-    // Saga log modal state
-    private bool _showSagaLogModal;
-    private Guid _selectedReservationId;
-    private string? _sagaLog;
-    private MarkupString _formattedSagaLog;
-    private bool _loadingSagaLog;
-    private string? _sagaLogError;
-    private Guid? _cancellingReservationId;
-    // Add this field to control visibility of the inventory component
-    private bool _showingInventory;
+	// Saga log modal state
+	private bool _showSagaLogModal;
+	private Guid _selectedReservationId;
+	private string? _sagaLog;
+	private MarkupString _formattedSagaLog;
+	private bool _loadingSagaLog;
+	private string? _sagaLogError;
+	private Guid? _cancellingReservationId;
+	// Add this field to control visibility of the inventory component
+	private bool _showingInventory;
 
-// Method to toggle the inventory view
-    private void ToggleInventoryView()
+	// Method to toggle the inventory view
+	private void ToggleInventoryView()
+	{
+		_showingInventory = !_showingInventory;
+		StateHasChanged();
+	}
+
+	protected override async Task OnInitializedAsync()
+	{
+		// Get predefined users from the ReservationManager
+		_predefinedUsers = ReservationManager.GetAllUsers();
+        
+		// Load reservations for all predefined users
+		await LoadInitialDataAsync();
+	}
+
+    private async Task LoadInitialDataAsync()
     {
-	    _showingInventory = !_showingInventory;
-	    StateHasChanged();
-    }
+        _loading = true;
+        _errorMessage = null;
+        StateHasChanged();
 
-
-    protected override void OnInitialized()
-    {
-        // Set up subscription to reservation changes
-        if (CustomerId != Guid.Empty)
+        try
         {
-            SetupSubscription();
+            // Initialize each predefined user's data
+            foreach (var user in _predefinedUsers)
+            {
+                await ReservationManager.LoadReservationsForUserAsync(user.Key);
+            }
+
+            // If no customer is selected, but we have users, select the first one
+            if (CustomerId == Guid.Empty && _predefinedUsers.Count > 0)
+            {
+                var firstUserId = _predefinedUsers.First().Key;
+                await SelectCustomerAsync(firstUserId);
+            }
+            else if (CustomerId != Guid.Empty)
+            {
+                // If a customer is already selected, load their data
+                await SelectCustomerAsync(CustomerId);
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Error loading initial data: {ex.Message}";
+            Logger.LogError(ex, "Error loading initial data");
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
         }
     }
 
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
-        if (CustomerId != Guid.Empty && _subscription == null)
+	    // Check if the CustomerId has changed
+	    if (_currentCustomerId != CustomerId)
+	    {
+		    _currentCustomerId = CustomerId;
+        
+		    // Clear current reservations to avoid showing previous user's data
+		    _reservations = null;
+        
+		    // Reset all state
+		    _errorMessage = null;
+		    _cancellingReservationId = null;
+        
+		    // Show loading indicator
+		    _loading = true;
+		    StateHasChanged();
+        
+		    // Setup subscription for the new customer - this should clear previous subscription
+		    SetupSubscription();
+        
+		    // Load reservations for the new customer
+		    if (CustomerId != Guid.Empty)
+		    {
+			    await ReservationManager.LoadReservationsForUserAsync(CustomerId);
+		    }
+        
+		    _loading = false;
+	    }
+    
+	    await base.OnParametersSetAsync();
+    }
+
+    private void OnCustomerSelected(ChangeEventArgs e)
+    {
+        var selectedCustomerId = e.Value?.ToString();
+
+        if (string.IsNullOrEmpty(selectedCustomerId))
         {
-            SetupSubscription();
+            CustomerId = Guid.Empty;
+            _customerName = null;
+            _reservations = null;
+            _subscription?.Dispose();
+            _subscription = null;
+            StateHasChanged();
         }
-        else if (CustomerId != Guid.Empty && CustomerId != GetCurrentSubscribedUserId())
+        else if (Guid.TryParse(selectedCustomerId, out var customerId))
         {
-            // If customer ID changed, set up a new subscription
-            SetupSubscription();
+            // Use an async void pattern to handle the async operation without blocking the UI
+            _ = Task.Run(async () =>
+            {
+                await SelectCustomerAsync(customerId);
+            });
         }
     }
 
-    private Guid GetCurrentSubscribedUserId()
+    private async Task SelectCustomerAsync(Guid customerId)
     {
-        if (_reservations == null || !_reservations.Any())
-            return Guid.Empty;
+        // Update the selected customer ID
+        CustomerId = customerId;
 
-        var firstReservation = _reservations.Values.FirstOrDefault();
-        return firstReservation?.CustomerId ?? Guid.Empty;
+        // Update the customer name from our predefined users
+        _customerName = _predefinedUsers.GetValueOrDefault(customerId, "Unknown");
+
+        // Set up subscription to get real-time updates
+        SetupSubscription();
+
+        // Explicitly load the reservations for this user
+        await ReservationManager.LoadReservationsForUserAsync(CustomerId);
     }
 
     private void SetupSubscription()
     {
         // Dispose of any existing subscription
         _subscription?.Dispose();
+
+        if (CustomerId == Guid.Empty)
+            return;
 
         // Show loading state
         _loading = true;
@@ -317,7 +429,10 @@
                 {
                     _reservations = reservations;
                     var customer = reservations.Values.FirstOrDefault();
-                    _customerName = customer?.CustomerName ?? "Unknown";
+                    if (customer != null)
+                    {
+                        _customerName = customer.CustomerName;
+                    }
                     _loading = false;
                     _errorMessage = null;
                     InvokeAsync(StateHasChanged);
@@ -359,96 +474,91 @@
 
     private async Task ViewSagaLog(Guid reservationId)
     {
-	    _selectedReservationId = reservationId;
-	    _showSagaLogModal = true;
-	    _loadingSagaLog = true;
-	    _sagaLog = null;
-	    _formattedSagaLog = new MarkupString();
-	    _sagaLogError = null;
-	    StateHasChanged();
+        _selectedReservationId = reservationId;
+        _showSagaLogModal = true;
+        _loadingSagaLog = true;
+        _sagaLog = null;
+        _formattedSagaLog = new MarkupString();
+        _sagaLogError = null;
+        StateHasChanged();
 
-	    try
-	    {
-		    if (_reservations != null && _reservations.TryGetValue(reservationId, out var reservation))
-		    {
-			    _sagaLog = reservation.SagaLog;
+        try
+        {
+            if (_reservations != null && _reservations.TryGetValue(reservationId, out var reservation))
+            {
+                _sagaLog = reservation.SagaLog;
 
-			    if (string.IsNullOrWhiteSpace(_sagaLog))
-			    {
-				    _sagaLogError = "No saga log available for this reservation.";
-			    }
-			    else
-			    {
-				    _formattedSagaLog = FormatSagaLogAsHtml(_sagaLog);
-				    StateHasChanged(); // Force render before initializing JavaScript
-                
-				    // Give DOM time to update before initializing the toggles
-				    await Task.Delay(100);
-				    await JSRuntime.InvokeVoidAsync("sagaLogFunctions.initializeSagaToggles");
-			    }
-		    }
-		    else
-		    {
-			    _sagaLogError = "Reservation not found.";
-		    }
-	    }
-	    catch (Exception ex)
-	    {
-		    _sagaLogError = $"Error retrieving or formatting saga log: {ex.Message}";
-		    _formattedSagaLog = new MarkupString($"<div class='text-red-600'>Error processing log: {WebUtility.HtmlEncode(ex.Message)}</div>");
-		    Logger.LogError(ex, "Error retrieving/formatting saga log for {ReservationId}", reservationId);
-	    }
-	    finally
-	    {
-		    _loadingSagaLog = false;
-		    StateHasChanged();
-	    }
+                if (string.IsNullOrWhiteSpace(_sagaLog))
+                {
+                    _sagaLogError = "No saga log available for this reservation.";
+                }
+                else
+                {
+                    _formattedSagaLog = FormatSagaLogAsHtml(_sagaLog);
+                    StateHasChanged(); // Force render before initializing JavaScript
+
+                    // Give DOM time to update before initializing the toggles
+                    await Task.Delay(100);
+                    await JSRuntime.InvokeVoidAsync("sagaLogFunctions.initializeSagaToggles");
+                }
+            }
+            else
+            {
+                _sagaLogError = "Reservation not found.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _sagaLogError = $"Error retrieving or formatting saga log: {ex.Message}";
+            _formattedSagaLog = new MarkupString($"<div class='text-red-600'>Error processing log: {WebUtility.HtmlEncode(ex.Message)}</div>");
+            Logger.LogError(ex, "Error retrieving/formatting saga log for {ReservationId}", reservationId);
+        }
+        finally
+        {
+            _loadingSagaLog = false;
+            StateHasChanged();
+        }
     }
-
-
 
     private async Task HandleCancelReservation(Guid reservationId)
     {
-	    // Prevent multiple clicks while processing
-	    if (_cancellingReservationId.HasValue) 
-		    return;
+        // Prevent multiple clicks while processing
+        if (_cancellingReservationId.HasValue)
+            return;
 
-	    _cancellingReservationId = reservationId;
-	    _errorMessage = null;
-	    StateHasChanged();
+        _cancellingReservationId = reservationId;
+        _errorMessage = null;
+        StateHasChanged();
 
-	    Logger.LogInformation("Attempting to cancel reservation {ReservationId}", reservationId);
+        Logger.LogInformation("Attempting to cancel reservation {ReservationId}", reservationId);
 
-	    try
-	    {
-		    // Call the ReservationManager to cancel the reservation
-		    bool success = await ReservationManager.CancelReservationAsync(reservationId);
+        try
+        {
+            // Call the ReservationManager to cancel the reservation
+            bool success = await ReservationManager.CancelReservationAsync(reservationId);
 
-		    if (!success)
-		    {
-			    _errorMessage = $"Failed to initiate cancellation for reservation {reservationId}.";
-			    Logger.LogWarning("Cancel request failed for reservation {ReservationId}", reservationId);
-		    }
-		    else
-		    {
-			    Logger.LogInformation("Cancel request accepted for reservation {ReservationId}", reservationId);
-
-			    // The ReservationManager will handle updating the state via SignalR
-			    // No need to manually update the local state here
-		    }
-	    }
-	    catch (Exception ex)
-	    {
-		    Logger.LogError(ex, "Error cancelling reservation {ReservationId}", reservationId);
-		    _errorMessage = $"Error cancelling reservation: {ex.Message}";
-	    }
-	    finally
-	    {
-		    _cancellingReservationId = null;
-		    StateHasChanged();
-	    }
+            if (!success)
+            {
+                _errorMessage = $"Failed to initiate cancellation for reservation {reservationId}.";
+                Logger.LogWarning("Cancel request failed for reservation {ReservationId}", reservationId);
+            }
+            else
+            {
+                Logger.LogInformation("Cancel request accepted for reservation {ReservationId}", reservationId);
+                // The ReservationManager will handle updating the state via SignalR
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error cancelling reservation {ReservationId}", reservationId);
+            _errorMessage = $"Error cancelling reservation: {ex.Message}";
+        }
+        finally
+        {
+            _cancellingReservationId = null;
+            StateHasChanged();
+        }
     }
-
 
     private void CloseSagaLogModal()
     {
@@ -464,8 +574,8 @@
         ReservationStatusType.Cancelled => "text-orange-700 bg-orange-100",
         ReservationStatusType.Failed => "text-red-700 bg-red-100",
         ReservationStatusType.Pending => "text-blue-700 bg-blue-100",
-		ReservationStatusType.CancelFailed => "text-red-700 bg-red-100",
-		ReservationStatusType.CancelPending => "text-yellow-700 bg-yellow-100",
+        ReservationStatusType.CancelFailed => "text-red-700 bg-red-100",
+        ReservationStatusType.CancelPending => "text-yellow-700 bg-yellow-100",
         _ => "text-gray-700 bg-gray-100"
     };
 
@@ -493,11 +603,11 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-	    if (!firstRender)
-	    {
-		    // Initialize any saga toggles in the current view after rendering
-		    await JSRuntime.InvokeVoidAsync("sagaLogFunctions.initializeSagaToggles");
-	    }
+        if (!firstRender)
+        {
+            // Initialize any saga toggles in the current view after rendering
+            await JSRuntime.InvokeVoidAsync("sagaLogFunctions.initializeSagaToggles");
+        }
     }
 
     private MarkupString FormatSagaLogAsHtml(string rawLog)
@@ -615,7 +725,7 @@
             htmlBuilder.Append("<span class=\"text-lg font-medium saga-title\">").Append(sagaTitle).Append("</span>");
 
             htmlBuilder.Append("<svg id=\"chevron-").Append(uniqueId).Append("-").Append(sagaCount)
-                .Append("\" class=\"ml-2 h-5 w-5\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\" fill=\"currentColor\">");
+                .Append("\" class=\"ml-2 h-5 w-5 chevron-icon\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\" fill=\"currentColor\">");
             htmlBuilder.Append("<path fill-rule=\"evenodd\" d=\"M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z\" clip-rule=\"evenodd\" />");
             htmlBuilder.Append("</svg>");
             htmlBuilder.Append("</div>");

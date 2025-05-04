@@ -115,50 +115,72 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Populate available car types
-        _availableCarTypes =
-            [
-            new() { Name = "Economy", Code = "ECON", ImageUrl = "images/EconomyCar.png" },
-            new() { Name = "Standard", Code = "STD", ImageUrl = "images/StandardCar.png" },
-            new() { Name = "Luxury", Code = "LUX", ImageUrl = "images/LuxuryCar.png" }
-        ];
-
-        // Populate predefined customers
-        _predefinedCustomers =
-            [
-            new() { CustomerId = Guid.Parse("a1f8e6b4-0b1d-4a5a-8b0a-1c2d3e4f5a6b"), CustomerName = "Alon Fliess" },
-            new() { CustomerId = Guid.Parse("b2c8d6a3-1c2e-4b6b-9c1b-2d3e4f5a6b7c"), CustomerName = "Jane Doe" },
-            new() { CustomerId = Guid.Parse("c3d8e6b2-2d3f-4c7c-ad2c-3e4f5a6b7d8e"), CustomerName = "John Smith" }
-        ];
-
-        // Set default customer selection
-        if (_predefinedCustomers.Any())
-        {
-            _selectedCustomerId = _predefinedCustomers.First().CustomerId;
-        }
-
-        // Initialize the application
-        await InitializeApplication();
+	    // Populate available car types
+	    _availableCarTypes =
+	    [
+		    new() { Name = "Economy", Code = "ECON", ImageUrl = "images/EconomyCar.png" },
+		    new() { Name = "Standard", Code = "STD", ImageUrl = "images/StandardCar.png" },
+		    new() { Name = "Luxury", Code = "LUX", ImageUrl = "images/LuxuryCar.png" }
+	    ];
+    
+	    // Initialize the application - this sets up ReservationManager
+	    try 
+	    {
+		    await ReservationManager.InitializeAsync();
+		    _isInitialized = true;
+        
+		    // Now get the predefined users from ReservationManager
+		    var knownUsers = ReservationManager.GetAllUsers();
+		    _predefinedCustomers = knownUsers
+			    .Select(user => new CustomerInfo { CustomerId = user.Key, CustomerName = user.Value })
+			    .ToList();
+            
+		    // Set default customer selection
+		    if (_predefinedCustomers.Any())
+		    {
+			    _selectedCustomerId = _predefinedCustomers.First().CustomerId;
+			    await LoadSelectedCustomerReservations();
+		    }
+	    }
+	    catch (Exception ex)
+	    {
+		    _initializationError = $"Failed to connect to reservation service: {ex.Message}";
+		    Logger.LogError(ex, "Failed to initialize application");
+	    }
     }
 
     private async Task InitializeApplication()
     {
-        _initializationError = null;
+	    _initializationError = null;
+	    StateHasChanged();  // Update UI to show loading spinner
 
-        try
-        {
-            await ReservationManager.InitializeAsync();
-            _isInitialized = true;
-
-            // Load reservations for the selected customer
-            await LoadSelectedCustomerReservations();
-        }
-        catch (Exception ex)
-        {
-            _initializationError = $"Failed to connect to reservation service: {ex.Message}";
-            Logger.LogError(ex, "Failed to initialize application");
-        }
+	    try 
+	    {
+		    await ReservationManager.InitializeAsync();
+		    _isInitialized = true;
+        
+		    // Get predefined users from ReservationManager
+		    var knownUsers = ReservationManager.GetAllUsers();
+		    _predefinedCustomers = knownUsers
+			    .Select(user => new CustomerInfo { CustomerId = user.Key, CustomerName = user.Value })
+			    .ToList();
+            
+		    // Set default customer selection
+		    if (_predefinedCustomers.Any())
+		    {
+			    _selectedCustomerId = _predefinedCustomers.First().CustomerId;
+			    await LoadSelectedCustomerReservations();
+		    }
+	    }
+	    catch (Exception ex)
+	    {
+		    _initializationError = $"Failed to connect to reservation service: {ex.Message}";
+		    Logger.LogError(ex, "Failed to initialize application");
+	    }
+    
+	    StateHasChanged();  // Update UI with results
     }
+
 
     private void SelectCarClass(CarType carType)
     {
@@ -169,14 +191,17 @@
 
     private async Task SelectedCustomerChanged()
     {
-        _reservationMessage = null; // Clear previous message
+	    _reservationMessage = null; // Clear previous message
+	    _selectedCarClass = null; // Reset selected car when customer changes
 
-        var selectedCustomer = _predefinedCustomers.FirstOrDefault(c => c.CustomerId == _selectedCustomerId);
-        Logger.LogInformation("Customer selection changed: ID={CustomerId}, Name={CustomerName}",
-            _selectedCustomerId, selectedCustomer?.CustomerName);
+	    var selectedCustomer = _predefinedCustomers.FirstOrDefault(c => c.CustomerId == _selectedCustomerId);
+	    Logger.LogInformation("Customer selection changed: ID={CustomerId}, Name={CustomerName}",
+		    _selectedCustomerId, selectedCustomer?.CustomerName);
 
-        await LoadSelectedCustomerReservations();
+	    await LoadSelectedCustomerReservations();
+	    StateHasChanged(); // Explicitly update the UI
     }
+
 
     private async Task LoadSelectedCustomerReservations()
     {
@@ -188,55 +213,60 @@
 
     private async Task HandleReservation()
     {
-        var selectedCustomer = _predefinedCustomers.FirstOrDefault(c => c.CustomerId == _selectedCustomerId);
+	    var selectedCustomer = _predefinedCustomers.FirstOrDefault(c => c.CustomerId == _selectedCustomerId);
 
-        if (_selectedCarClass == null || selectedCustomer == null)
-        {
-            _reservationMessage = "Error: Please select a car class and customer.";
-            Logger.LogWarning("Attempted reservation with missing selection.");
-            return;
-        }
+	    if (_selectedCarClass == null || selectedCustomer == null)
+	    {
+		    _reservationMessage = "Error: Please select a car class and customer.";
+		    Logger.LogWarning("Attempted reservation with missing selection.");
+		    return;
+	    }
 
-        _isProcessingReservation = true;
-        _reservationMessage = null; // Clear previous messages
-        StateHasChanged(); // Show spinner
+	    _isProcessingReservation = true;
+	    _reservationMessage = null; // Clear previous messages
+	    StateHasChanged(); // Show spinner
 
-        Logger.LogInformation("Attempting to reserve {CarClass} for {CustomerName} (ID: {CustomerId})",
-            _selectedCarClass.Code, selectedCustomer.CustomerName, _selectedCustomerId);
+	    Logger.LogInformation("Attempting to reserve {CarClass} for {CustomerName} (ID: {CustomerId})",
+		    _selectedCarClass.Code, selectedCustomer.CustomerName, _selectedCustomerId);
 
-        try
-        {
-            // Use ReservationManager for creating the reservation
-            var reservationId = await ReservationManager.CreateReservationAsync(
-                _selectedCustomerId,
-                selectedCustomer.CustomerName,
-                _selectedCarClass.Code);
+	    try
+	    {
+		    // Use ReservationManager for creating the reservation
+		    var reservationId = await ReservationManager.CreateReservationAsync(
+			    _selectedCustomerId,
+			    selectedCustomer.CustomerName,
+			    _selectedCarClass.Code);
 
-            _reservationMessage = $"Success! Reservation {reservationId} has been initiated.";
-            Logger.LogInformation("Reservation initiated with ID: {ReservationId}", reservationId);
+		    _reservationMessage = $"Success! Reservation {reservationId} has been initiated.";
+		    Logger.LogInformation("Reservation initiated with ID: {ReservationId}", reservationId);
 
-            // Auto-dismiss success message after 5 seconds
-            _ = Task.Delay(5000).ContinueWith(_ =>
-            {
-	            // Only clear if it's still showing this success message
-	            if (_reservationMessage?.StartsWith("Success!") != true) 
-		            return;
+		    // REMOVE THIS LINE - DO NOT REFRESH:
+		    // await ReservationManager.LoadReservationsForUserAsync(_selectedCustomerId);
+        
+		    // Auto-dismiss success message after 5 seconds
+		    _ = Task.Delay(5000).ContinueWith(_ =>
+		    {
+			    // Only clear if it's still showing this success message
+			    if (_reservationMessage?.StartsWith("Success!") != true)
+				    return;
 
-	            _reservationMessage = null;
-	            InvokeAsync(StateHasChanged);
-            });
-        }
-        catch (Exception ex)
-        {
-            _reservationMessage = $"Error: Reservation failed - {ex.Message}";
-            Logger.LogError(ex, "Reservation failed for {CustomerName}", selectedCustomer.CustomerName);
-        }
-        finally
-        {
-            _isProcessingReservation = false;
-            StateHasChanged();
-        }
+			    _reservationMessage = null;
+			    InvokeAsync(StateHasChanged);
+		    });
+	    }
+	    catch (Exception ex)
+	    {
+		    _reservationMessage = $"Error: Reservation failed - {ex.Message}";
+		    Logger.LogError(ex, "Reservation failed for {CustomerName}", selectedCustomer.CustomerName);
+	    }
+	    finally
+	    {
+		    _isProcessingReservation = false;
+		    StateHasChanged();
+	    }
     }
+
+
 
     // Data structures
     private class CarType

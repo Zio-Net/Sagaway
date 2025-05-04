@@ -13,6 +13,11 @@ public interface IReservationManager
     Task InitializeAsync();
 
     /// <summary>
+    /// Gets all known customers with their IDs
+    /// </summary>
+    Dictionary<Guid, string> GetAllUsers();
+
+    /// <summary>
     /// Gets an observable stream of reservation states for a specific user.
     /// </summary>
     /// <param name="userId">The unique identifier of the user.</param>

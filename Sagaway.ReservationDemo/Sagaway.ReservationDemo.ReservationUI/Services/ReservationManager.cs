@@ -2,21 +2,16 @@
 using System.Reactive.Subjects;
 using System.Collections.Concurrent;
 
-
 namespace Sagaway.ReservationDemo.ReservationUI.Services;
 
 // Type aliases for complex dictionary types
 using UserReservationsMap = Dictionary<Guid, ReservationState>;
 using UserReservationsConcurrentMap = ConcurrentDictionary<Guid, ConcurrentDictionary<Guid, ReservationState>>;
 using ReservationIdToCustomerMap = ConcurrentDictionary<Guid, Guid>;
-using CustomerIdToNameMap = ConcurrentDictionary<Guid, string>;
-using CustomerNameToIdMap = ConcurrentDictionary<string, Guid>;
 using UserSubjectMap = ConcurrentDictionary<Guid, BehaviorSubject<Dictionary<Guid, ReservationState>>>;
 
-
 using DTOs;
-using System.Collections.Concurrent;
-
+using System.Net;
 
 /// <summary>
 /// Client-side manager that handles reservation operations and state for the Blazor UI
@@ -31,8 +26,14 @@ public class ReservationManager : IReservationManager, IAsyncDisposable
     private readonly UserReservationsConcurrentMap _userReservations = new();
     private readonly UserSubjectMap _userSubjects = new();
     private readonly ReservationIdToCustomerMap _reservationToCustomerId = new();
-    private readonly CustomerIdToNameMap _customerIdToName = new();
-    private readonly CustomerNameToIdMap _customerNameToId = new();
+
+    // Simplified customer management - default predefined users
+    private readonly Dictionary<Guid, string> _knownCustomers = new()
+    {
+        { Guid.Parse("12345678-1234-1234-1234-123456789abc"), "John Doe" },
+        { Guid.Parse("abcdef12-3456-7890-abcd-ef1234567890"), "Jane Smith" },
+        { Guid.Parse("98765432-1098-7654-3210-987654321fed"), "Guest User" }
+    };
 
     public event Action? StateChanged;
 
@@ -55,6 +56,14 @@ public class ReservationManager : IReservationManager, IAsyncDisposable
         {
             await _signalRService.InitializeAsync();
             _logger.LogInformation("SignalR initialized successfully");
+
+            // Preload all known customers' data
+            foreach (var customer in _knownCustomers)
+            {
+                // We don't await this to avoid blocking the initialization
+                // These will be loaded in the background
+                await LoadReservationsForUserAsync(customer.Key).ConfigureAwait(false);
+            }
         }
         catch (Exception ex)
         {
@@ -62,9 +71,24 @@ public class ReservationManager : IReservationManager, IAsyncDisposable
             throw; // Rethrow so the UI knows initialization failed
         }
     }
-    
+
+    /// <summary>
+    /// Gets all known customers with their IDs
+    /// </summary>
+    public Dictionary<Guid, string> GetAllUsers()
+    {
+        return _knownCustomers;
+    }
+
     public IObservable<Dictionary<Guid, ReservationState>> GetReservationsForUser(Guid userId)
     {
+        // Check if this is a known customer
+        if (!_knownCustomers.ContainsKey(userId))
+        {
+            _logger.LogWarning("Attempted to get reservations for unknown customer {CustomerId}", userId);
+            return Observable.Return(new Dictionary<Guid, ReservationState>());
+        }
+
         var subject = _userSubjects.GetOrAdd(userId, _ =>
             new BehaviorSubject<UserReservationsMap>(GetUserReservationsSnapshot(userId)));
 
@@ -78,9 +102,12 @@ public class ReservationManager : IReservationManager, IAsyncDisposable
             throw new ArgumentException("Customer name and car class are required");
         }
 
-        // Store customer name for future reference
-        _customerIdToName[customerId] = customerName;
-        _customerNameToId[customerName] = customerId;
+        // Verify this is a known customer
+        if (!_knownCustomers.ContainsKey(customerId))
+        {
+            _logger.LogWarning("Attempted to create reservation for unknown customer {CustomerId}", customerId);
+            throw new ArgumentException("Unknown customer ID", nameof(customerId));
+        }
 
         _logger.LogInformation("Creating reservation for {CustomerName} ({CustomerId}), car class: {CarClass}",
             customerName, customerId, carClass);
@@ -102,9 +129,10 @@ public class ReservationManager : IReservationManager, IAsyncDisposable
 
     public async Task LoadReservationsForUserAsync(Guid customerId)
     {
-        if (!_customerIdToName.TryGetValue(customerId, out var customerName))
+        // Verify this is a known customer
+        if (!_knownCustomers.TryGetValue(customerId, out var customerName))
         {
-            _logger.LogWarning("Unable to load reservations - customer name not found for ID {CustomerId}", customerId);
+            _logger.LogWarning("Attempted to load reservations for unknown customer {CustomerId}", customerId);
             return;
         }
 
@@ -163,8 +191,13 @@ public class ReservationManager : IReservationManager, IAsyncDisposable
         var reservationStatusEnumerable = apiReservations as ReservationStatus[] ?? apiReservations.ToArray();
         var apiReservationIds = new HashSet<Guid>(reservationStatusEnumerable.Select(r => r.ReservationId));
 
+        // Log the received reservation counts
+        int totalReceived = reservationStatusEnumerable.Length;
+        int reservedCount = reservationStatusEnumerable.Count(r => r.IsReserved);
+        _logger.LogInformation("Received {TotalCount} reservations for {CustomerName} from API. {ReservedCount} are marked as reserved.",
+            totalReceived, customerName, reservedCount);
+
         // Remove reservations that are no longer in the API response
-        //keep in mind that this may remove reservations that are still in the process of being created, but they will be added back
         foreach (var reservationId in userReservations.Keys.ToList().Where(reservationId => !apiReservationIds.Contains(reservationId)))
         {
             userReservations.TryRemove(reservationId, out _);
@@ -204,27 +237,33 @@ public class ReservationManager : IReservationManager, IAsyncDisposable
             previousReservationStatus = existingReservation.Status;
         }
 
-        ReservationStatusType status = (newReservationStatus.IsReserved, previousResevationStatus: previousReservationStatus) switch
+        // For initial loading, we need to handle transient states properly
+        bool isInitialLoad = previousReservationStatus == ReservationStatusType.Pending && existingReservation == null;
+
+        ReservationStatusType status = (newReservationStatus.IsReserved, previousReservationStatus, isInitialLoad) switch
         {
             // If it's reserved and was pending, it's now confirmed/reserved
-            (true, ReservationStatusType.Pending) => ReservationStatusType.Reserved,
+            (true, ReservationStatusType.Pending, _) => ReservationStatusType.Reserved,
 
             // If it's reserved and was in CancelPending, cancellation failed (still reserved)
-            (true, ReservationStatusType.CancelPending) => ReservationStatusType.CancelFailed,
+            (true, ReservationStatusType.CancelPending, _) => ReservationStatusType.CancelFailed,
 
-            // If it's not reserved and was pending, reservation failed
-            (false, ReservationStatusType.Pending) => ReservationStatusType.Failed,
+            // If it's not reserved and was pending, and this is initial load, default to Cancelled
+            // This assumes non-reserved cars in API were successfully cancelled rather than failed
+            (false, ReservationStatusType.Pending, true) => ReservationStatusType.Cancelled,
+
+            // If it's not reserved and was pending, but we're updating an existing record, it's a failure
+            (false, ReservationStatusType.Pending, false) => ReservationStatusType.Failed,
 
             // If it's not reserved and was in CancelPending, cancellation succeeded
-            (false, ReservationStatusType.CancelPending) => ReservationStatusType.Cancelled,
+            (false, ReservationStatusType.CancelPending, _) => ReservationStatusType.Cancelled,
 
             // If it was Reserved and is now not reserved, it was cancelled
-            (false, ReservationStatusType.Reserved) => ReservationStatusType.Cancelled,
+            (false, ReservationStatusType.Reserved, _) => ReservationStatusType.Cancelled,
 
             // Default: maintain current status
             _ => previousReservationStatus
         };
-
 
         if (existingReservation != null)
         {
@@ -255,7 +294,6 @@ public class ReservationManager : IReservationManager, IAsyncDisposable
         // Add to lookup index
         _reservationToCustomerId[newReservationStatus.ReservationId] = customerId;
     }
-
 
     private async Task LoadSagaLogsForUserReservations(Guid customerId)
     {
@@ -308,7 +346,6 @@ public class ReservationManager : IReservationManager, IAsyncDisposable
         }
     }
 
-
     private UserReservationsMap GetUserReservationsSnapshot(Guid userId)
     {
         if (!_userReservations.TryGetValue(userId, out var reservations))
@@ -323,7 +360,6 @@ public class ReservationManager : IReservationManager, IAsyncDisposable
 
         return snapshot;
     }
-
 
     private void NotifyStateChanged(Guid customerId)
     {
@@ -348,26 +384,33 @@ public class ReservationManager : IReservationManager, IAsyncDisposable
             return;
         }
 
-        // Otherwise try to find by customer name
+        // Try to find by customer name among known customers
         customerId = FindCustomerIdByName(update.CustomerName);
         if (customerId != Guid.Empty)
         {
-            // Found customer by name, store for future lookups
+            // Found customer, store for future lookups
             _reservationToCustomerId[update.ReservationId] = customerId;
             UpdateReservationFromSaga(customerId, update);
             return;
         }
 
-        // If still not found, this might be a totally new customer or reservation
         _logger.LogInformation("Ignoring update for unknown reservation {ReservationId} with customer {CustomerName}",
             update.ReservationId, update.CustomerName);
     }
 
+    private Guid FindCustomerIdByName(string customerName)
+    {
+        // Find the customer ID by name in our known customers dictionary
+        foreach (var kvp in _knownCustomers)
+        {
+            if (kvp.Value.Equals(customerName, StringComparison.OrdinalIgnoreCase))
+            {
+                return kvp.Key;
+            }
+        }
 
-    private Guid FindCustomerIdByName(string customerName) =>
-        _customerNameToId.TryGetValue(customerName, out var customerId)
-            ? customerId
-            : Guid.Empty;
+        return Guid.Empty;
+    }
 
     private void UpdateReservationFromSaga(Guid customerId, SagaUpdate update)
     {
@@ -414,12 +457,15 @@ public class ReservationManager : IReservationManager, IAsyncDisposable
         }
         else
         {
+            // Find the customer name
+            _knownCustomers.TryGetValue(customerId, out var customerName);
+
             // Create new reservation with all data in one go
             updatedReservation = new ReservationState
             {
                 ReservationId = update.ReservationId,
                 CustomerId = customerId,
-                CustomerName = update.CustomerName,
+                CustomerName = customerName ?? update.CustomerName, // Prefer our known name, fall back to update
                 CarClassCode = update.CarClass,
                 CreatedAt = DateTime.UtcNow,
                 Status = status,
@@ -438,11 +484,6 @@ public class ReservationManager : IReservationManager, IAsyncDisposable
         NotifyStateChanged(customerId);
     }
 
-    /// <summary>
-    /// Initiates the cancellation process for a specific reservation.
-    /// </summary>
-    /// <param name="reservationId">The ID of the reservation to cancel.</param>
-    /// <returns>True if the cancellation request was accepted, false otherwise.</returns>
     public async Task<bool> CancelReservationAsync(Guid reservationId)
     {
         if (reservationId == Guid.Empty)
@@ -465,6 +506,13 @@ public class ReservationManager : IReservationManager, IAsyncDisposable
             return false;
         }
 
+        // If already cancelled, treat as success
+        if (reservation.Status == ReservationStatusType.Cancelled)
+        {
+            _logger.LogInformation("Reservation {ReservationId} is already cancelled", reservationId);
+            return true; // Return success for already cancelled reservations
+        }
+
         // Reject cancellation if not in a cancellable state
         if (reservation.Status is not (ReservationStatusType.Reserved or ReservationStatusType.CancelFailed) ||
             reservation.IsProcessing)
@@ -479,13 +527,12 @@ public class ReservationManager : IReservationManager, IAsyncDisposable
 
         try
         {
-            // Call the API to initiate cancellation
-            bool cancellationAccepted = await _apiClient.CancelReservationAsync(reservationId);
+            // Call the updated API method that returns a tuple
+            var (cancellationAccepted, statusCode) = await _apiClient.CancelReservationAsync(reservationId);
 
             if (cancellationAccepted)
             {
                 // Update local state to show reservation is being processed (cancellation pending)
-                // Note: Status remains "Confirmed" until the saga completes
                 var updatedReservation = reservation with
                 {
                     IsProcessing = true,
@@ -502,7 +549,29 @@ public class ReservationManager : IReservationManager, IAsyncDisposable
                 return true;
             }
 
-            _logger.LogWarning("Cancellation request was rejected by API for reservation {ReservationId}", reservationId);
+            // Handle "already cancelled" case (404 Not Found)
+            if (statusCode == HttpStatusCode.NotFound)
+            {
+                _logger.LogInformation("Reservation {ReservationId} not found on server - likely already cancelled", reservationId);
+
+                // Update local state to show as cancelled
+                var updatedReservation = reservation with
+                {
+                    IsProcessing = false,
+                    Status = ReservationStatusType.Cancelled
+                };
+
+                // Update in the dictionary
+                userReservations[reservationId] = updatedReservation;
+
+                // Notify subscribers that the state has changed
+                NotifyStateChanged(customerId);
+
+                return true; // Consider this a successful cancellation
+            }
+
+            _logger.LogWarning("Cancellation request was rejected by API for reservation {ReservationId} with status code {StatusCode}",
+                reservationId, statusCode);
             return false;
         }
         catch (Exception ex)
@@ -511,7 +580,6 @@ public class ReservationManager : IReservationManager, IAsyncDisposable
             return false;
         }
     }
-
 
     public async Task<List<CarClassInfo>> GetCarInventoryAsync()
     {
@@ -528,12 +596,6 @@ public class ReservationManager : IReservationManager, IAsyncDisposable
         }
     }
 
-    /// <summary>
-    /// Updates the maximum allocation for a specific car class.
-    /// </summary>
-    /// <param name="carClass">The car class code to update.</param>
-    /// <param name="maxAllocation">The new maximum allocation value.</param>
-    /// <returns>The updated car class information.</returns>
     public async Task<CarClassInfo> UpdateCarClassAllocationAsync(string carClass, int maxAllocation)
     {
         if (string.IsNullOrWhiteSpace(carClass))
@@ -570,7 +632,6 @@ public class ReservationManager : IReservationManager, IAsyncDisposable
         }
     }
 
-
     public async ValueTask DisposeAsync()
     {
         // Unsubscribe from SignalR
@@ -587,7 +648,6 @@ public class ReservationManager : IReservationManager, IAsyncDisposable
         _userSubjects.Clear();
         _userReservations.Clear();
         _reservationToCustomerId.Clear();
-        _customerIdToName.Clear();
 
         await ValueTask.CompletedTask;
     }
