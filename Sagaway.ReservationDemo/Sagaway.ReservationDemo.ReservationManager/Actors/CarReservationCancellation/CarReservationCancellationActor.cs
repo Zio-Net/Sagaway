@@ -3,6 +3,7 @@ using Sagaway.Hosts;
 using Sagaway.ReservationDemo.ReservationManager.Actors.BillingDto;
 using Sagaway.ReservationDemo.ReservationManager.Actors.BookingDto;
 using Sagaway.ReservationDemo.ReservationManager.Actors.InventoryDto;
+using Sagaway.ReservationDemo.ReservationManager.Actors.Publisher;
 
 namespace Sagaway.ReservationDemo.ReservationManager.Actors.CarReservationCancellation;
 
@@ -14,23 +15,25 @@ public class CarReservationCancellationActor : DaprActorHost<CarCancelReservatio
     private readonly ILogger<CarReservationCancellationActor> _logger;
     private readonly ActorHost _actorHost;
     private ReservationInfo? _reservationInfo;
+    private readonly ISagaResultPublisher _sagaResultPublisher;
 
     // ReSharper disable once ConvertToPrimaryConstructor
     public CarReservationCancellationActor(ActorHost host, ILogger<CarReservationCancellationActor> logger
-            ,IServiceProvider serviceProvider)
+            ,ISagaResultPublisher sagaResultPublisher ,IServiceProvider serviceProvider)
         : base(host, logger, serviceProvider)
     {
         _actorHost = host;
         _logger = logger;
+        _sagaResultPublisher = sagaResultPublisher;
     }
 
     protected override ISaga<CarCancelReservationActorOperations> ReBuildSaga()
     {
         var saga = Saga<CarCancelReservationActorOperations>.Create(_actorHost.Id.ToString(), this, _logger)
-            .WithOnSuccessCompletionCallback(OnSuccessCompletionCallbackAsync)
-            .WithOnRevertedCallback(OnRevertedCallbackAsync)
-            .WithOnFailedRevertedCallback(OnFailedRevertedCallbackAsync)
-            .WithOnFailedCallback(OnFailedCallbackAsync)
+            .WithOnSuccessCompletionCallback(OnSuccessCompletionCallback)
+            .WithOnRevertedCallback(OnRevertedCallback)
+            .WithOnFailedRevertedCallback(OnFailedRevertedCallback)
+            .WithOnFailedCallback(OnFailedCallback)
 
             .WithOperation(CarCancelReservationActorOperations.CancelBooking)
             .WithDoOperation(CancelCarBookingAsync)
@@ -45,22 +48,22 @@ public class CarReservationCancellationActor : DaprActorHost<CarCancelReservatio
             .WithOperation(CarCancelReservationActorOperations.CancelInventoryReserving)
             .WithDoOperation(CancelInventoryReservationAsync)
             .WithMaxRetries(3)
-            .WithRetryIntervalTime(TimeSpan.FromMinutes(2))
+            .WithRetryIntervalTime(ExponentialBackoff.InSeconds())
             .WithValidateFunction(ValidateInventoryReservationCanceledAsync)
             .WithUndoOperation(RevertInventoryReservationCancellingAsync)
             .WithMaxRetries(3)
-            .WithUndoRetryInterval(TimeSpan.FromMinutes(10))
+            .WithUndoRetryInterval(ExponentialBackoff.InSeconds())
             .WithValidateFunction(ValidateRevertInventoryReservationCancellingAsync)
 
             .WithOperation(CarCancelReservationActorOperations.Refund)
             .WithDoOperation(RefundReservationBillingAsync)
             .WithMaxRetries(3)
-            .WithRetryIntervalTime(TimeSpan.FromSeconds(10))
+            .WithRetryIntervalTime(ExponentialBackoff.InSeconds())
             .WithValidateFunction(ValidateRefundReservationAsync)
             .WithPreconditions(CarCancelReservationActorOperations.CancelBooking | CarCancelReservationActorOperations.CancelInventoryReserving)
             .WithUndoOperation(ChargeReservationAsync)
             .WithMaxRetries(3)
-            .WithUndoRetryInterval(TimeSpan.FromSeconds(10))
+            .WithUndoRetryInterval(ExponentialBackoff.InSeconds(5))
             .WithValidateFunction(ValidateChargingReservationAsync)
 
             .Build();
@@ -356,47 +359,52 @@ public class CarReservationCancellationActor : DaprActorHost<CarCancelReservatio
 
     #region Saga Completion Methods
 
-    private async void OnFailedRevertedCallbackAsync(string sagaLog)
+    private void OnFailedRevertedCallback(string sagaLog)
     {
         _logger.LogError("The car reservation cancelling has failed and left some unused resources.");
         _logger.LogError("The car reservation cancelling log:" + Environment.NewLine + sagaLog);
-
-        await Task.CompletedTask;
     }
 
-    private async void OnRevertedCallbackAsync(string sagaLog)
+    private void OnRevertedCallback(string sagaLog)
     {
         _logger.LogError("The car reservation cancelling has failed and all resources are deleted.");
         _logger.LogError("The car reservation cancelling log:" + Environment.NewLine + sagaLog);
-
-        await Task.CompletedTask;
     }
 
-    private async void OnFailedCallbackAsync(string sagaLog)
+    private void OnFailedCallback(string sagaLog)
     {
         _logger.LogError("The car reservation cancelling has failed starting reverting resources.");
         _logger.LogError("The car reservation cancelling log:" + Environment.NewLine + sagaLog);
-
-        await Task.CompletedTask;
         //Option: Send a message to the customer
     }
 
-    private async void OnSuccessCompletionCallbackAsync(string sagaLog)
+    private void OnSuccessCompletionCallback(string sagaLog)
     {
         _logger.LogInformation("The car reservation cancelling has succeeded.");
         _logger.LogInformation("The car reservation cancelling log:" + Environment.NewLine + sagaLog);
-
-        await Task.CompletedTask;
         //Option: Send a message to the customer
     }
 
     private async Task OnSagaCompletedAsync(object? _, SagaCompletionEventArgs e)
     {
         _logger.LogInformation($"Saga {e.SagaId} completed with status {e.Status}");
-        await Task.CompletedTask;
+
+        if (_reservationInfo == null)
+        {
+            _logger.LogWarning("Cannot save saga log: reservation info is null");
+            return;
+        }
+        
+        var sagaResult = new SagaResult
+        {
+            ReservationId = _reservationInfo.ReservationId,
+            Outcome = "Cancellation " + e.Status,
+            Log = e.Log,
+            CarClass = _reservationInfo.CarClass,
+            CustomerName = _reservationInfo.CustomerName
+        };
+
+        await _sagaResultPublisher.PublishMessageToSignalRAsync(sagaResult);
     }
-
     #endregion
-
-
 }

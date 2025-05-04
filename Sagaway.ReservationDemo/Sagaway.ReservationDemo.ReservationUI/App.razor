@@ -1,0 +1,284 @@
+﻿@page "/reservation"
+
+@using Sagaway.ReservationDemo.ReservationUI.Components
+@using Sagaway.ReservationDemo.ReservationUI.Services
+
+@inject ILogger<App> Logger
+@inject IReservationManager ReservationManager
+
+<PageTitle>Car Reservation</PageTitle>
+
+<div class="container mx-auto p-6 bg-gray-50 min-h-screen">
+
+    <h1 class="text-4xl font-bold mb-8 text-center text-gray-800">Sagaway Car Reservation</h1>
+
+    @if (!_isInitialized)
+    {
+        <div class="text-center p-8">
+            @if (_initializationError != null)
+            {
+                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4" role="alert">
+                    <p class="font-bold">Initialization Error</p>
+                    <p>@_initializationError</p>
+                </div>
+                <button @onclick="InitializeApplication" class="px-4 py-2 bg-blue-500 text-white rounded">
+                    Retry Connection
+                </button>
+            }
+            else
+            {
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
+                <p class="mt-4 text-lg">Connecting to reservation service...</p>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="mb-6 max-w-sm mx-auto">
+            <label for="customerSelect" class="block text-lg font-medium text-gray-700 mb-2 text-center">Select Customer</label>
+            <select id="customerSelect" @bind="_selectedCustomerId" @bind:after="SelectedCustomerChanged"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                @if (_predefinedCustomers.Count == 0)
+                {
+                    <option value="@Guid.Empty" disabled>Loading customers...</option>
+                }
+                @foreach (var customer in _predefinedCustomers)
+                {
+                    <option value="@customer.CustomerId">@customer.CustomerName</option>
+                }
+            </select>
+        </div>
+
+        <hr class="my-8 border-gray-300">
+
+        <h2 class="text-3xl font-bold mb-6 text-center text-gray-800">Choose Your Car Class</h2>
+        <div class="flex flex-wrap justify-center gap-6 md:gap-8">
+            @foreach (var carType in _availableCarTypes)
+            {
+                var borderClass = _selectedCarClass?.Code == carType.Code
+                ? "border-4 border-indigo-600 ring-2 ring-indigo-300 scale-105"
+                : "border-2 border-gray-300 hover:border-gray-400";
+
+                <div @onclick="() => SelectCarClass(carType)"
+                     class="cursor-pointer rounded-lg overflow-hidden bg-white shadow-md hover:shadow-lg transition-all duration-200 ease-in-out transform hover:scale-102 @borderClass w-60">
+                    <img src="@carType.ImageUrl" alt="@carType.Name" class="w-full h-40 object-cover">
+                    <div class="p-3 text-center">
+                        <span class="font-semibold text-lg text-gray-700">@carType.Name</span>
+                    </div>
+                </div>
+            }
+        </div>
+
+        @if (_selectedCarClass != null && _selectedCustomerId != Guid.Empty)
+        {
+            var selectedCustomerName = _predefinedCustomers.FirstOrDefault(c => c.CustomerId == _selectedCustomerId)?.CustomerName ?? "Unknown";
+            <div class="mt-8 text-center">
+                <p class="text-xl mb-4">Selected: <span class="font-bold text-indigo-700">@_selectedCarClass.Name</span> for <span class="font-bold text-indigo-700">@selectedCustomerName</span></p>
+
+                <button @onclick="HandleReservation" class="px-8 py-3 bg-green-600 text-white font-semibold text-lg rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-75 disabled:opacity-50"
+                        disabled="@(_isProcessingReservation)">
+                    @if (_isProcessingReservation)
+                    {
+                        <span class="inline-block animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent mr-2"></span>
+                        <span>Processing...</span>
+                    }
+                    else
+                    {
+                        <span>Reserve @_selectedCarClass.Name</span>
+                    }
+                </button>
+                @if (!string.IsNullOrEmpty(_reservationMessage))
+                {
+                    <p class="mt-3 text-sm @(_reservationMessage.StartsWith("Error") ? "text-red-600" : "text-green-600")">@_reservationMessage</p>
+                }
+            </div>
+        }
+
+        <hr class="my-10 border-gray-300">
+
+        <ReservationStatusDisplay CustomerId="@_selectedCustomerId" />
+    }
+</div>
+
+@code {
+    // Initialization state
+    private bool _isInitialized;
+    private string? _initializationError;
+
+    // Component state
+    private List<CarType> _availableCarTypes = new();
+    private CarType? _selectedCarClass;
+    private List<CustomerInfo> _predefinedCustomers = new();
+    private Guid _selectedCustomerId = Guid.Empty; // Bound to dropdown
+    private bool _isProcessingReservation;
+    private string? _reservationMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+	    // Populate available car types
+	    _availableCarTypes =
+	    [
+		    new() { Name = "Economy", Code = "ECON", ImageUrl = "images/EconomyCar.png" },
+		    new() { Name = "Standard", Code = "STD", ImageUrl = "images/StandardCar.png" },
+		    new() { Name = "Luxury", Code = "LUX", ImageUrl = "images/LuxuryCar.png" }
+	    ];
+    
+	    // Initialize the application - this sets up ReservationManager
+	    try 
+	    {
+		    await ReservationManager.InitializeAsync();
+		    _isInitialized = true;
+        
+		    // Now get the predefined users from ReservationManager
+		    var knownUsers = ReservationManager.GetAllUsers();
+		    _predefinedCustomers = knownUsers
+			    .Select(user => new CustomerInfo { CustomerId = user.Key, CustomerName = user.Value })
+			    .ToList();
+            
+		    // Set default customer selection
+		    if (_predefinedCustomers.Any())
+		    {
+			    _selectedCustomerId = _predefinedCustomers.First().CustomerId;
+			    await LoadSelectedCustomerReservations();
+		    }
+	    }
+	    catch (Exception ex)
+	    {
+		    _initializationError = $"Failed to connect to reservation service: {ex.Message}";
+		    Logger.LogError(ex, "Failed to initialize application");
+	    }
+    }
+
+    private async Task InitializeApplication()
+    {
+	    _initializationError = null;
+	    StateHasChanged();  // Update UI to show loading spinner
+
+	    try 
+	    {
+		    await ReservationManager.InitializeAsync();
+		    _isInitialized = true;
+        
+		    // Get predefined users from ReservationManager
+		    var knownUsers = ReservationManager.GetAllUsers();
+		    _predefinedCustomers = knownUsers
+			    .Select(user => new CustomerInfo { CustomerId = user.Key, CustomerName = user.Value })
+			    .ToList();
+            
+		    // Set default customer selection
+		    if (_predefinedCustomers.Any())
+		    {
+			    _selectedCustomerId = _predefinedCustomers.First().CustomerId;
+			    await LoadSelectedCustomerReservations();
+		    }
+	    }
+	    catch (Exception ex)
+	    {
+		    _initializationError = $"Failed to connect to reservation service: {ex.Message}";
+		    Logger.LogError(ex, "Failed to initialize application");
+	    }
+    
+	    StateHasChanged();  // Update UI with results
+    }
+
+
+    private void SelectCarClass(CarType carType)
+    {
+        _selectedCarClass = carType;
+        _reservationMessage = null; // Clear previous message
+        Logger.LogInformation("Selected car class: {CarCode}", _selectedCarClass?.Code);
+    }
+
+    private async Task SelectedCustomerChanged()
+    {
+	    _reservationMessage = null; // Clear previous message
+	    _selectedCarClass = null; // Reset selected car when customer changes
+
+	    var selectedCustomer = _predefinedCustomers.FirstOrDefault(c => c.CustomerId == _selectedCustomerId);
+	    Logger.LogInformation("Customer selection changed: ID={CustomerId}, Name={CustomerName}",
+		    _selectedCustomerId, selectedCustomer?.CustomerName);
+
+	    await LoadSelectedCustomerReservations();
+	    StateHasChanged(); // Explicitly update the UI
+    }
+
+
+    private async Task LoadSelectedCustomerReservations()
+    {
+        if (_selectedCustomerId != Guid.Empty && _isInitialized)
+        {
+            await ReservationManager.LoadReservationsForUserAsync(_selectedCustomerId);
+        }
+    }
+
+    private async Task HandleReservation()
+    {
+	    var selectedCustomer = _predefinedCustomers.FirstOrDefault(c => c.CustomerId == _selectedCustomerId);
+
+	    if (_selectedCarClass == null || selectedCustomer == null)
+	    {
+		    _reservationMessage = "Error: Please select a car class and customer.";
+		    Logger.LogWarning("Attempted reservation with missing selection.");
+		    return;
+	    }
+
+	    _isProcessingReservation = true;
+	    _reservationMessage = null; // Clear previous messages
+	    StateHasChanged(); // Show spinner
+
+	    Logger.LogInformation("Attempting to reserve {CarClass} for {CustomerName} (ID: {CustomerId})",
+		    _selectedCarClass.Code, selectedCustomer.CustomerName, _selectedCustomerId);
+
+	    try
+	    {
+		    // Use ReservationManager for creating the reservation
+		    var reservationId = await ReservationManager.CreateReservationAsync(
+			    _selectedCustomerId,
+			    selectedCustomer.CustomerName,
+			    _selectedCarClass.Code);
+
+		    _reservationMessage = $"Success! Reservation {reservationId} has been initiated.";
+		    Logger.LogInformation("Reservation initiated with ID: {ReservationId}", reservationId);
+
+		    // REMOVE THIS LINE - DO NOT REFRESH:
+		    // await ReservationManager.LoadReservationsForUserAsync(_selectedCustomerId);
+        
+		    // Auto-dismiss success message after 5 seconds
+		    _ = Task.Delay(5000).ContinueWith(_ =>
+		    {
+			    // Only clear if it's still showing this success message
+			    if (_reservationMessage?.StartsWith("Success!") != true)
+				    return;
+
+			    _reservationMessage = null;
+			    InvokeAsync(StateHasChanged);
+		    });
+	    }
+	    catch (Exception ex)
+	    {
+		    _reservationMessage = $"Error: Reservation failed - {ex.Message}";
+		    Logger.LogError(ex, "Reservation failed for {CustomerName}", selectedCustomer.CustomerName);
+	    }
+	    finally
+	    {
+		    _isProcessingReservation = false;
+		    StateHasChanged();
+	    }
+    }
+
+
+
+    // Data structures
+    private class CarType
+    {
+        public required string Name { get; init; }
+        public required string Code { get; init; }
+        public required string ImageUrl { get; init; }
+    }
+
+    private class CustomerInfo
+    {
+        public Guid CustomerId { get; init; }
+        public required string CustomerName { get; init; }
+    }
+}

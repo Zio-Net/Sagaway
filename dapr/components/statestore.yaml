@@ -10,8 +10,6 @@ spec:
     value: redisserver:6379
   - name: redisPassword
     value: ""
-  - name: actorStateStore
-    value: "true"
   - name: queryIndexes
     value: |
       [

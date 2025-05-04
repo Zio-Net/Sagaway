@@ -43,6 +43,8 @@ builder.Services.AddSagawayContextPropagator();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+string MakeStateStoreKey(string reservationId) => "Booking_" + reservationId;
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -63,8 +65,8 @@ app.MapPost("/booking-queue", async (
         [FromServices] ICallbackBindingNameProvider callbackBindingNameProvider,
         [FromServices] DaprClient daprClient) =>
     {
-        logger.LogInformation("Received car reservation request for {CarClass} from {CustomerName}",
-            request.CarClass, request.CustomerName);
+        logger.LogInformation("Received car {request} request for {CarClass} from {CustomerName}",
+           request.ActionType, request.CarClass, request.CustomerName);
 
         var reservationId = request.ReservationId.ToString();
 
@@ -93,7 +95,7 @@ app.MapPost("/booking-queue", async (
 
         try
         {
-            (reservationState, etag) = await daprClient.GetStateAndETagAsync<ReservationState>("statestore", reservationId, metadata: jsonMetadata);
+            (reservationState, etag) = await daprClient.GetStateAndETagAsync<ReservationState>("statestore", MakeStateStoreKey(reservationId), metadata: jsonMetadata);
 
         }
         catch (DaprException ex) when (ex.InnerException is Grpc.Core.RpcException { Status.StatusCode: Grpc.Core.StatusCode.Internal } grpcEx)
@@ -123,6 +125,7 @@ app.MapPost("/booking-queue", async (
             Id = request.ReservationId,
             ReservationStatusUpdateTime = messageDispatchTime,
             CustomerName = request.CustomerName,
+            CarClass = request.CarClass,
             IsReserved = false
         };
 
@@ -153,7 +156,7 @@ app.MapPost("/booking-queue", async (
 
             try
             {
-                var result = await daprClient.TrySaveStateAsync("statestore", reservationId, 
+                var result = await daprClient.TrySaveStateAsync("statestore", MakeStateStoreKey(reservationId), 
                     reservationState, etag, stateOptions, jsonMetadata);
 
                 logger.LogInformation("Car class {CarClass} {result} reserved for {CustomerName}", 
@@ -179,18 +182,10 @@ app.MapPost("/booking-queue", async (
 
             reservationState.IsReserved = false;
 
-            // TTL set for 5 minutes, this has the effect of deleting the entry
-            // but only after the Saga is done, support for compensation
-            var metadata = new Dictionary<string, string>
-            {
-                { "ttlInSeconds", "300" },
-                { "contentType", "application/json" }
-            };
-
             try
             {
-                var result = await daprClient.TrySaveStateAsync("statestore", reservationId, reservationState, 
-                    etag, stateOptions, metadata);
+                var result = await daprClient.TrySaveStateAsync<ReservationState?>("statestore", MakeStateStoreKey(reservationId), reservationState, 
+                    etag, stateOptions, jsonMetadata);
 
                 reservationOperationResult.IsSuccess = result;
                 logger.LogInformation("Reservation id {reservationId} {result} cancelled for {CustomerName}",
@@ -214,10 +209,11 @@ app.MapPost("/booking-queue", async (
 app.MapGet("/reservations/{reservationId}", async ([FromRoute] Guid reservationId, [FromServices] DaprClient daprClient, [FromServices] ILogger<Program> logger) =>
     {
         logger.LogInformation($"Fetching reservation status for reservation ID: {reservationId}");
+        var stateStoreId = MakeStateStoreKey(reservationId.ToString());
 
         try
         {
-            var reservationState = await daprClient.GetStateAsync<ReservationState>("statestore", reservationId.ToString(), metadata: jsonMetadata);
+            var reservationState = await daprClient.GetStateAsync<ReservationState>("statestore", stateStoreId, metadata: jsonMetadata);
 
             if (reservationState == null)
             {
@@ -252,25 +248,84 @@ app.MapGet("/customer-reservations", async ([FromQuery] string customerName, [Fr
 
         try
         {
-            var query = $$"""
+            var allResults = new List<StateQueryItem<ReservationState?>>();
+            string? paginationToken = null;
+
+            do
             {
-                "filter": {
-                    "EQ": { "customerName": "{{customerName}}" }
+                // Using JsonSerializer approach
+               var queryObject = new Dictionary<string, object>
+                {
+                    ["filter"] = new Dictionary<string, object>
+                    {
+                        ["EQ"] = new Dictionary<string, string> { ["customerName"] = customerName }
+                    },
+                    ["page"] = new Dictionary<string, object> 
+                    {
+                        ["limit"] = 100  // Request up to 100 items instead of default (likely 10)
+                    }
+                };
+                // Add pagination if token exists
+                if (paginationToken != null)
+                {
+                    queryObject["page"] = new Dictionary<string, string> { ["token"] = paginationToken };
                 }
-            }
-            """;
 
-            var metadata = new Dictionary<string, string>
+                var queryJson = JsonSerializer.Serialize(queryObject);
+
+                var metadata = new Dictionary<string, string>
+                {
+                    { "contentType", "application/json" },
+                    { "queryIndexName", "customerNameIndex" }
+                };
+
+                var queryResponse = await daprClient.QueryStateAsync<ReservationState?>("statestore", queryJson, metadata);
+
+                if (queryResponse?.Results != null)
+                {
+                    allResults.AddRange(queryResponse.Results);
+                }
+
+                paginationToken = queryResponse?.Token;
+
+                //log if we have a token for pagination
+                if (!string.IsNullOrEmpty(paginationToken))
+                {
+                    logger.LogInformation("Pagination token received: {Token}", paginationToken);
+                }
+                else
+                {
+                    logger.LogInformation("No more pages to fetch.");
+                }
+
+            } while (!string.IsNullOrEmpty(paginationToken));
+
+
+            // Now use allResults instead of customerReservations
+            if (allResults == null || allResults.Count == 0)
             {
-                { "contentType", "application/json" },
-                { "queryIndexName", "customerNameIndex" }
-            };
+                logger.LogInformation("No reservations found for customer: {CustomerName}", customerName);
+                return Results.NotFound(new { Message = $"No reservations found for customer: {customerName}" });
+            }
+            else
+            {
+                logger.LogInformation("Found {Count} total reservations for customer: {CustomerName}", allResults.Count, customerName);
 
-            var reservations = await daprClient.QueryStateAsync<ReservationState>("statestore", query, metadata);
+                var reservedCount = allResults.Count(r => r.Data?.IsReserved == true);
+                logger.LogInformation("Customer {CustomerName} has {ReservedCount} reserved cars.", customerName, reservedCount);
+            }
 
-            var customerReservations = reservations.Results;
-
-            return Results.Ok(customerReservations.Select(r => r.Data).ToArray());
+            return Results.Ok(allResults.Select(r => r.Data).ToArray());
+        }
+        catch (DaprException daprException)
+            when (daprException.InnerException is Grpc.Core.RpcException { StatusCode: Grpc.Core.StatusCode.Internal } grpcEx
+                  && grpcEx.Status.Detail.Contains("invalid output"))
+        {
+            // Workaround for Dapr bug: treat "invalid output" as empty result set - dapr bug #3787
+            logger.LogWarning(grpcEx,
+                "Dapr QueryStateAsync returned invalid output for customer {CustomerName}. Returning empty list.",
+                customerName);
+            return Results.Ok(Array.Empty<ReservationState>());
         }
         catch (Exception ex)
         {
