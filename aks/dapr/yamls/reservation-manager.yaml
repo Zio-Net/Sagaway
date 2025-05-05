@@ -14,28 +14,29 @@ spec:
       annotations:
         dapr.io/enabled: "true"
         dapr.io/app-id: "reservation-manager"
-        dapr.io/app-port: "8080"  # changed from 80
+        dapr.io/app-port: "8080"
         dapr.io/config: "sagaway"
     spec:
       imagePullSecrets:
         - name: acr-secret
       containers:
-      - name: reservation-manager
-        image: ${ACR_NAME}.azurecr.io/sagawayreservationdemoreservationmanager:latest
-        ports:
-        - containerPort: 8080  # changed from 80
-        env:
-        - name: ACTOR_TYPE
-          value: "CarReservationActor,CarReservationCancellationActor"
-        - name: ASPNETCORE_ENVIRONMENT
-          value: "Development"
-        - name: ASPNETCORE_URLS
-          value: "http://+:8080"
-        - name: Azure__SignalR__ConnectionString
-          valueFrom:
-            secretKeyRef:
-              name: signalr-connection-string
-              key: signalr-connection-string
+        - name: reservation-manager
+          image: ${ACR_NAME}.azurecr.io/sagawayreservationdemoreservationmanager:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: ACTOR_TYPE
+              value: "CarReservationActor,CarReservationCancellationActor"
+            - name: ASPNETCORE_ENVIRONMENT
+              value: "Development"
+            - name: ASPNETCORE_URLS
+              value: "http://+:8080"
+            - name: Azure__SignalR__ConnectionString
+              valueFrom:
+                secretKeyRef:
+                  name: signalr-connection-string
+                  key: signalr-connection-string
+
 ---
 apiVersion: v1
 kind: Service
@@ -44,7 +45,11 @@ metadata:
 spec:
   selector:
     app: reservation-manager
-  ports:
-  - port: 8080  # changed from 80
-    targetPort: 8080  # changed from 80
   type: LoadBalancer
+  ports:
+    - name: external
+      port: 8080
+      targetPort: 8080
+    - name: internal
+      port: 80
+      targetPort: 8080
