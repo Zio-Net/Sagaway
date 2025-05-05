@@ -9,6 +9,8 @@ param cosmosAccountName string
 param cosmosDbName string 
 param cosmosContainerName string 
 param actorContainerName string = 'actorStateStore' // Added new container name for actor state store
+param port int = 80 // Default port for the backend apps
+
 
 // Container App Environment
 resource containerEnv 'Microsoft.App/managedEnvironments@2023-05-01' = {
@@ -430,11 +432,11 @@ resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
       dapr: {
         enabled: true
         appId: reservationManagerAppName
-        appPort: 8080 // Corrected port
+        appPort: port // Changed port
       }
       ingress: {
         external: true
-        targetPort: 8080 // Corrected port
+        targetPort: port // Changed port
         transport: 'auto'
       }
     }
@@ -482,11 +484,11 @@ resource backendContainerApps 'Microsoft.App/containerApps@2023-05-01' = [for ap
       dapr: {
         enabled: true
         appId: app.name
-        appPort: 8080 // Corrected port
+        appPort: port // Changed port
       }
       ingress: {
         external: true
-        targetPort: 8080 // Corrected port
+        targetPort: port // Changed port
         transport: 'auto'
       }
     }
@@ -535,7 +537,7 @@ resource reservationUiApp 'Microsoft.App/containerApps@2023-05-01' = {
       }
       ingress: {
         external: true
-        targetPort: 8080 // Port Nginx/server in the UI container listens on
+        targetPort: port // Port Nginx/server in the UI container listens on
         transport: 'auto'
       }
     }
