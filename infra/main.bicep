@@ -451,13 +451,13 @@ resource containerApps 'Microsoft.App/containerApps@2023-05-01' = [for app in ap
         {
           name: app.name
           image: app.image
-          env: [
-            // Add this environment variable to inject the SignalR connection string
+          // Conditionally inject SignalR connection string only for reservation-manager
+          env: (app.name == 'reservation-manager') ? [
             {
               name: 'Azure__SignalR__ConnectionString' // Maps to Azure:SignalR:ConnectionString in IConfiguration
               secretRef: 'signalr-conn-string' // References the secret defined in the reservationcallback Dapr component
             }
-          ]
+          ] : [] // Empty env array for other apps
         }
       ]
       scale: {
