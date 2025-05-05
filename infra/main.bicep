@@ -5,11 +5,14 @@ param containerRegistryUsername string
 param containerRegistryPassword string
 
 param location string = resourceGroup().location
-param cosmosAccountName string 
-param cosmosDbName string 
-param cosmosContainerName string 
-param actorContainerName string = 'actorStateStore' 
+// Removed Cosmos DB params
+// Removed Redis Cache param
+// param redisCacheName string = 'sagaway-redis-cache-demo' 
 param port int = 8080 
+
+// Redis Cache Name
+// param redisCacheName string = 'sagaway-redis-cache-demo' // Provide a globally unique name
+
 // Queue Names
 var billingQueueName = 'billing-queue'
 var bookingQueueName = 'booking-queue'
@@ -65,60 +68,45 @@ resource reservationResponseQueue 'Microsoft.ServiceBus/namespaces/queues@2022-1
   properties: {}
 }
 
-// Cosmos DB
-resource cosmosdb_account 'Microsoft.DocumentDB/databaseAccounts@2023-11-15' = {
-  name: cosmosAccountName
+// Removed Azure Cache for Redis resource
+/*
+resource redisCache 'Microsoft.Cache/redis@2023-08-01' = {
+  // ... removed ...
+}
+*/
+
+// Redis Container App
+var redisAppName = 'redis-app'
+
+resource redisContainerApp 'Microsoft.App/containerApps@2023-05-01' = {
+  name: redisAppName
   location: location
-  kind: 'GlobalDocumentDB'
   properties: {
-    databaseAccountOfferType: 'Standard'
-    locations: [
-      {
-        locationName: location
-        failoverPriority: 0
-        isZoneRedundant: false
+    managedEnvironmentId: containerEnv.id
+    configuration: {
+      // No external ingress needed, internal only
+      ingress: {
+        external: false
+        targetPort: 6379 // Default Redis port
+        transport: 'tcp' // Redis uses TCP
       }
-    ]
-    consistencyPolicy: {
-      defaultConsistencyLevel: 'Session'
+      // No secrets or registries needed for public redis image
     }
-  }
-}
-
-resource cosmosdb_sql_database 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2023-11-15' = {
-  parent: cosmosdb_account
-  name: cosmosDbName
-  properties: {
-    resource: {
-      id: cosmosDbName
-    }
-  }
-}
-
-resource cosmosdb_sql_container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2023-11-15' = {
-  parent: cosmosdb_sql_database
-  name: cosmosContainerName
-  properties: {
-    resource: {
-      id: cosmosContainerName
-      partitionKey: {
-        paths: ['/partitionKey'] //partitionKey
-        kind: 'Hash'
-      }
-    }
-  }
-}
-
-// Add actor state store container
-resource cosmosdb_actor_container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2023-11-15' = {
-  parent: cosmosdb_sql_database
-  name: actorContainerName
-  properties: {
-    resource: {
-      id: actorContainerName
-      partitionKey: {
-        paths: ['/partitionKey']
-        kind: 'Hash'
+    template: {
+      containers: [
+        {
+          name: redisAppName
+          // Use redis-stack-server image to include Redis Search for queryIndexes
+          image: 'redis/redis-stack-server:latest' 
+          resources: {
+            cpu: json('0.25') // Define resource requests/limits as needed
+            memory: '0.5Gi'
+          }
+        }
+      ]
+      scale: {
+        minReplicas: 1
+        maxReplicas: 1 // Scale as needed, consider persistence implications
       }
     }
   }
@@ -320,80 +308,89 @@ var backendApps = [
 // Variable for backend app names
 var backendAppNames = [for app in backendApps: app.name]
 
-// Dapr Actor State Store - CosmosDB
+// Dapr Actor State Store - Redis Container App
 resource actorstatestore 'Microsoft.App/managedEnvironments/daprComponents@2023-05-01' = {
   parent: containerEnv
-  name: 'actorstatestore'
-  dependsOn: [cosmosdb_actor_container]
+  name: 'actorstatestore' // Matches local component name
   properties: {
-    componentType: 'state.azure.cosmosdb'
+    componentType: 'state.redis'
     version: 'v1'
     metadata: [
       {
-        name: 'url'
-        value: cosmosdb_account.properties.documentEndpoint
+        name: 'redisHost'
+        // Point to the internal service name and port of the Redis container app
+        value: '${redisAppName}:6379' 
       }
-      {
-        name: 'masterkey'
-        secretRef: 'cosmos-master-key'
-      }
-      {
-        name: 'database'
-        value: cosmosDbName
-      }
-      {
-        name: 'collection'
-        value: actorContainerName
-      }
+      // Removed redisPassword as the default image doesn't require one
+      // {
+      //   name: 'redisPassword'
+      //   secretRef: 'redis-password'
+      // }
+      // Removed enableTLS as connection is internal and image default is non-TLS
+      // {
+      //   name: 'enableTLS' 
+      //   value: 'true' 
+      // }
       {
         name: 'actorStateStore'
         value: 'true'
       }
     ]
-    secrets: [
-      {
-        name: 'cosmos-master-key'
-        value: cosmosdb_account.listKeys().primaryMasterKey
-      }
-    ]
-    scopes: union(backendAppNames, ['reservation-manager']) // Use variable in union
+    // Removed secrets section as no password is used
+    // secrets: [
+    //   {
+    //     name: 'redis-password'
+    //     value: redisCache.listKeys().primaryKey
+    //   }
+    // ]
+    scopes: union(backendAppNames, ['reservation-manager']) // Apply to relevant apps
   }
+  dependsOn: [ // Explicit dependency on the redis container app
+    redisContainerApp
+  ]
 }
 
-// Dapr State Store - CosmosDB (updated to match statestore.yaml structure)
+// Dapr State Store - Redis Container App
 resource statestore 'Microsoft.App/managedEnvironments/daprComponents@2023-05-01' = {
   parent: containerEnv
-  name: 'statestore'
-  dependsOn: [cosmosdb_sql_container]
+  name: 'statestore' // Matches local component name
   properties: {
-    componentType: 'state.azure.cosmosdb'
+    componentType: 'state.redis'
     version: 'v1'
     metadata: [
       {
-        name: 'url'
-        value: cosmosdb_account.properties.documentEndpoint
+        name: 'redisHost'
+        // Point to the internal service name and port of the Redis container app
+        value: '${redisAppName}:6379' 
       }
+      // Removed redisPassword
+      // {
+      //   name: 'redisPassword'
+      //   secretRef: 'redis-password'
+      // }
+      // Removed enableTLS
+      //  {
+      //   name: 'enableTLS' 
+      //   value: 'true' 
+      // }
+      // Add query indexing metadata, matching local statestore.yaml
       {
-        name: 'masterkey'
-        secretRef: 'cosmos-master-key'
-      }
-      {
-        name: 'database'
-        value: cosmosDbName
-      }
-      {
-        name: 'collection'
-        value: cosmosContainerName
+        name: 'queryIndexes' 
+        value: '[ { "name": "customerNameIndex", "indexes": [ { "key": "customerName", "type": "TEXT" } ] } ]'
       }
     ]
-    secrets: [
-      {
-        name: 'cosmos-master-key'
-        value: cosmosdb_account.listKeys().primaryMasterKey
-      }
-    ]
-    scopes: union(backendAppNames, ['reservation-manager']) // Use variable in union
+    // Removed secrets section
+    // secrets: [
+    //   {
+    //     name: 'redis-password'
+    //     value: redisCache.listKeys().primaryKey
+    //   }
+    // ]
+    scopes: union(backendAppNames, ['reservation-manager']) // Apply to relevant apps
   }
+  dependsOn: [ // Explicit dependency on the redis container app
+    redisContainerApp
+  ]
 }
 
 // Reservation Manager Container App (Defined Separately)
