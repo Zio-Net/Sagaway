@@ -184,14 +184,25 @@ app.MapPost("/inventory-queue", async (
             return;
         }
 
+        var pkMetadataForClass = new Dictionary<string, string>
+        {
+            
+            ["partitionKey"] = request.CarClass
+        };
 
         var carClassStateUpdate = new StateTransactionRequest(request.CarClass,
             JsonSerializer.SerializeToUtf8Bytes(carClassState), // Use JsonSerializer
-            StateOperationType.Upsert, carClassEtag);
+            StateOperationType.Upsert, carClassEtag,pkMetadataForClass);
+
+        var pkMetadataForReservation = new Dictionary<string, string>
+        {
+       
+            ["partitionKey"] = stateStoreKey
+        };
 
         var reservationStateUpdate = new StateTransactionRequest(stateStoreKey,
                        JsonSerializer.SerializeToUtf8Bytes(reservationState),
-                                  StateOperationType.Upsert, orderIdEtag);
+                                  StateOperationType.Upsert, orderIdEtag,pkMetadataForReservation);
 
         var transactionOperations = new List<StateTransactionRequest>()
         {
@@ -251,14 +262,25 @@ app.MapPost("/inventory-queue", async (
             carClassState = Math.Max(0, carClassState - 1); // Ensure it doesn't go below 0
         }
 
+        var pkMetadataForClass = new Dictionary<string, string>
+        {
+            // must match your CosmosDB container’s partition-key path (e.g. "/carClass")
+            ["partitionKey"] = request.CarClass
+        };
+
         //we need transactional update to the number of cars reserved in the class and the reservation state
         var carClassStateUpdate = new StateTransactionRequest(request.CarClass,
             JsonSerializer.SerializeToUtf8Bytes(carClassState), // Use JsonSerializer
-            StateOperationType.Upsert, carClassEtag);
+            StateOperationType.Upsert, carClassEtag,pkMetadataForClass);
 
+        var pkMetadataForReservation = new Dictionary<string, string>
+        {
+            // if your container’s partition-key path is "/id" or "/Id", this should be the reservationId
+            ["partitionKey"] = stateStoreKey
+        };
         var reservationStateUpdate = new StateTransactionRequest(stateStoreKey,
             null, // No data needed for delete operation
-            StateOperationType.Delete, orderIdEtag);
+            StateOperationType.Delete, orderIdEtag, pkMetadataForReservation);
 
         var transactionOperations = new List<StateTransactionRequest>()
         {
