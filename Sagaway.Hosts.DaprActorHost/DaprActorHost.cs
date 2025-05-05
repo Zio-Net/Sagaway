@@ -325,7 +325,8 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
     {
         await _retryPolicy.ExecuteAsync(async () =>
         {
-            await Saga!.ReportOperationOutcomeAsync(operation, isSuccessful, failFast);
+            await Saga!.ReportOperationOutcomeAsync(operation, isSuccessful, 
+                failFast == false ? SagaFastOutcome.Failure : SagaFastOutcome.None);
         });
     }
 
@@ -374,6 +375,10 @@ public abstract class DaprActorHost<TEOperations> : Actor, IRemindable, ISagaSup
         };
     }
 
+    /// <summary>
+    /// Reset the saga state to allow re-execution
+    /// </summary>
+    /// <returns>Async operation</returns>
     public async Task ResetSagaAsync()
     {
         if (Saga != null)
