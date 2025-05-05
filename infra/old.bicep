@@ -124,6 +124,55 @@ resource cosmosdb_actor_container 'Microsoft.DocumentDB/databaseAccounts/sqlData
   }
 }
 
+// Azure Cache for Redis
+// resource redisCache 'Microsoft.Cache/redis@2023-08-01' = {
+//   name: 'sagaway-redis' 
+//   location: location
+//   properties: {
+//     sku: {
+//       name: 'Basic'
+//       family: 'C'
+//       capacity: 0 // Basic C0 (250MB)
+//     }
+//     enableNonSslPort: false
+//     minimumTlsVersion: '1.2'
+//   }
+// }
+
+// resource redisCache 'Microsoft.Cache/redisEnterprise@2024-09-01-preview' = {
+//   name: 'sagaway-redis'
+//   location: location
+//   sku: {
+//     name: 'Balanced_B0'
+//   }
+//   identity: {
+//     type: 'None'
+//   }
+//   properties: {
+//     minimumTlsVersion: '1.2'    
+//   }
+// }
+
+// resource redisEnterpriseDatabase 'Microsoft.Cache/redisEnterprise/databases@2024-09-01-preview' = {
+//   name: 'default'
+//   parent: redisCache
+//   properties:{
+//     clientProtocol: 'Encrypted'
+//     port: 10000
+//     clusteringPolicy: 'EnterpriseCluster'
+//     evictionPolicy: 'NoEviction'
+//     persistence:{
+//       aofEnabled: false 
+//       rdbEnabled: false
+//     }
+//     modules: [ // Uncomment this section again
+//       {
+//         name: 'RediSearch'
+//       }
+//     ]
+//   }
+// }
+
 // Dapr Bindings - Service Bus Queues
 resource billingQueueBinding 'Microsoft.App/managedEnvironments/daprComponents@2023-05-01' = {
   parent: containerEnv
@@ -360,6 +409,117 @@ resource statestore 'Microsoft.App/managedEnvironments/daprComponents@2023-05-01
     scopes: [for app in apps: app.name]
   }
 }
+
+//use this if you want to use Redis as the state store
+//Dapr State Store - Redis
+// resource statestore 'Microsoft.App/managedEnvironments/daprComponents@2023-05-01' = {
+//   parent: containerEnv
+//   name: 'statestore'
+//   dependsOn: [
+//     redisCache
+//   ]
+//   properties: {
+//     componentType: 'state.redis'
+//     version: 'v1'
+//     metadata: [
+//       {
+//         name: 'redisHost'
+//         // value: '${redisCache.properties.hostName}:${redisCache.properties.sslPort}'
+//         value: '${redisCache.properties.hostName}:10000'
+
+//       }
+//       {
+//         name: 'redisPassword'
+//         secretRef: 'redis-password'
+//       }
+//       {
+//         name: 'enableTLS'
+//         value: 'true'
+//       }
+//       {
+//         name: 'actorStateStore'
+//         value: 'true'
+//       }
+//       {
+//         name: 'queryIndexes'
+//         value: '''
+//           [
+//             {
+//               "name": "customerNameIndex",
+//               "indexes": [
+//                 {
+//                   "key": "customerName",
+//                   "type": "TEXT"
+//                 }
+//               ]
+//             }
+//           ]
+//         '''
+//       }
+//     ]
+//     secrets: [
+//       {
+//         name: 'redis-password'
+//         // value: redisCache.listKeys().primaryKey
+//         value: listKeys(
+//           '${redisCache.id}/databases/default',
+//           '2024-05-01-preview'
+//         ).primaryKey
+        
+//       }
+//     ]
+//     scopes: [for app in apps: app.name]
+//   }
+// }
+
+
+// // 3) Dapr state store with your queryIndexes
+// resource statestore 'Microsoft.App/managedEnvironments/daprComponents@2023-05-01' = {
+//   parent: containerEnv
+//   name: 'statestore'
+//   dependsOn: [ redisEnterpriseDatabase ]
+//   properties: {
+//     componentType: 'state.redis'
+//     version: 'v1'
+//     metadata: [
+//       {
+//         name: 'redisHost'
+//         value: '${redisCache.properties.hostName}:10000'
+//       }
+//       {
+//         name: 'enableTLS'
+//         value: 'true'
+//       }
+//       {
+//         name: 'actorStateStore'
+//         value: 'true'
+//       }
+//       { 
+//         name: 'queryIndexes'
+//         value: '''
+//           [
+//             {
+//               "name": "customerNameIndex",
+//               "indexes": [
+//                 { "key": "customerName", "type": "TEXT" }
+//               ]
+//             }
+//           ]
+//         '''
+//       }
+//     ]
+//     secrets: [
+//       {
+//         name: 'redis-password'
+//         value: listKeys(
+//           '${redisCache.id}/databases/default',
+//           '2024-09-01-preview'
+//         ).primaryKey
+//       }
+//     ]
+//     scopes: [ for app in apps: app.name ]
+//   }
+// }
 
 
 // Container Apps
