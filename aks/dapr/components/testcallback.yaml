@@ -2,14 +2,15 @@ apiVersion: dapr.io/v1alpha1
 kind: Component
 metadata:
   name: testcallback
+  namespace: sagaway
 spec:
   type: bindings.azure.signalr
   version: v1
   metadata:
   - name: connectionString
     secretKeyRef:
-      name: SignalRConnectionString
-      key: SignalRConnectionString
+      name: signalr-connection-string
+      key: signalr-connection-string
   - name: hub 
     value: testcallback
 auth:

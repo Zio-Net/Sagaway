@@ -15,7 +15,7 @@ spec:
         dapr.io/enabled: "true"
         dapr.io/app-id: "testsubsagacommunicationservice"
         dapr.io/app-port: "8080"
-        dapr.io/config: "default"
+        dapr.io/config: "sagaway"
     spec:
       imagePullSecrets:
         - name: acr-secret

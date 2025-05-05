@@ -2,7 +2,7 @@ apiVersion: dapr.io/v1alpha1
 kind: Component
 metadata:
   name: test-response-queue
-  namespace: default
+  namespace: sagaway
 spec:
   type: bindings.azure.servicebusqueues
   version: v1

@@ -1,9 +1,9 @@
 param location string = resourceGroup().location
+param containerRegistryName string
 
 var cosmosDbAccountName = 'sagaway-cosmosdb'
 var serviceBusNamespaceName = 'sagaway-sbnamespace'
 var signalrName = 'sagaway123-signalr'
-var containerRegistryName = 'sagaway-acr'
 
 var billingQueueName = 'billing-queue'
 var bookingQueueName = 'booking-queue'

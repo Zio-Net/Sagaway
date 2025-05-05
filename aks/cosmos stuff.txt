@@ -1,0 +1,25 @@
+# Create the database
+az cosmosdb sql database create \
+  --account-name sagaway-cosmosdb \
+  --resource-group SagawayDemoAKS \
+  --name sagaway-db
+
+# Create the container (state store)
+MSYS_NO_PATHCONV=1 az cosmosdb sql container create \
+  --account-name sagaway-cosmosdb \
+  --resource-group SagawayDemoAKS \
+  --database-name sagaway-db \
+  --name sagaway-state \
+  --partition-key-path "/partitionKey"
+
+
+
+
+### if git  bash donsnt work use powershell:
+az cosmosdb sql container create `
+  --account-name sagaway-cosmosdb `
+  --resource-group SagawayDemoAKS `
+  --database-name sagaway-db `
+  --name sagaway-state `
+  --partition-key-path /partitionKey `
+  --throughput 400

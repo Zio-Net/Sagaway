@@ -15,7 +15,7 @@ spec:
         dapr.io/enabled: "true"
         dapr.io/app-id: "orchestrationservice"
         dapr.io/app-port: "8080"
-        dapr.io/config: "default"
+        dapr.io/config: "sagaway"
     spec:
       imagePullSecrets:
         - name: acr-secret
@@ -31,8 +31,11 @@ spec:
           value: "Development"
         - name: ASPNETCORE_URLS
           value: "http://+:8080"
-        - name: AZURE__SignalR__ConnectionString
-          value: "Endpoint=http://signalr:8888;Port=8888;AccessKey=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGH;Version=1.0;"
+        - name: Azure__SignalR__ConnectionString
+          valueFrom:
+            secretKeyRef:
+              name: signalr-connection-string
+              key: signalr-connection-string
 ---
 apiVersion: v1
 kind: Service

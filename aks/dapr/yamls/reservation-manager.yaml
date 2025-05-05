@@ -15,7 +15,7 @@ spec:
         dapr.io/enabled: "true"
         dapr.io/app-id: "reservation-manager"
         dapr.io/app-port: "8080"  # changed from 80
-        dapr.io/config: "default"
+        dapr.io/config: "sagaway"
     spec:
       imagePullSecrets:
         - name: acr-secret
@@ -31,6 +31,11 @@ spec:
           value: "Development"
         - name: ASPNETCORE_URLS
           value: "http://+:8080"
+        - name: Azure__SignalR__ConnectionString
+          valueFrom:
+            secretKeyRef:
+              name: signalr-connection-string
+              key: signalr-connection-string
 ---
 apiVersion: v1
 kind: Service

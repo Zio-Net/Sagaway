@@ -55,7 +55,8 @@ az group create --name $RESOURCE_GROUP --location $LOCATION
 echo "Deploying infrastructure..."
 az deployment group create \
   --resource-group $RESOURCE_GROUP \
-  --template-file main.bicep
+  --template-file ./IaC/main.bicep  \
+  --parameters containerRegistryName="$ACR_NAME"
 
 # 4. Get AKS credentials
 echo "Getting AKS credentials..."
@@ -78,16 +79,32 @@ kubectl config set-context --current --namespace=$NAMESPACE
 echo "Creating ACR pull secret..."
 kubectl delete secret acr-secret --ignore-not-found
 
-# Create the secret with explicit values (no variable interpolation issues)
+# 6.5 ACR docker-registry pull secret
+echo "Creating ACR pull secret..."
+kubectl delete secret acr-secret --ignore-not-found
 kubectl create secret docker-registry acr-secret \
   --docker-server="${ACR_URL}" \
   --docker-username="${AZURE_CLIENT_ID}" \
   --docker-password="${AZURE_CLIENT_SECRET}" \
-  --docker-email="${EMAIL}" \
-  --cosmosdb-secret="${COSMOSDB_MASTERKEY}" \ 
-  --azure-servicebus-secret="${SERVICEBUS_CONNECTION_STRING}" \ 
-  --SignalRConnectionString="${SIGNALR_CONNECTION_STRING}" 
-  
+  --docker-email="${EMAIL}"
+
+# 6.6 Cloud secrets (CosmosDB)
+echo "Creating cosmosdb-secret..."
+kubectl delete secret cosmosdb-secret --ignore-not-found
+kubectl create secret generic cosmosdb-secret \
+  --from-literal=masterKey="$COSMOSDB_MASTERKEY" \
+
+# 6.7 Cloud secrets (Service Bus)
+echo "Creating azure-servicebus-secret..."
+kubectl delete secret azure-servicebus-secret --ignore-not-found
+kubectl create secret generic azure-servicebus-secret \
+  --from-literal=connectionString="$SERVICEBUS_CONNECTION_STRING"
+
+  # 6.8 Cloud secrets (SignalR)
+echo "Creating signalr-connection-string..."
+kubectl delete secret signalr-connection-string --ignore-not-found
+kubectl create secret generic signalr-connection-string \
+  --from-literal=signalr-connection-string="$SIGNALR_CONNECTION_STRING"
 
 # 7. Move to project root to build docker images
 cd ..
@@ -120,7 +137,7 @@ docker build -t $ACR_URL/sagawayintegrationtestsorchestrationservice:latest -f S
 docker build -t $ACR_URL/sagawayintegrationteststestservice:latest -f Sagaway.IntegrationTests/Sagaway.IntegrationTests.TestService/Dockerfile .
 docker build -t $ACR_URL/sagawayintegrationteststestsubsagacommunicationservice:latest -f Sagaway.IntegrationTests/Sagaway.IntegrationTests.TestSubSagaCommunicationService/Dockerfile .
 docker build -t $ACR_URL/sagawayintegrationtestssteprecordertestservice:latest -f Sagaway.IntegrationTests/Sagaway.IntegrationTests.StepRecorderTestService/Dockerfile .
-docker build -t $ACR_URL/signalremulator:latest -f ./SignalREmulator/Dockerfile .
+docker build -t $ACR_URL/sagawayreservationdemoreservationui:latest -f Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationUI/Dockerfile .
 
 # 9 Push images
 echo "Pushing Docker images to ACR..."
@@ -132,11 +149,11 @@ docker push $ACR_URL/sagawayintegrationtestsorchestrationservice:latest
 docker push $ACR_URL/sagawayintegrationteststestservice:latest
 docker push $ACR_URL/sagawayintegrationteststestsubsagacommunicationservice:latest
 docker push $ACR_URL/sagawayintegrationtestssteprecordertestservice:latest
-docker push $ACR_URL/signalremulator:latest
+docker push $ACR_URL/sagawayreservationdemoreservationui:latest
 
 # 10. Apply ACR to the YAML Files and Deploy them to AKS
 echo "Deploying Kubernetes resources..."
-for file in ./aks/yamls/*.yaml ./aks/dapr/*.yaml ./aks/dapr/components/*.yaml; do
+for file in ./aks/dapr/yamls/*.yaml ./aks/dapr/*.yaml ./aks/dapr/components/*.yaml; do
   envsubst < "$file" | kubectl apply -f -
 done
 

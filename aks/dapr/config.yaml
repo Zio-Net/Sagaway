@@ -1,16 +1,14 @@
 apiVersion: dapr.io/v1alpha1
 kind: Configuration
 metadata:
-  name: daprConfig
+  name: sagaway
 spec:
   mtls:
     enabled: false
-    logLevel: debug
+    controlPlaneTrustDomain: "localhost"
+    sentryAddress: "localhost:50001"
   tracing:
-    enabled: true
     samplingRate: "1"
-    expandParams: true
-    includeBody: true
     zipkin:
       endpointAddress: http://zipkin:9411/api/v2/spans
   features:
