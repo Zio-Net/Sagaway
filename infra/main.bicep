@@ -558,42 +558,12 @@ resource containerApps 'Microsoft.App/containerApps@2023-05-01' = [for app in ap
         transport: 'auto'
         allowInsecure: true
       }
-      probes: [
-        {
-          type: 'startup'
-          httpGet: {
-            path: app.isUI ? '/' : '/healthz'
-            port: app.isUI ? 80 : 8080
-            scheme: 'http'
-          }
-          initialDelaySeconds: 10
-          periodSeconds: 10
-          failureThreshold: 3
-          timeoutSeconds: 1
-        }
-        {
-          type: 'liveness'
-          httpGet: {
-            path: app.isUI ? '/' : '/healthz' 
-            port: app.isUI ? 80 : 8080
-            scheme: 'http'
-          }
-          initialDelaySeconds: 10
-          periodSeconds: 10
-          failureThreshold: 3
-          timeoutSeconds: 1
-        }
-      ]
     }
     template: {
       containers: [
         {
           name: app.name
           image: app.image
-          // resources: {
-          //   cpu: app.isUI ? 1 : 0.5
-          //   memory: app.isUI ? '2Gi' : '1Gi'
-          // }
           env: [
             {
               name: 'ASPNETCORE_URLS'
@@ -604,14 +574,44 @@ resource containerApps 'Microsoft.App/containerApps@2023-05-01' = [for app in ap
               value: '8080'
             }
           ]
-          readinessProbe: {
-            httpGet: {
-              path: app.isUI ? '/' : '/healthz'
-              port: app.isUI ? 80 : 8080
+          probes: [
+            {
+              type: 'startup'
+              httpGet: {
+                path: app.isUI ? '/' : '/healthz'
+                port: app.isUI ? 80 : 8080
+                scheme: 'http'
+              }
+              initialDelaySeconds: 10
+              periodSeconds: 10
+              failureThreshold: 3
+              timeoutSeconds: 1
             }
-            initialDelaySeconds: 15
-            periodSeconds: 10
-          }
+            {
+              type: 'liveness'
+              httpGet: {
+                path: app.isUI ? '/' : '/healthz' 
+                port: app.isUI ? 80 : 8080
+                scheme: 'http'
+              }
+              initialDelaySeconds: 10
+              periodSeconds: 10
+              failureThreshold: 3
+              timeoutSeconds: 1
+            }
+            {
+              type: 'readiness'
+              httpGet: {
+                path: app.isUI ? '/' : '/healthz'
+                port: app.isUI ? 80 : 8080
+                scheme: 'http'
+              }
+              initialDelaySeconds: 15
+              periodSeconds: 10
+              failureThreshold: 3
+              timeoutSeconds: 1
+            }
+          ]
         }
       ]
       scale: {
