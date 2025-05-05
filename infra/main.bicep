@@ -430,11 +430,11 @@ resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
       dapr: {
         enabled: true
         appId: reservationManagerAppName
-        appPort: 80 // Corrected port
+        appPort: 8080 // Corrected port
       }
       ingress: {
         external: true
-        targetPort: 80 // Corrected port
+        targetPort: 8080 // Corrected port
         transport: 'auto'
       }
     }
@@ -482,11 +482,11 @@ resource backendContainerApps 'Microsoft.App/containerApps@2023-05-01' = [for ap
       dapr: {
         enabled: true
         appId: app.name
-        appPort: 80 // Corrected port
+        appPort: 8080 // Corrected port
       }
       ingress: {
         external: true
-        targetPort: 80 // Corrected port
+        targetPort: 8080 // Corrected port
         transport: 'auto'
       }
     }
@@ -535,7 +535,7 @@ resource reservationUiApp 'Microsoft.App/containerApps@2023-05-01' = {
       }
       ingress: {
         external: true
-        targetPort: 80 // Port Nginx/server in the UI container listens on
+        targetPort: 8080 // Port Nginx/server in the UI container listens on
         transport: 'auto'
       }
     }
