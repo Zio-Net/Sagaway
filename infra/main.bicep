@@ -419,6 +419,7 @@ resource statestore 'Microsoft.App/managedEnvironments/daprComponents@2023-05-01
 resource containerApps 'Microsoft.App/containerApps@2023-05-01' = [for app in apps: {
   name: app.name
   location: location
+ 
   properties: {
     managedEnvironmentId: containerEnv.id
     configuration: {
@@ -435,7 +436,7 @@ resource containerApps 'Microsoft.App/containerApps@2023-05-01' = [for app in ap
         (app.name == 'reservation-manager') ? [
           {
             name: 'signalr-connection-string-secret' // Define the secret within the container app
-            value: listKeys(signalR.id, signalR.apiVersion).primaryConnectionString // Get the value directly
+            value: signalR.listKeys().primaryConnectionString // Use direct listKeys() method call
           }
         ] : []
       )
@@ -449,11 +450,11 @@ resource containerApps 'Microsoft.App/containerApps@2023-05-01' = [for app in ap
       dapr: {
         enabled: true
         appId: app.name
-        appPort: 8080 // Changed from 8080
+        appPort: 8080 
       }
       ingress: {
         external: true
-        targetPort: 8080 // Changed from 8080
+        targetPort: 8080 
         transport: 'auto'
       }
     }
