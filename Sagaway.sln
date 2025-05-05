@@ -115,6 +115,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "IaC", "IaC", "{0255E31E-62C
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "modules", "modules", "{85BF778B-0D2B-4C3A-96CC-1BD1D64E58DB}"
 	ProjectSection(SolutionItems) = preProject
+		aks\IaC\modules\acr.bicep = aks\IaC\modules\acr.bicep
 		aks\IaC\modules\aks.bicep = aks\IaC\modules\aks.bicep
 		aks\IaC\modules\cosmosdb.bicep = aks\IaC\modules\cosmosdb.bicep
 		aks\IaC\modules\queue.bicep = aks\IaC\modules\queue.bicep

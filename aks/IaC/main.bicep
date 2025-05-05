@@ -3,6 +3,7 @@ param location string = resourceGroup().location
 var cosmosDbAccountName = 'sagaway-cosmosdb'
 var serviceBusNamespaceName = 'sagaway-sbnamespace'
 var signalrName = 'sagaway123-signalr'
+var containerRegistryName = 'sagaway-acr'
 
 var billingQueueName = 'billing-queue'
 var bookingQueueName = 'booking-queue'
@@ -45,5 +46,13 @@ module SignalRModule 'modules/signalr.bicep' = {
     params: {
         location: location
         signalrName: signalrName
+    }
+}
+
+module ACRModule 'modules/acr.bicep' = {
+    name: 'ContainerRegistryModule'
+    params: {
+        acrName: containerRegistryName
+        location: location
     }
 }
