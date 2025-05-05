@@ -287,11 +287,11 @@ resource reservationCallbackBinding 'Microsoft.App/managedEnvironments/daprCompo
         name: 'hub'
         value: 'reservationcallback' // Matches the hub name used in the code and local YAML
       }
-    ]
+    ] 
     secrets: [
       {
         name: 'signalr-conn-string'
-        value: listKeys(signalR.id, signalR.apiVersion).primaryConnectionString
+        value: signalR.listKeys().primaryConnectionString  
       }
     ]
     scopes: ['reservation-manager'] // Only scope to the app that needs it
