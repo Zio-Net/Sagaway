@@ -562,10 +562,10 @@ resource containerApps 'Microsoft.App/containerApps@2023-05-01' = [for app in ap
         {
           name: app.name
           image: app.image
-          resources: {
-            cpu: app.isUI ? 1 : 1
-            memory: '1Gi'
-          }
+          // resources: {
+          //   cpu: app.isUI ? 1 : 0.5   // Using valid CPU values: 1 for UI, 0.5 for services
+          //   memory: app.isUI ? '2Gi' : '1Gi'  // Matching memory with CPU as per allowed combinations
+          // }
         }
       ]
       scale: {
