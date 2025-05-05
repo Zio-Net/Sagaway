@@ -9,8 +9,8 @@ resource signalr 'Microsoft.SignalRService/signalR@2023-08-01-preview' = {
   location: location
   sku: {
     name: 'Free_F1'
-    tier: 'Free_F1'
-    capacity: capacity
+    tier: 'Free'
+    capacity: 1
   }
   kind: 'SignalR'
   properties: {
