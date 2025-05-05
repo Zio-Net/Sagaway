@@ -422,12 +422,23 @@ resource containerApps 'Microsoft.App/containerApps@2023-05-01' = [for app in ap
   properties: {
     managedEnvironmentId: containerEnv.id
     configuration: {
-      secrets: [
-        {
-          name: 'registry-password'
-          value: containerRegistryPassword
-        }
-      ]
+      // Define secrets for the Container App
+      secrets: union(
+        // Base secrets (registry password)
+        [
+          {
+            name: 'registry-password'
+            value: containerRegistryPassword // Corrected: Use the parameter directly
+          }
+        ],
+        // Conditionally add the SignalR connection string secret ONLY for reservation-manager
+        (app.name == 'reservation-manager') ? [
+          {
+            name: 'signalr-connection-string-secret' // Define the secret within the container app
+            value: listKeys(signalR.id, signalR.apiVersion).primaryConnectionString // Get the value directly
+          }
+        ] : []
+      )
       registries: [
         {
           server: containerRegistry
@@ -438,11 +449,11 @@ resource containerApps 'Microsoft.App/containerApps@2023-05-01' = [for app in ap
       dapr: {
         enabled: true
         appId: app.name
-        appPort: 8080 
-        }
+        appPort: 8080 // Changed from 8080
+      }
       ingress: {
         external: true
-        targetPort: 8080 
+        targetPort: 8080 // Changed from 8080
         transport: 'auto'
       }
     }
@@ -455,7 +466,7 @@ resource containerApps 'Microsoft.App/containerApps@2023-05-01' = [for app in ap
           env: (app.name == 'reservation-manager') ? [
             {
               name: 'Azure__SignalR__ConnectionString' // Maps to Azure:SignalR:ConnectionString in IConfiguration
-              secretRef: 'signalr-conn-string' // References the secret defined in the reservationcallback Dapr component
+              secretRef: 'signalr-connection-string-secret' // Reference the secret defined ABOVE in configuration.secrets
             }
           ] : [] // Empty env array for other apps
         }
