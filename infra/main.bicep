@@ -299,28 +299,23 @@ var apps = [
   {
     name: 'reservation-manager'
     image: '${containerRegistry}/sagaway.demo.reservation.manager:latest'
-    isUI: false
+
   }
   {
     name: 'billing-management'
     image: '${containerRegistry}/sagaway.demo.billing.manager:latest'
-    isUI: false
+
   }
   {
     name: 'inventory-management'
     image: '${containerRegistry}/sagaway.demo.inventory.manager:latest'
-    isUI: false
+  
   }
   {
     name: 'booking-management'
     image: '${containerRegistry}/sagaway.demo.booking.manager:latest'
-    isUI: false
   }
-  {
-    name: 'reservation-ui'
-    image: '${containerRegistry}/sagaway.demo.reservation.ui:latest'
-    isUI: true
-  }
+  
 ]
 
 // Dapr Actor State Store - CosmosDB
@@ -548,7 +543,7 @@ resource containerApps 'Microsoft.App/containerApps@2023-05-01' = [for app in ap
         }
       ]
       dapr: {
-        enabled: app.isUI ? true : false
+        enabled: true
         appId: app.name
         appPort: 8080
       }
