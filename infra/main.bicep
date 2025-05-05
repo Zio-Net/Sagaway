@@ -430,11 +430,11 @@ resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
       dapr: {
         enabled: true
         appId: reservationManagerAppName
-        appPort: 8080 
+        appPort: 80 // Corrected port
       }
       ingress: {
         external: true
-        targetPort: 8080 
+        targetPort: 80 // Corrected port
         transport: 'auto'
       }
     }
@@ -482,11 +482,11 @@ resource backendContainerApps 'Microsoft.App/containerApps@2023-05-01' = [for ap
       dapr: {
         enabled: true
         appId: app.name
-        appPort: 8080 
+        appPort: 80 // Corrected port
       }
       ingress: {
         external: true
-        targetPort: 8080
+        targetPort: 80 // Corrected port
         transport: 'auto'
       }
     }
