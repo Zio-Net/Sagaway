@@ -1,9 +1,9 @@
 name: Build And Push Docker Images To Azure Container Registry
 on:
   workflow_dispatch:
-  # push:
-  #   branches:
-  #     - yosef/deploy-to-aca
+  push:
+    branches:
+      - yosef/deploy-to-aca
   
 jobs:     
     build-and-push-image:
@@ -24,6 +24,9 @@ jobs:
               # sagaway demo reservation manager
             - dockerfile: ./Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationManager/Dockerfile
               image: sagaway.demo.reservation.manager
+              # sagaway demo reservation UI
+            - dockerfile: ./Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationUI/Dockerfile
+              image: sagaway.demo.reservation.ui
 
 
             #   # sagaway demo test orchestration

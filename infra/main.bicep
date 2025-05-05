@@ -8,6 +8,7 @@ param location string = resourceGroup().location
 param cosmosAccountName string 
 param cosmosDbName string 
 param cosmosContainerName string 
+param actorContainerName string = 'actorStateStore' // Added new container name for actor state store
 
 // Container App Environment
 resource containerEnv 'Microsoft.App/managedEnvironments@2023-05-01' = {
@@ -102,6 +103,21 @@ resource cosmosdb_sql_container 'Microsoft.DocumentDB/databaseAccounts/sqlDataba
       id: cosmosContainerName
       partitionKey: {
         paths: ['/partitionKey'] //partitionKey
+        kind: 'Hash'
+      }
+    }
+  }
+}
+
+// Add actor state store container
+resource cosmosdb_actor_container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2023-11-15' = {
+  parent: cosmosdb_sql_database
+  name: actorContainerName
+  properties: {
+    resource: {
+      id: actorContainerName
+      partitionKey: {
+        paths: ['/partitionKey']
         kind: 'Hash'
       }
     }
@@ -296,10 +312,54 @@ var apps = [
     name: 'booking-management'
     image: '${containerRegistry}/sagaway.demo.booking.manager:latest'
   }
+  {
+    name: 'reservation-ui'
+    image: '${containerRegistry}/sagaway.demo.reservation.ui:latest'
+    isNginx: true // Flag to identify this as the nginx-based UI
+  }
 ]
 
+// Dapr Actor State Store - CosmosDB
+resource actorstatestore 'Microsoft.App/managedEnvironments/daprComponents@2023-05-01' = {
+  parent: containerEnv
+  name: 'actorstatestore'
+  dependsOn: [cosmosdb_actor_container]
+  properties: {
+    componentType: 'state.azure.cosmosdb'
+    version: 'v1'
+    metadata: [
+      {
+        name: 'url'
+        value: cosmosdb_account.properties.documentEndpoint
+      }
+      {
+        name: 'masterkey'
+        secretRef: 'cosmos-master-key'
+      }
+      {
+        name: 'database'
+        value: cosmosDbName
+      }
+      {
+        name: 'collection'
+        value: actorContainerName
+      }
+      {
+        name: 'actorStateStore'
+        value: 'true'
+      }
+    ]
+    secrets: [
+      {
+        name: 'cosmos-master-key'
+        value: cosmosdb_account.listKeys().primaryMasterKey
+      }
+    ]
+    scopes: [for app in apps: app.name]
+  }
+}
 
-// Dapr State Store - CosmosDB
+// Dapr State Store - CosmosDB (updated to match statestore.yaml structure)
 resource statestore 'Microsoft.App/managedEnvironments/daprComponents@2023-05-01' = {
   parent: containerEnv
   name: 'statestore'
@@ -325,8 +385,20 @@ resource statestore 'Microsoft.App/managedEnvironments/daprComponents@2023-05-01
         value: cosmosContainerName
       }
       {
-        name: 'actorStateStore'
-        value: 'true'
+        name: 'queryIndexes'
+        value: '''
+          [
+            {
+              "name": "customerNameIndex",
+              "indexes": [
+                {
+                  "key": "customerName",
+                  "type": "TEXT"
+                }
+              ]
+            }
+          ]
+        '''
       }
     ]
     secrets: [
@@ -477,8 +549,15 @@ resource containerApps 'Microsoft.App/containerApps@2023-05-01' = [for app in ap
       }
       ingress: {
         external: true
-        targetPort: 8080
+        targetPort: contains(app, 'isNginx') && app.isNginx == true ? 80 : 8080 // Use port 80 for nginx
         transport: 'auto'
+        // Add traffic weight for external exposure if it's the UI
+        traffic: contains(app, 'isNginx') && app.isNginx == true ? [
+          {
+            weight: 100
+            latestRevision: true
+          }
+        ] : null
       }
     }
     template: {
@@ -486,11 +565,19 @@ resource containerApps 'Microsoft.App/containerApps@2023-05-01' = [for app in ap
         {
           name: app.name
           image: app.image
+          // Add specific resources for nginx if needed
+          resources: contains(app, 'isNginx') && app.isNginx != null && bool(app.isNginx) ? {
+            cpu: '0.5'
+            memory: '1Gi'
+          } : {
+            cpu: '0.5'
+            memory: '1Gi'
+          }
         }
       ]
       scale: {
         minReplicas: 1
-        maxReplicas: 1
+        maxReplicas: contains(app, 'isNginx') && app.isNginx == true ? 3 : 1 // Allow UI to scale more
       }
     }
   }

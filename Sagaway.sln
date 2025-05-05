@@ -24,11 +24,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "dapr", "dapr", "{F2614066-2
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "components", "components", "{D9272F34-3167-4C17-91FF-0ABD427E7DA8}"
 	ProjectSection(SolutionItems) = preProject
+		dapr\components\actorsecretstore.yaml = dapr\components\actorsecretstore.yaml
 		dapr\components\billing-queue.yaml = dapr\components\billing-queue.yaml
 		dapr\components\booking-queue.yaml = dapr\components\booking-queue.yaml
 		dapr\components\dapr-secretstore.json = dapr\components\dapr-secretstore.json
 		dapr\components\inventory-queue.yaml = dapr\components\inventory-queue.yaml
 		dapr\components\reservation-response-queue.yaml = dapr\components\reservation-response-queue.yaml
+		dapr\components\reservationcallback.yaml = dapr\components\reservationcallback.yaml
 		dapr\components\secretstore.yaml = dapr\components\secretstore.yaml
 		dapr\components\statestore.yaml = dapr\components\statestore.yaml
 		dapr\components\test-queue.yaml = dapr\components\test-queue.yaml
@@ -82,6 +84,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sagaway.IntegrationTests.TestSubSagaCommunicationService", "Sagaway.IntegrationTests\Sagaway.IntegrationTests.TestSubSagaCommunicationService\Sagaway.IntegrationTests.TestSubSagaCommunicationService.csproj", "{D25065BB-282F-47CD-B2EB-4A2181860E7D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sagaway.IntegrationTests.StepRecorderTestService", "Sagaway.IntegrationTests\Sagaway.IntegrationTests.StepRecorderTestService\Sagaway.IntegrationTests.StepRecorderTestService.csproj", "{4615A789-C36B-4CAF-9842-3872DC02E780}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sagaway.ReservationDemo.ReservationUI", "Sagaway.ReservationDemo\Sagaway.ReservationDemo.ReservationUI\Sagaway.ReservationDemo.ReservationUI.csproj", "{B820A3FC-B8DE-2C80-73C8-98B38CE54881}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -153,6 +157,10 @@ Global
 		{4615A789-C36B-4CAF-9842-3872DC02E780}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4615A789-C36B-4CAF-9842-3872DC02E780}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4615A789-C36B-4CAF-9842-3872DC02E780}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B820A3FC-B8DE-2C80-73C8-98B38CE54881}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B820A3FC-B8DE-2C80-73C8-98B38CE54881}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B820A3FC-B8DE-2C80-73C8-98B38CE54881}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B820A3FC-B8DE-2C80-73C8-98B38CE54881}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

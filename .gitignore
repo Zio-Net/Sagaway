@@ -361,3 +361,10 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/Sagaway.IntegrationTests/Sagaway.IntegrationTests.TestProject/ApprovalFiles/test_a_1_failed_wait10_2_failed_b_1_success.received.txt
+/Sagaway.IntegrationTests/Sagaway.IntegrationTests.TestProject/ApprovalFiles/test_a_1_failed_wait5_2_success_b_1_failed_wait5_2_failed.received.txt
+/Sagaway.IntegrationTests/Sagaway.IntegrationTests.TestProject/ApprovalFiles/test_a_failed_on_2_no_callback_revert.received.txt
+
+#web artifacrs
+/Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationUI/wwwroot/lib
+/Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationUI/wwwroot/css/app.Output.css

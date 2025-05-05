@@ -5,7 +5,7 @@
       "commandVersion": "1.0",
       "composeLaunchAction": "LaunchBrowser",
       "composeLaunchServiceName": "reservation-manager",
-      "composeLaunchUrl": "{Scheme}://localhost:{ServicePort}/swagger",
+      "composeLaunchUrl": "http://localhost:5000",
       "serviceActions": {
         "billing-management": "StartDebugging",
         "booking-management": "StartDebugging",
@@ -13,6 +13,7 @@
         "reservation-manager": "StartDebugging",
         "billing-management-dapr": "StartWithoutDebugging",
         "booking-management-dapr": "StartWithoutDebugging",
+        "reservation-ui": "StartWithoutDebugging",
         "dapr-dashboard": "StartWithoutDebugging",
         "inventory-management-dapr": "StartWithoutDebugging",
         "placement": "StartWithoutDebugging",
@@ -28,7 +29,8 @@
         "testsubsagacommunicationservice": "StartDebugging",
         "testsubsagacommunicationservice-dapr": "StartWithoutDebugging",
         "steprecordertestservice": "StartDebugging",
-        "steprecordertestservice-dapr": "StartWithoutDebugging"
+        "steprecordertestservice-dapr": "StartWithoutDebugging",
+        "scheduler": "StartWithoutDebugging"
       }
     }
   }

@@ -1,0 +1,265 @@
+﻿@using Sagaway.ReservationDemo.ReservationUI.Services
+@using Sagaway.ReservationDemo.ReservationUI.Services.DTOs
+@inject IReservationApiClient ReservationApiClient
+@inject ILogger<CarInventoryManager> Logger
+
+<div class="mt-8 p-4 border rounded-lg shadow bg-white">
+    <h2 class="text-xl font-semibold mb-4 text-gray-700">Car Inventory Management</h2>
+
+    @if (_loading)
+    {
+        <p class="text-gray-500">Loading car inventory...</p>
+        <div class="flex justify-center mt-2">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <p class="text-red-600">Error: @_errorMessage</p>
+    }
+    else if (_carInventory?.CarClasses == null || !_carInventory.CarClasses.Any())
+    {
+        <p class="text-gray-600">No car classes found in inventory.</p>
+    }
+    else
+    {
+        <div class="overflow-x-auto">
+            <table class="min-w-full bg-white">
+                <thead class="bg-gray-100">
+                    <tr>
+                        <th class="py-2 px-4 text-left">Car Class</th>
+                        <th class="py-2 px-4 text-left">Available</th>
+                        <th class="py-2 px-4 text-left">Reserved</th>
+                        <th class="py-2 px-4 text-left">Max Allocation</th>
+                        <th class="py-2 px-4 text-left">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var carClass in _carInventory.CarClasses)
+                    {
+                        <tr class="border-b hover:bg-gray-50">
+                            <td class="py-2 px-4">
+                                <div class="flex items-center">
+                                    @{
+                                        var imgSrc = GetCarImageForClass(carClass.Code);
+                                        var carClassName = GetCarClassNameForCode(carClass.Code);
+                                    }
+                                    <img src="@imgSrc" alt="@carClassName"
+                                         class="h-10 w-14 object-contain mr-2"
+                                         onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';" />
+                                    <span style="display:none;" class="text-xs text-gray-500 italic mr-2">(Image unavailable)</span>
+                                    <span>@carClassName</span>
+                                </div>
+                            </td>
+                            <td class="py-2 px-4">
+                                @(carClass.MaxAllocation - carClass.Reserved)
+                            </td>
+                            <td class="py-2 px-4">
+                                <div class="flex items-center">
+                                    <span class="mr-2">@carClass.Reserved</span>
+                                    <div class="w-24 bg-gray-200 rounded h-3">
+                                        @{
+                                            var percentage = carClass.MaxAllocation > 0
+                                            ? Math.Min(100, (carClass.Reserved * 100) / carClass.MaxAllocation)
+                                            : 0;
+                                            var barColorClass = percentage > 80 ? "bg-red-500" : percentage > 50 ? "bg-yellow-500" : "bg-green-500";
+                                        }
+                                        <div class="@barColorClass h-3 rounded" style="width: @percentage%"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="py-2 px-4">
+                                @if (_editingCarClass == carClass.Code)
+                                {
+                                    <input type="number"
+                                           @bind="_editMaxAllocation"
+                                           class="w-20 p-1 border rounded"
+                                           min="@carClass.Reserved" />
+                                }
+                                else
+                                {
+                                    <span>@carClass.MaxAllocation</span>
+                                }
+                            </td>
+                            <td class="py-2 px-4">
+                                @if (_editingCarClass == carClass.Code)
+                                {
+                                    <div class="flex items-center gap-2">
+                                        <button @onclick="() => SaveAllocation(carClass.Code)"
+                                                class="px-3 py-1 bg-green-500 text-white text-sm rounded hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-400 disabled:opacity-50 disabled:cursor-not-allowed">
+                                            Save
+                                        </button>
+                                        <button @onclick="CancelEdit"
+                                                class="px-3 py-1 bg-gray-500 text-white text-sm rounded hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400">
+                                            Cancel
+                                        </button>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <button @onclick="() => EditAllocation(carClass.Code, carClass.MaxAllocation)"
+                                            disabled="@(_editingCarClass != null)"
+                                            class="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:opacity-50 disabled:cursor-not-allowed">
+                                        Edit
+                                    </button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <div class="mt-4 flex gap-2">
+        <button @onclick="RefreshInventory"
+                disabled="@_loading"
+                class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50">
+            Refresh Inventory
+        </button>
+    </div>
+</div>
+
+@code {
+    private bool _loading;
+    private string? _errorMessage;
+    private CarInventoryResponse? _carInventory;
+    private string? _editingCarClass;
+    private int _editMaxAllocation;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshInventory();
+    }
+
+    public async Task RefreshInventory()
+    {
+	    _loading = true;
+	    _errorMessage = null;
+	    StateHasChanged();
+
+	    try
+	    {
+		    // Add debug logging
+		    Logger.LogInformation("Requesting car inventory data...");
+		    _carInventory = await ReservationApiClient.GetCarInventoryAsync();
+		    Logger.LogInformation("Received inventory data with {Count} car classes", 
+			    _carInventory?.CarClasses?.Count ?? 0);
+            
+		    // Check for empty response
+		    if (_carInventory?.CarClasses == null || !_carInventory.CarClasses.Any())
+		    {
+			    Logger.LogWarning("Received empty car inventory response");
+		    }
+		    else
+		    {
+			    // Log each car class received
+			    foreach (var carClass in _carInventory.CarClasses)
+			    {
+				    Logger.LogInformation("Car class: {Code}, Reserved: {Reserved}/{MaxAllocation}", 
+					    carClass.Code, carClass.Reserved, carClass.MaxAllocation);
+			    }
+		    }
+	    }
+	    catch (Exception ex)
+	    {
+		    // Improve error message to include inner exception details
+		    _errorMessage = $"Error loading car inventory: {ex.Message}";
+		    if (ex.InnerException != null)
+		    {
+			    _errorMessage += $" ({ex.InnerException.Message})";
+		    }
+		    Logger.LogError(ex, "Error loading car inventory");
+	    }
+	    finally
+	    {
+		    _loading = false;
+		    StateHasChanged();
+	    }
+    }
+
+
+    private void EditAllocation(string carClass, int currentAllocation)
+    {
+        _editingCarClass = carClass;
+        _editMaxAllocation = currentAllocation;
+        StateHasChanged();
+    }
+
+    private void CancelEdit()
+    {
+        _editingCarClass = null;
+        StateHasChanged();
+    }
+
+    private async Task SaveAllocation(string carClass)
+    {
+        if (_carInventory?.CarClasses == null || string.IsNullOrEmpty(_editingCarClass))
+            return;
+
+        var currentCarClass = _carInventory.CarClasses.FirstOrDefault(c => c.Code == carClass);
+        if (currentCarClass == null) return;
+
+        // Don't allow setting max allocation less than current reservations
+        if (_editMaxAllocation < currentCarClass.Reserved)
+        {
+            _errorMessage = "Maximum allocation cannot be less than the number of current reservations.";
+            return;
+        }
+
+        try
+        {
+            // Create the request object for the API
+            var allocationRequest = new CarClassAllocationRequest
+                {
+                    CarClass = carClass,
+                    MaxAllocation = _editMaxAllocation
+                };
+
+            // Call the API to update allocation using ReservationApiClient
+            var updatedCarClass = await ReservationApiClient.UpdateCarClassAllocationAsync(allocationRequest);
+
+            // Update local data
+            var index = _carInventory.CarClasses.FindIndex(c => c.Code == carClass);
+            if (index >= 0)
+            {
+                _carInventory.CarClasses[index] = updatedCarClass;
+            }
+
+            // Exit edit mode
+            _editingCarClass = null;
+            _errorMessage = null; // Clear any previous error message
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Error updating allocation: {ex.Message}";
+            Logger.LogError(ex, "Error updating allocation for car class {CarClass}", carClass);
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+
+    private string GetCarClassNameForCode(string? carClassCode)
+    {
+        return carClassCode?.ToUpperInvariant() switch
+        {
+            "ECON" => "Economy",
+            "STD" => "Standard",
+            "LUX" => "Luxury",
+            _ => carClassCode ?? "Unknown"
+        };
+    }
+
+    private string GetCarImageForClass(string? carClassCode)
+    {
+        return carClassCode?.ToUpperInvariant() switch
+        {
+            "ECON" => "images/EconomyCar.png",
+            "STD" => "images/StandardCar.png",
+            "LUX" => "images/LuxuryCar.png",
+            _ => "images/DefaultCar.png"
+        };
+    }
+}

@@ -84,7 +84,7 @@ app.MapGet("/billing-status/{reservationId}", ([FromRoute] Guid reservationId, [
 {
     var randomNumber = rnd.Next(0, 6);
     var charged = randomNumber  < 4;
-    var refund = randomNumber == 4;
+    var refund = randomNumber > 2;
 
     logger.LogInformation("Billing status for reservation id {reservationId} is {charged}", 
         reservationId, charged);
