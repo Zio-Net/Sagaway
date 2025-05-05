@@ -8,9 +8,13 @@ param location string = resourceGroup().location
 param cosmosAccountName string 
 param cosmosDbName string 
 param cosmosContainerName string 
-param actorContainerName string = 'actorStateStore' // Added new container name for actor state store
-param port int = 80 // Default port for the backend apps
-
+param actorContainerName string = 'actorStateStore' 
+param port int = 8080 
+// Queue Names
+var billingQueueName = 'billing-queue'
+var bookingQueueName = 'booking-queue'
+var inventoryQueueName = 'inventory-queue'
+var reservationResponseQueueName = 'reservation-response-queue'
 
 // Container App Environment
 resource containerEnv 'Microsoft.App/managedEnvironments@2023-05-01' = {
@@ -35,12 +39,6 @@ resource serviceBus 'Microsoft.ServiceBus/namespaces@2022-10-01-preview' = {
     tier: 'Basic'
   }
 }
-
-// Queue Names
-var billingQueueName = 'billing-queue'
-var bookingQueueName = 'booking-queue'
-var inventoryQueueName = 'inventory-queue'
-var reservationResponseQueueName = 'reservation-response-queue'
 
 // Queues
 resource billingQueue 'Microsoft.ServiceBus/namespaces/queues@2022-10-01-preview' = {
@@ -432,11 +430,11 @@ resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
       dapr: {
         enabled: true
         appId: reservationManagerAppName
-        appPort: 80 // Ensure this is 80
+        appPort: port // Ensure this is 80
       }
       ingress: {
         external: true
-        targetPort: 80 // Ensure this is 80
+        targetPort: port // Ensure this is 80
         transport: 'auto'
       }
     }
@@ -453,8 +451,9 @@ resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
             // Add ASPNETCORE_URLS to force listening on port 80
             {
               name: 'ASPNETCORE_URLS'
-              value: 'http://+:80'
+              value: 'http://+:8080'
             }
+            
           ]
         }
       ]
@@ -489,11 +488,11 @@ resource backendContainerApps 'Microsoft.App/containerApps@2023-05-01' = [for ap
       dapr: {
         enabled: true
         appId: app.name
-        appPort: 80 // Ensure this is 80
+        appPort: port // Ensure this is 80
       }
       ingress: {
         external: true
-        targetPort: 80 // Ensure this is 80
+        targetPort: port // Ensure this is 80
         transport: 'auto'
       }
     }
@@ -506,7 +505,7 @@ resource backendContainerApps 'Microsoft.App/containerApps@2023-05-01' = [for ap
             // Add ASPNETCORE_URLS to force listening on port 80
             {
               name: 'ASPNETCORE_URLS'
-              value: 'http://+:80'
+              value: 'http://+:8080'
             }
           ]
         }
@@ -548,7 +547,7 @@ resource reservationUiApp 'Microsoft.App/containerApps@2023-05-01' = {
       }
       ingress: {
         external: true
-        targetPort: port // Port Nginx/server in the UI container listens on
+        targetPort: 80 // Port Nginx/server in the UI container listens on
         transport: 'auto'
       }
     }
