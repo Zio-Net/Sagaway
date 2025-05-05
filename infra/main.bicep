@@ -299,23 +299,27 @@ var apps = [
   {
     name: 'reservation-manager'
     image: '${containerRegistry}/sagaway.demo.reservation.manager:latest'
+    isUI: false
   }
   {
     name: 'billing-management'
     image: '${containerRegistry}/sagaway.demo.billing.manager:latest'
+    isUI: false
   }
   {
     name: 'inventory-management'
     image: '${containerRegistry}/sagaway.demo.inventory.manager:latest'
+    isUI: false
   }
   {
     name: 'booking-management'
     image: '${containerRegistry}/sagaway.demo.booking.manager:latest'
+    isUI: false
   }
   {
     name: 'reservation-ui'
     image: '${containerRegistry}/sagaway.demo.reservation.ui:latest'
-    isNginx: true // Flag to identify this as the nginx-based UI
+    isUI: true
   }
 ]
 
@@ -545,19 +549,12 @@ resource containerApps 'Microsoft.App/containerApps@2023-05-01' = [for app in ap
       dapr: {
         enabled: true
         appId: app.name
-        appPort: 8080
+        appPort: app.isUI ? 80 : 8080
       }
       ingress: {
         external: true
-        targetPort: contains(app, 'isNginx') && app.isNginx == true ? 80 : 8080 // Use port 80 for nginx
+        targetPort: app.isUI ? 80 : 8080
         transport: 'auto'
-        // Add traffic weight for external exposure if it's the UI
-        traffic: contains(app, 'isNginx') && app.isNginx == true ? [
-          {
-            weight: 100
-            latestRevision: true
-          }
-        ] : null
       }
     }
     template: {
@@ -565,19 +562,15 @@ resource containerApps 'Microsoft.App/containerApps@2023-05-01' = [for app in ap
         {
           name: app.name
           image: app.image
-          // Add specific resources for nginx if needed
-          resources: contains(app, 'isNginx') && app.isNginx != null && bool(app.isNginx) ? {
-            cpu: '0.5'
-            memory: '1Gi'
-          } : {
-            cpu: '0.5'
+          resources: {
+            cpu: app.isUI ? 1 : 1
             memory: '1Gi'
           }
         }
       ]
       scale: {
         minReplicas: 1
-        maxReplicas: contains(app, 'isNginx') && app.isNginx == true ? 3 : 1 // Allow UI to scale more
+        maxReplicas: app.isUI ? 3 : 1
       }
     }
   }
