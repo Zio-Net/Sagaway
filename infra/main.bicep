@@ -245,6 +245,59 @@ resource reservationResponseQueueBinding 'Microsoft.App/managedEnvironments/dapr
   }
 }
 
+// Azure SignalR Service
+resource signalR 'Microsoft.SignalRService/signalR@2023-02-01' = {
+  name: 'sagaway-signalr-demo' // Choose a unique name
+  location: location
+  sku: {
+    name: 'Free_F1' // Or choose a different SKU like Standard_S1
+    tier: 'Free'   // Or 'Standard'
+    capacity: 1
+  }
+  kind: 'SignalR'
+  properties: {
+    features: [
+      {
+        flag: 'ServiceMode'
+        value: 'Serverless' // Use Serverless mode as it's likely used with Dapr bindings
+      }
+    ]
+    cors: {
+      allowedOrigins: [
+        '*' // Adjust for production environments
+      ]
+    }
+  }
+}
+
+// Dapr Binding - SignalR
+resource reservationCallbackBinding 'Microsoft.App/managedEnvironments/daprComponents@2023-05-01' = {
+  parent: containerEnv
+  name: 'reservationcallback' // Matches the component name used in the code and local YAML
+  // dependsOn removed as Bicep infers it from listKeys usage
+  properties: {
+    componentType: 'bindings.azure.signalr'
+    version: 'v1'
+    metadata: [
+      {
+        name: 'connectionString'
+        secretRef: 'signalr-conn-string'
+      }
+      {
+        name: 'hub'
+        value: 'reservationcallback' // Matches the hub name used in the code and local YAML
+      }
+    ]
+    secrets: [
+      {
+        name: 'signalr-conn-string'
+        value: listKeys(signalR.id, signalR.apiVersion).primaryConnectionString
+      }
+    ]
+    scopes: ['reservation-manager'] // Only scope to the app that needs it
+  }
+}
+
 // Apps Array
 var apps = [
   {
