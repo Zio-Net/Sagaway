@@ -573,98 +573,98 @@ resource containerApps 'Microsoft.App/containerApps@2023-05-01' = [for app in ap
   }
 }]
 
-// Container Apps
-resource containerApps1 'Microsoft.App/containerApps@2023-05-01' = [for app in apps: {
-  name: app.name
-  location: location
-  properties: {
-    managedEnvironmentId: containerEnv.id
-    configuration: {
-      secrets: [
-        {
-          name: 'registry-password'
-          value: containerRegistryPassword
-        }
-      ]
-      registries: [
-        {
-          server: containerRegistry
-          username: containerRegistryUsername
-          passwordSecretRef: 'registry-password'
-        }
-      ]
-      dapr: {
-        enabled: true
-        appId: app.name
-        appPort: app.isUI ? 80 : 8080
-        appProtocol: 'http'
-      }
-      ingress: {
-        external: true
-        targetPort: app.isUI ? 80 : 8080
-        transport: 'auto'
-        allowInsecure: true
-      }
-    }
-    template: {
-      containers: [
-        {
-          name: app.name
-          image: app.image
-          env: [
-            {
-              name: 'ASPNETCORE_URLS'
-              value: 'http://+:8080'
-            }
-            {
-              name: 'PORT'
-              value: '8080'
-            }
-          ]
-          probes: [
-            {
-              type: 'startup'
-              httpGet: {
-                path: app.isUI ? '/' : '/healthz'
-                port: app.isUI ? 80 : 8080
-                scheme: 'http'
-              }
-              initialDelaySeconds: 10
-              periodSeconds: 10
-              failureThreshold: 3
-              timeoutSeconds: 1
-            }
-            {
-              type: 'liveness'
-              httpGet: {
-                path: app.isUI ? '/' : '/healthz' 
-                port: app.isUI ? 80 : 8080
-                scheme: 'http'
-              }
-              initialDelaySeconds: 10
-              periodSeconds: 10
-              failureThreshold: 3
-              timeoutSeconds: 1
-            }
-            {
-              type: 'readiness'
-              httpGet: {
-                path: app.isUI ? '/' : '/healthz'
-                port: app.isUI ? 80 : 8080
-                scheme: 'http'
-              }
-              initialDelaySeconds: 15
-              periodSeconds: 10
-              failureThreshold: 3
-              timeoutSeconds: 1
-            }
-          ]
-        }
-      ]
-      scale: {
-        minReplicas: 1
-        maxReplicas: app.isUI ? 3 : 1
-      }
-    }
-  }
-}]
+// // Container Apps
+// resource containerApps1 'Microsoft.App/containerApps@2023-05-01' = [for app in apps: {
+//   name: app.name
+//   location: location
+//   properties: {
+//     managedEnvironmentId: containerEnv.id
+//     configuration: {
+//       secrets: [
+//         {
+//           name: 'registry-password'
+//           value: containerRegistryPassword
+//         }
+//       ]
+//       registries: [
+//         {
+//           server: containerRegistry
+//           username: containerRegistryUsername
+//           passwordSecretRef: 'registry-password'
+//         }
+//       ]
+//       dapr: {
+//         enabled: true
+//         appId: app.name
+//         appPort: app.isUI ? 80 : 8080
+//         appProtocol: 'http'
+//       }
+//       ingress: {
+//         external: true
+//         targetPort: app.isUI ? 80 : 8080
+//         transport: 'auto'
+//         allowInsecure: true
+//       }
+//     }
+//     template: {
+//       containers: [
+//         {
+//           name: app.name
+//           image: app.image
+//           env: [
+//             {
+//               name: 'ASPNETCORE_URLS'
+//               value: 'http://+:8080'
+//             }
+//             {
+//               name: 'PORT'
+//               value: '8080'
+//             }
+//           ]
+//           probes: [
+//             {
+//               type: 'startup'
+//               httpGet: {
+//                 path: app.isUI ? '/' : '/healthz'
+//                 port: app.isUI ? 80 : 8080
+//                 scheme: 'http'
+//               }
+//               initialDelaySeconds: 10
+//               periodSeconds: 10
+//               failureThreshold: 3
+//               timeoutSeconds: 1
+//             }
+//             {
+//               type: 'liveness'
+//               httpGet: {
+//                 path: app.isUI ? '/' : '/healthz' 
+//                 port: app.isUI ? 80 : 8080
+//                 scheme: 'http'
+//               }
+//               initialDelaySeconds: 10
+//               periodSeconds: 10
+//               failureThreshold: 3
+//               timeoutSeconds: 1
+//             }
+//             {
+//               type: 'readiness'
+//               httpGet: {
+//                 path: app.isUI ? '/' : '/healthz'
+//                 port: app.isUI ? 80 : 8080
+//                 scheme: 'http'
+//               }
+//               initialDelaySeconds: 15
+//               periodSeconds: 10
+//               failureThreshold: 3
+//               timeoutSeconds: 1
+//             }
+//           ]
+//         }
+//       ]
+//       scale: {
+//         minReplicas: 1
+//         maxReplicas: app.isUI ? 3 : 1
+//       }
+//     }
+//   }
+// }]
