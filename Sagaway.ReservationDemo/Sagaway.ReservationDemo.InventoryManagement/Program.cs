@@ -11,6 +11,7 @@ using OpenTelemetry.Resources;
 
 var builder = WebApplication.CreateBuilder(args);
 
+
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
@@ -117,6 +118,7 @@ app.MapPost("/inventory-queue", async (
         IsReserved = false
     };
 
+
     switch (request.ActionType)
     {
         case ActionType.Reserve:
@@ -182,47 +184,46 @@ app.MapPost("/inventory-queue", async (
             return;
         }
 
-        // Build transaction operations with partitionKey metadata
-        var carClassPkMeta = new Dictionary<string, string> { { "partitionKey", request.CarClass } };
-        var carClassStateUpdate = new StateTransactionRequest(
-            key: request.CarClass,
-            value: JsonSerializer.SerializeToUtf8Bytes(carClassState),
-            operationType: StateOperationType.Upsert,
-            etag: carClassEtag,
-            metadata: carClassPkMeta
-        );
 
-        var reservationPkMeta = new Dictionary<string, string> { { "partitionKey", stateStoreKey } };
-        var reservationStateUpdate = new StateTransactionRequest(
-            key: stateStoreKey,
-            value: JsonSerializer.SerializeToUtf8Bytes(reservationState),
-            operationType: StateOperationType.Upsert,
-            etag: orderIdEtag,
-            metadata: reservationPkMeta
-        );
+        var carClassStateUpdate = new StateTransactionRequest(request.CarClass,
+            JsonSerializer.SerializeToUtf8Bytes(carClassState), // Use JsonSerializer
+            StateOperationType.Upsert, carClassEtag);
 
-        var (currentIndex, indexEtag) = await daprClient.GetStateAndETagAsync<HashSet<string>>("statestore", carClassIndexKey);
-        currentIndex ??= new HashSet<string>();
-        var transactionOperations = new List<StateTransactionRequest> { carClassStateUpdate, reservationStateUpdate };
+        var reservationStateUpdate = new StateTransactionRequest(stateStoreKey,
+                       JsonSerializer.SerializeToUtf8Bytes(reservationState),
+                                  StateOperationType.Upsert, orderIdEtag);
 
-        if (currentIndex.Add(request.CarClass))
+        var transactionOperations = new List<StateTransactionRequest>()
         {
-            logger.LogInformation("Adding car class {CarClass} to index '{IndexKey}' during reservation.", request.CarClass, carClassIndexKey);
-            var indexPkMeta = new Dictionary<string, string> { { "partitionKey", carClassIndexKey } };
-            transactionOperations.Add(new StateTransactionRequest(
-                key: carClassIndexKey,
-                value: JsonSerializer.SerializeToUtf8Bytes(currentIndex),
-                operationType: StateOperationType.Upsert,
-                etag: indexEtag,
-                metadata: indexPkMeta
-            ));
+            carClassStateUpdate,
+            reservationStateUpdate
+        };
+
+        // Ensure the car class exists in the index
+        try
+        {
+            var (currentIndex, indexEtag) = await daprClient.GetStateAndETagAsync<HashSet<string>>("statestore", carClassIndexKey);
+            currentIndex ??= new HashSet<string>();
+
+            if (currentIndex.Add(request.CarClass)) // Add returns true if the item was added (i.e., it wasn't there before)
+            {
+                logger.LogInformation("Adding car class {CarClass} to index '{IndexKey}' during reservation.", request.CarClass, carClassIndexKey);
+                transactionOperations.Add(new StateTransactionRequest(carClassIndexKey, JsonSerializer.SerializeToUtf8Bytes(currentIndex), StateOperationType.Upsert, indexEtag));
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log the error but proceed with the reservation if possible.
+            // Index update failure shouldn't necessarily block the reservation itself,
+            // but it means the inventory list might be temporarily incomplete.
+            logger.LogWarning(ex, "Failed to update car class index '{IndexKey}' while reserving {CarClass}. Inventory list might be incomplete.", carClassIndexKey, request.CarClass);
         }
 
         try
         {
             await daprClient.ExecuteStateTransactionAsync("statestore", transactionOperations);
             logger.LogInformation("Car class {CarClass} reserved for order id {orderId} - {CarClassState} cars reserved",
-                request.CarClass, request.OrderId, carClassState);
+            request.CarClass, request.OrderId, carClassState);
 
             reservationOperationResult.IsSuccess = true;
             await daprClient.InvokeBindingAsync(callbackBindingNameProvider.CallbackBindingName, "create", reservationOperationResult);
@@ -235,6 +236,8 @@ app.MapPost("/inventory-queue", async (
         }
     }
 
+
+
     async Task CancelCarReservationAsync()
     {
         //get the number of car reserved in the class
@@ -245,29 +248,23 @@ app.MapPost("/inventory-queue", async (
         {
             reservationState.IsReserved = false;
             // Decrement the count only if it was previously reserved
-            carClassState = Math.Max(0, carClassState - 1);
+            carClassState = Math.Max(0, carClassState - 1); // Ensure it doesn't go below 0
         }
 
-        // Build transaction operations with partitionKey metadata
-        var carClassPkMeta = new Dictionary<string, string> { { "partitionKey", request.CarClass } };
-        var carClassStateUpdate = new StateTransactionRequest(
-            key: request.CarClass,
-            value: JsonSerializer.SerializeToUtf8Bytes(carClassState),
-            operationType: StateOperationType.Upsert,
-            etag: carClassEtag,
-            metadata: carClassPkMeta
-        );
+        //we need transactional update to the number of cars reserved in the class and the reservation state
+        var carClassStateUpdate = new StateTransactionRequest(request.CarClass,
+            JsonSerializer.SerializeToUtf8Bytes(carClassState), // Use JsonSerializer
+            StateOperationType.Upsert, carClassEtag);
 
-        var reservationPkMeta = new Dictionary<string, string> { { "partitionKey", stateStoreKey } };
-        var reservationStateUpdate = new StateTransactionRequest(
-            key: stateStoreKey,
-            value: null,
-            operationType: StateOperationType.Delete,
-            etag: orderIdEtag,
-            metadata: reservationPkMeta
-        );
+        var reservationStateUpdate = new StateTransactionRequest(stateStoreKey,
+            null, // No data needed for delete operation
+            StateOperationType.Delete, orderIdEtag);
 
-        var transactionOperations = new List<StateTransactionRequest> { carClassStateUpdate, reservationStateUpdate };
+        var transactionOperations = new List<StateTransactionRequest>()
+        {
+            carClassStateUpdate,
+            reservationStateUpdate
+        };
 
         try
         {
@@ -276,7 +273,9 @@ app.MapPost("/inventory-queue", async (
                 request.CarClass, request.OrderId, carClassState);
 
             reservationOperationResult.IsSuccess = true;
+
             await daprClient.InvokeBindingAsync(callbackBindingNameProvider.CallbackBindingName, "create", reservationOperationResult);
+
         }
         catch (Exception e)
         {
@@ -298,24 +297,30 @@ app.MapGet("/reservation-state/{orderId}", async (
     {
         var stateStoreKey = MakeStateStoreKey(orderId.ToString());
 
+        // Attempt to fetch the reservation state for the given order ID from the Dapr state store
         var reservationState = await daprClient.GetStateAsync<ReservationState>("statestore", stateStoreKey);
 
         if (reservationState == null)
         {
             logger.LogInformation("No reservation found for order id: {OrderId}", orderId);
+            // Return a NotFound result if no reservation state is found
             return Results.NotFound(new { Message = $"No reservation found for order id: {orderId}" });
         }
 
+        // If a reservation state is found, return it
         return Results.Ok(reservationState);
     }
     catch (Exception e)
     {
         logger.LogError(e, "Failed to retrieve reservation state for order id {OrderId}", orderId);
+        // Return an InternalServerError result in case of exceptions
         return Results.Problem("An error occurred while retrieving the reservation state.");
     }
 })
 .WithName("GetReservationState")
 .WithOpenApi();
+
+
 
 app.MapGet("/car-inventory", async (
     [FromServices] DaprClient daprClient,
@@ -326,32 +331,39 @@ app.MapGet("/car-inventory", async (
 
     try
     {
+        // 1. Get the list of car class codes from the index
         var carClassCodes = await daprClient.GetStateAsync<HashSet<string>>("statestore", carClassIndexKey);
 
         if (carClassCodes == null || !carClassCodes.Any())
         {
             logger.LogInformation("Car class index '{IndexKey}' is empty or not found.", carClassIndexKey);
+            // Return empty list or potentially seed default classes here if desired
             return Results.Ok(new CarInventoryResponse { CarClasses = carClassInfoList });
         }
 
         logger.LogInformation("Found {Count} car classes in index: {CarClasses}", carClassCodes.Count, string.Join(", ", carClassCodes));
 
+        // 2. For each car class code, get its reservation count and max allocation
         foreach (var carClass in carClassCodes)
         {
-            if (string.IsNullOrWhiteSpace(carClass)) continue;
+            if (string.IsNullOrWhiteSpace(carClass)) continue; // Skip empty entries if any
 
+            // Get current count of reservations by car class
             int reserved;
             try
             {
+                // This key stores the aggregated count of active reservations
                 reserved = await daprClient.GetStateAsync<int>("statestore", carClass);
             }
-            catch (Exception ex)
+            catch (Exception ex) // More specific: catch DaprException when key not found?
             {
+                // Key might not exist if no reservations made yet, default to 0
                 logger.LogWarning(ex, "Failed to get reservation count for {CarClass} or key not found. Assuming 0.", carClass);
                 reserved = 0;
             }
 
-            int maxAllocation = 2;
+            // Get max allocation setting
+            int maxAllocation = 2; // Default if not set
             try
             {
                 var maxValue = await daprClient.GetStateAsync<int?>("statestore", $"{carClass}_max");
@@ -363,6 +375,7 @@ app.MapGet("/car-inventory", async (
             catch (Exception ex)
             {
                 logger.LogWarning(ex, "Failed to get max allocation for {CarClass} or key not found. Using default {DefaultAllocation}.", carClass, maxAllocation);
+                // Use default if key not found or other error
             }
 
             carClassInfoList.Add(new CarClassInfo
@@ -401,7 +414,7 @@ app.MapPost("/car-inventory", async (
         return Results.BadRequest("Maximum allocation must be non-negative");
     }
 
-    var carClass = request.CarClass.Trim();
+    var carClass = request.CarClass.Trim(); // Ensure no leading/trailing spaces
     var allocationKey = $"{carClass}_max";
 
     logger.LogInformation("Setting max allocation for car class {CarClass} to {MaxAllocation}",
@@ -409,43 +422,39 @@ app.MapPost("/car-inventory", async (
 
     try
     {
+        // Use a transaction to save allocation and update index atomically
         var transactionRequests = new List<StateTransactionRequest>();
 
-        // 1) Save the max allocation setting with PK=allocationKey
-        var allocPkMeta = new Dictionary<string, string> { { "partitionKey", allocationKey } };
-        transactionRequests.Add(new StateTransactionRequest(
-            key: allocationKey,
-            value: JsonSerializer.SerializeToUtf8Bytes(request.MaxAllocation),
-            operationType: StateOperationType.Upsert,
-            etag: null,
-            metadata: allocPkMeta
-        ));
+        // 1. Save the max allocation setting
+        transactionRequests.Add(new StateTransactionRequest(allocationKey, JsonSerializer.SerializeToUtf8Bytes(request.MaxAllocation), StateOperationType.Upsert));
 
-        // 2) Update the car class index if needed with PK=carClassIndexKey
+        // 2. Update the car class index
         var (currentIndex, etag) = await daprClient.GetStateAndETagAsync<HashSet<string>>("statestore", carClassIndexKey);
-        currentIndex ??= new HashSet<string>();
+        currentIndex ??= new HashSet<string>(); // Initialize if null
 
-        if (currentIndex.Add(carClass))
+        bool indexChanged = currentIndex.Add(carClass); // Add returns true if the item was added
+
+        if (indexChanged)
         {
             logger.LogInformation("Adding car class {CarClass} to index '{IndexKey}'", carClass, carClassIndexKey);
-            var indexPkMeta = new Dictionary<string, string> { { "partitionKey", carClassIndexKey } };
-            transactionRequests.Add(new StateTransactionRequest(
-                key: carClassIndexKey,
-                value: JsonSerializer.SerializeToUtf8Bytes(currentIndex),
-                operationType: StateOperationType.Upsert,
-                etag: etag,
-                metadata: indexPkMeta
-            ));
+            transactionRequests.Add(new StateTransactionRequest(carClassIndexKey, JsonSerializer.SerializeToUtf8Bytes(currentIndex), StateOperationType.Upsert, etag));
+        }
+        else
+        {
+            logger.LogInformation("Car class {CarClass} already exists in index '{IndexKey}'", carClass, carClassIndexKey);
         }
 
+        // Execute the transaction
         await daprClient.ExecuteStateTransactionAsync("statestore", transactionRequests);
 
+
+        // Get current reservation count for the response (best effort after transaction)
         int reserved = 0;
         try
         {
             reserved = await daprClient.GetStateAsync<int>("statestore", carClass);
         }
-        catch { /* Ignore if not found */ }
+        catch { /* Ignore if not found, default is 0 */ }
 
         return Results.Ok(new CarClassInfo
         {
@@ -462,6 +471,9 @@ app.MapPost("/car-inventory", async (
 })
 .WithName("UpdateCarClassAllocation")
 .WithOpenApi();
+
+
+
 
 app.MapHealthChecks("/healthz");
 app.UseSagawayContextPropagator();
