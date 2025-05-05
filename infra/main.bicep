@@ -388,22 +388,22 @@ resource statestore 'Microsoft.App/managedEnvironments/daprComponents@2023-05-01
         name: 'collection'
         value: cosmosContainerName
       }
-      {
-        name: 'queryIndexes'
-        value: '''
-          [
-            {
-              "name": "customerNameIndex",
-              "indexes": [
-                {
-                  "key": "customerName",
-                  "type": "TEXT"
-                }
-              ]
-            }
-          ]
-        '''
-      }
+      // {
+      //   name: 'queryIndexes'
+      //   value: '''
+      //     [
+      //       {
+      //         "name": "customerNameIndex",
+      //         "indexes": [
+      //           {
+      //             "key": "customerName",
+      //             "type": "TEXT"
+      //           }
+      //         ]
+      //       }
+      //     ]
+      //   '''
+      // }
     ]
     secrets: [
       {
@@ -526,8 +526,55 @@ resource statestore 'Microsoft.App/managedEnvironments/daprComponents@2023-05-01
 //   }
 // }
 
+
 // Container Apps
 resource containerApps 'Microsoft.App/containerApps@2023-05-01' = [for app in apps: {
+  name: app.name
+  location: location
+  properties: {
+    managedEnvironmentId: containerEnv.id
+    configuration: {
+      secrets: [
+        {
+          name: 'registry-password'
+          value: containerRegistryPassword
+        }
+      ]
+      registries: [
+        {
+          server: containerRegistry
+          username: containerRegistryUsername
+          passwordSecretRef: 'registry-password'
+        }
+      ]
+      dapr: {
+        enabled: app.isUI ? true : false
+        appId: app.name
+        appPort: 8080
+      }
+      ingress: {
+        external: true
+        targetPort: 8080
+        transport: 'auto'
+      }
+    }
+    template: {
+      containers: [
+        {
+          name: app.name
+          image: app.image
+        }
+      ]
+      scale: {
+        minReplicas: 1
+        maxReplicas: 1
+      }
+    }
+  }
+}]
+
+// Container Apps
+resource containerApps1 'Microsoft.App/containerApps@2023-05-01' = [for app in apps: {
   name: app.name
   location: location
   properties: {
