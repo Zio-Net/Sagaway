@@ -241,7 +241,7 @@ resource reservationResponseQueueBinding 'Microsoft.App/managedEnvironments/dapr
         value: listKeys('${serviceBus.id}/AuthorizationRules/RootManageSharedAccessKey', '2022-10-01-preview').primaryConnectionString
       }
     ]
-    scopes: [for app in apps: app.name]
+    scopes: union(backendAppNames, ['reservation-manager']) // Use variable in union
   }
 }
 
@@ -298,13 +298,9 @@ resource reservationCallbackBinding 'Microsoft.App/managedEnvironments/daprCompo
   }
 }
 
-// Apps Array
-var apps = [
-  {
-    name: 'reservation-manager'
-    image: '${containerRegistry}/sagaway.demo.reservation.manager:latest'
-
-  }
+// Apps Array (Backend Services Only)
+var backendApps = [
+  // Removed reservation-manager from here
   {
     name: 'billing-management'
     image: '${containerRegistry}/sagaway.demo.billing.manager:latest'
@@ -319,8 +315,10 @@ var apps = [
     name: 'booking-management'
     image: '${containerRegistry}/sagaway.demo.booking.manager:latest'
   }
-  
 ]
+
+// Variable for backend app names
+var backendAppNames = [for app in backendApps: app.name]
 
 // Dapr Actor State Store - CosmosDB
 resource actorstatestore 'Microsoft.App/managedEnvironments/daprComponents@2023-05-01' = {
@@ -358,7 +356,7 @@ resource actorstatestore 'Microsoft.App/managedEnvironments/daprComponents@2023-
         value: cosmosdb_account.listKeys().primaryMasterKey
       }
     ]
-    scopes: [for app in apps: app.name]
+    scopes: union(backendAppNames, ['reservation-manager']) // Use variable in union
   }
 }
 
@@ -387,22 +385,6 @@ resource statestore 'Microsoft.App/managedEnvironments/daprComponents@2023-05-01
         name: 'collection'
         value: cosmosContainerName
       }
-      // {
-      //   name: 'queryIndexes'
-      //   value: '''
-      //     [
-      //       {
-      //         "name": "customerNameIndex",
-      //         "indexes": [
-      //           {
-      //             "key": "customerName",
-      //             "type": "TEXT"
-      //           }
-      //         ]
-      //       }
-      //     ]
-      //   '''
-      // }
     ]
     secrets: [
       {
@@ -410,36 +392,86 @@ resource statestore 'Microsoft.App/managedEnvironments/daprComponents@2023-05-01
         value: cosmosdb_account.listKeys().primaryMasterKey
       }
     ]
-    scopes: [for app in apps: app.name]
+    scopes: union(backendAppNames, ['reservation-manager']) // Use variable in union
   }
 }
 
+// Reservation Manager Container App (Defined Separately)
+var reservationManagerAppName = 'reservation-manager'
+var reservationManagerImage = '${containerRegistry}/sagaway.demo.reservation.manager:latest'
 
-// Container Apps
-resource containerApps 'Microsoft.App/containerApps@2023-05-01' = [for app in apps: {
-  name: app.name
+resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
+  name: reservationManagerAppName
   location: location
- 
   properties: {
     managedEnvironmentId: containerEnv.id
     configuration: {
-      // Define secrets for the Container App
       secrets: union(
-        // Base secrets (registry password)
         [
           {
             name: 'registry-password'
-            value: containerRegistryPassword // Corrected: Use the parameter directly
+            value: containerRegistryPassword
           }
         ],
-        // Conditionally add the SignalR connection string secret ONLY for reservation-manager
-        (app.name == 'reservation-manager') ? [
+        [
           {
-            name: 'signalr-connection-string-secret' // Define the secret within the container app
-            value: signalR.listKeys().primaryConnectionString // Use direct listKeys() method call
+            name: 'signalr-connection-string-secret'
+            value: signalR.listKeys().primaryConnectionString
           }
-        ] : []
+        ]
       )
+      registries: [
+        {
+          server: containerRegistry
+          username: containerRegistryUsername
+          passwordSecretRef: 'registry-password'
+        }
+      ]
+      dapr: {
+        enabled: true
+        appId: reservationManagerAppName
+        appPort: 8080 
+      }
+      ingress: {
+        external: true
+        targetPort: 8080 
+        transport: 'auto'
+      }
+    }
+    template: {
+      containers: [
+        {
+          name: reservationManagerAppName
+          image: reservationManagerImage
+          env: [
+            {
+              name: 'Azure__SignalR__ConnectionString'
+              secretRef: 'signalr-connection-string-secret'
+            }
+          ]
+        }
+      ]
+      scale: {
+        minReplicas: 1
+        maxReplicas: 1
+      }
+    }
+  }
+}
+
+// Backend Container Apps (Loop)
+resource backendContainerApps 'Microsoft.App/containerApps@2023-05-01' = [for app in backendApps: {
+  name: app.name
+  location: location
+  properties: {
+    managedEnvironmentId: containerEnv.id
+    configuration: {
+      secrets: [
+        {
+          name: 'registry-password'
+          value: containerRegistryPassword
+        }
+      ]
       registries: [
         {
           server: containerRegistry
@@ -454,7 +486,7 @@ resource containerApps 'Microsoft.App/containerApps@2023-05-01' = [for app in ap
       }
       ingress: {
         external: true
-        targetPort: 8080 
+        targetPort: 8080
         transport: 'auto'
       }
     }
@@ -463,13 +495,7 @@ resource containerApps 'Microsoft.App/containerApps@2023-05-01' = [for app in ap
         {
           name: app.name
           image: app.image
-          // Conditionally inject SignalR connection string only for reservation-manager
-          env: (app.name == 'reservation-manager') ? [
-            {
-              name: 'Azure__SignalR__ConnectionString' // Maps to Azure:SignalR:ConnectionString in IConfiguration
-              secretRef: 'signalr-connection-string-secret' // Reference the secret defined ABOVE in configuration.secrets
-            }
-          ] : [] // Empty env array for other apps
+          // No special env vars needed here for this example
         }
       ]
       scale: {
@@ -479,5 +505,59 @@ resource containerApps 'Microsoft.App/containerApps@2023-05-01' = [for app in ap
     }
   }
 }]
+
+// Reservation UI Container App (Defined Separately)
+var reservationUiAppName = 'reservation-ui'
+var reservationUiImage = '${containerRegistry}/sagaway.demo.reservation.ui:latest' // Assumed image name
+
+resource reservationUiApp 'Microsoft.App/containerApps@2023-05-01' = {
+  name: reservationUiAppName
+  location: location
+  properties: {
+    managedEnvironmentId: containerEnv.id
+    configuration: {
+      secrets: [
+        {
+          name: 'registry-password'
+          value: containerRegistryPassword
+        }
+      ]
+      registries: [
+        {
+          server: containerRegistry
+          username: containerRegistryUsername
+          passwordSecretRef: 'registry-password'
+        }
+      ]
+      // Dapr is disabled for the frontend WASM app
+      dapr: {
+        enabled: false
+      }
+      ingress: {
+        external: true
+        targetPort: 80 // Port Nginx/server in the UI container listens on
+        transport: 'auto'
+      }
+    }
+    template: {
+      containers: [
+        {
+          name: reservationUiAppName
+          image: reservationUiImage
+          env: [
+            {
+              name: 'API_BASE_URL' // Environment variable for the backend URL
+              value: 'https://${reservationManagerApp.properties.configuration.ingress.fqdn}' // Inject backend FQDN
+            }
+          ]
+        }
+      ]
+      scale: {
+        minReplicas: 1
+        maxReplicas: 1
+      }
+    }
+  }
+}
 
 
