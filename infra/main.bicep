@@ -432,11 +432,11 @@ resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
       dapr: {
         enabled: true
         appId: reservationManagerAppName
-        appPort: port // Changed port
+        appPort: 80 // Ensure this is 80
       }
       ingress: {
         external: true
-        targetPort: port // Changed port
+        targetPort: 80 // Ensure this is 80
         transport: 'auto'
       }
     }
@@ -449,6 +449,11 @@ resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
             {
               name: 'Azure__SignalR__ConnectionString'
               secretRef: 'signalr-connection-string-secret'
+            }
+            // Add ASPNETCORE_URLS to force listening on port 80
+            {
+              name: 'ASPNETCORE_URLS'
+              value: 'http://+:80'
             }
           ]
         }
@@ -484,11 +489,11 @@ resource backendContainerApps 'Microsoft.App/containerApps@2023-05-01' = [for ap
       dapr: {
         enabled: true
         appId: app.name
-        appPort: port // Changed port
+        appPort: 80 // Ensure this is 80
       }
       ingress: {
         external: true
-        targetPort: port // Changed port
+        targetPort: 80 // Ensure this is 80
         transport: 'auto'
       }
     }
@@ -497,7 +502,13 @@ resource backendContainerApps 'Microsoft.App/containerApps@2023-05-01' = [for ap
         {
           name: app.name
           image: app.image
-          // No special env vars needed here for this example
+          env: [
+            // Add ASPNETCORE_URLS to force listening on port 80
+            {
+              name: 'ASPNETCORE_URLS'
+              value: 'http://+:80'
+            }
+          ]
         }
       ]
       scale: {
