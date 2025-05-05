@@ -385,12 +385,11 @@ resource containerApps 'Microsoft.App/containerApps@2023-05-01' = [for app in ap
       dapr: {
         enabled: true
         appId: app.name
-        appPort: 80 // Changed from 8080
-        enableApiLogging: true
-      }
+        appPort: 8080 
+        }
       ingress: {
         external: true
-        targetPort: 80 // Changed from 8080
+        targetPort: 8080 
         transport: 'auto'
       }
     }
