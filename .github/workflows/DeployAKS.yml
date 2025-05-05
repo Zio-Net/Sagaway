@@ -3,6 +3,9 @@ name: Deploy AKS
 on:
   workflow_dispatch:
   workflow_call:
+  pull_request:
+    branches:
+      - master
 
 permissions:
   contents: read
