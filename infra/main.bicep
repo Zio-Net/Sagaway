@@ -550,12 +550,40 @@ resource containerApps 'Microsoft.App/containerApps@2023-05-01' = [for app in ap
         enabled: true
         appId: app.name
         appPort: app.isUI ? 80 : 8080
+        appProtocol: 'http'
       }
       ingress: {
         external: true
         targetPort: app.isUI ? 80 : 8080
         transport: 'auto'
+        allowInsecure: true
       }
+      probes: [
+        {
+          type: 'startup'
+          httpGet: {
+            path: app.isUI ? '/' : '/healthz'
+            port: app.isUI ? 80 : 8080
+            scheme: 'http'
+          }
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          failureThreshold: 3
+          timeoutSeconds: 1
+        }
+        {
+          type: 'liveness'
+          httpGet: {
+            path: app.isUI ? '/' : '/healthz' 
+            port: app.isUI ? 80 : 8080
+            scheme: 'http'
+          }
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          failureThreshold: 3
+          timeoutSeconds: 1
+        }
+      ]
     }
     template: {
       containers: [
@@ -563,9 +591,27 @@ resource containerApps 'Microsoft.App/containerApps@2023-05-01' = [for app in ap
           name: app.name
           image: app.image
           // resources: {
-          //   cpu: app.isUI ? 1 : 0.5   // Using valid CPU values: 1 for UI, 0.5 for services
-          //   memory: app.isUI ? '2Gi' : '1Gi'  // Matching memory with CPU as per allowed combinations
+          //   cpu: app.isUI ? 1 : 0.5
+          //   memory: app.isUI ? '2Gi' : '1Gi'
           // }
+          env: [
+            {
+              name: 'ASPNETCORE_URLS'
+              value: 'http://+:8080'
+            }
+            {
+              name: 'PORT'
+              value: '8080'
+            }
+          ]
+          readinessProbe: {
+            httpGet: {
+              path: app.isUI ? '/' : '/healthz'
+              port: app.isUI ? 80 : 8080
+            }
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          }
         }
       ]
       scale: {
