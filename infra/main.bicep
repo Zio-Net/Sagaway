@@ -554,3 +554,33 @@ resource reservationUiApp 'Microsoft.App/containerApps@2023-05-01' = {
 }
 
 
+resource redisInsightApp 'Microsoft.App/containerApps@2023-05-01' = {
+  name: 'redis-insight'
+  location: location
+  properties: {
+    managedEnvironmentId: containerEnv.id
+    configuration: {
+      ingress: {
+        external: true
+        targetPort: 8001
+        transport: 'auto'
+      }
+    }
+    template: {
+      containers: [
+        {
+          name: 'redis-insight'
+          image: 'redis/redisinsight:latest'
+          resources: {
+            cpu:json('0.5') // Define resource requests/limits as needed
+            memory: '1Gi'
+          }
+        }
+      ]
+      scale: {
+        minReplicas: 1
+        maxReplicas: 1
+      }
+    }
+  }
+}
