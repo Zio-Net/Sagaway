@@ -430,13 +430,13 @@ resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
       dapr: {
         enabled: true
         appId: reservationManagerAppName
-        appPort: 80 // Changed from 'port' to 80
+        appPort: 80 // Internal port for Dapr to communicate with the app
       }
       ingress: {
         external: true
-        targetPort: 80 // Changed from 'port' to 80
-        exposedPort: port // Set exposedPort to the 'port' parameter (8080)
-        transport: 'auto'
+        targetPort: 80 // Internal port the container app listens on
+        exposedPort: port // External port exposed (8080)
+        transport: 'tcp'   // Changed from 'auto' to 'tcp' to fix deployment error
       }
     }
     template: {
@@ -449,10 +449,10 @@ resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
               name: 'Azure__SignalR__ConnectionString'
               secretRef: 'signalr-connection-string-secret'
             }
-            // Add ASPNETCORE_URLS to force listening on port 80
+            // Update ASPNETCORE_URLS to listen on the configured port (8080)
             {
               name: 'ASPNETCORE_URLS'
-              value: 'http://+:80' // Changed from 'http://+:8080'
+              value: 'http://+:80' // Application listens on internal port 80
             }
             
           ]
