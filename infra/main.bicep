@@ -9,7 +9,7 @@ param cosmosAccountName string
 param cosmosDbName string 
 param cosmosContainerName string 
 param actorContainerName string = 'actorStateStore' 
-param port int = 8080 
+param port int = 80 
 // Queue Names
 var billingQueueName = 'billing-queue'
 var bookingQueueName = 'booking-queue'
@@ -450,7 +450,7 @@ resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
             }
             {
               name: 'ASPNETCORE_URLS'
-              value: 'http://+:8080' // Application listens on internal port 80
+              value: 'http://*:80' // Application listens on internal port 80
             }
             
           ]
@@ -504,7 +504,7 @@ resource backendContainerApps 'Microsoft.App/containerApps@2023-05-01' = [for ap
             // Add ASPNETCORE_URLS to force listening on port 80
             {
               name: 'ASPNETCORE_URLS'
-              value: 'http://+:8080'
+              value: 'http://*:80'
             }
           ]
         }
