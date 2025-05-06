@@ -508,7 +508,7 @@ resource reservationUiApp 'Microsoft.App/containerApps@2023-05-01' = {
             }
             {
               name: 'RESERVATION_MANAGER_PORT'
-              value: '${port}' // This is the 'port' variable (8080)
+              value: '80' // Standard HTTP port for external ACA ingress
             }
           ]
         }
