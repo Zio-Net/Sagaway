@@ -435,8 +435,7 @@ resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
       ingress: {
         external: true
         targetPort: 80 // Internal port the container app listens on
-        exposedPort: port // External port exposed (8080)
-        transport: 'tcp'   // Changed from 'auto' to 'tcp' to fix deployment error
+        transport: 'auto'   // CHANGED from 'tcp': Use standard HTTP/S ingress
       }
     }
     template: {
