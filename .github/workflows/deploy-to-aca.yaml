@@ -35,15 +35,15 @@ jobs:
       - name: Deploy to Azure Container Apps
         uses: azure/arm-deploy@v1
         with:
-          resourceGroupName: SagawayDemoACA
+          resourceGroupName: SagawayDemoACA  
           template: ./infra/main.bicep
           parameters: >
             containerRegistry=sagawayshared.azurecr.io
             containerRegistryUsername=${{ secrets.ACR_SAGAWAYSHARED_USERNAME }}
             containerRegistryPassword=${{ secrets.ACR_SAGAWAYSHARED_PASSWORD }}
-            cosmosAccountName=sagaway-cosmosdb-demo
-            cosmosDbName=sagaway-db
-            cosmosContainerName=dapr-state
+            # cosmosAccountName=sagaway-cosmosdb-demo
+            # cosmosDbName=sagaway-db
+            # cosmosContainerName=dapr-state
 
       - name: Print deployment outputs
         run: |
