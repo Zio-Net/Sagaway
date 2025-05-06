@@ -40,7 +40,7 @@ COPY Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationUI/nginx.conf /e
 # Copy published Blazor WebAssembly app to nginx public directory
 COPY --from=build /app/publish/wwwroot /usr/share/nginx/html
 
-EXPOSE 80
+EXPOSE 8080
 
 # Start nginx
 CMD ["nginx", "-g", "daemon off;"]
