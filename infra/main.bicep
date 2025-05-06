@@ -542,7 +542,7 @@ resource reservationUiApp 'Microsoft.App/containerApps@2023-05-01' = {
       ]
       ingress: {
         external: true
-        targetPort: 8080 // Port Nginx/server in the UI container listens on
+        targetPort: 80 // Port Nginx/server in the UI container listens on
         transport: 'auto'
       }
     }
@@ -551,12 +551,6 @@ resource reservationUiApp 'Microsoft.App/containerApps@2023-05-01' = {
         {
           name: reservationUiAppName
           image: reservationUiImage
-          env: [
-            {
-              name: 'API_BASE_URL' // Environment variable for the backend URL
-              value: 'https://${reservationManagerApp.properties.configuration.ingress.fqdn}' // Inject backend FQDN
-            }
-          ]
         }
       ]
       scale: {
