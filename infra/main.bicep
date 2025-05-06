@@ -448,11 +448,10 @@ resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
               name: 'Azure__SignalR__ConnectionString'
               secretRef: 'signalr-connection-string-secret'
             }
-            // Update ASPNETCORE_URLS to listen on the configured port (8080)
-            // {
-            //   name: 'ASPNETCORE_URLS'
-            //   value: 'http://+:80' // Application listens on internal port 80
-            // }
+            {
+              name: 'ASPNETCORE_URLS'
+              value: 'http://+:8080' // Application listens on internal port 80
+            }
             
           ]
         }
