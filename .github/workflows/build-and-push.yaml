@@ -1,55 +1,89 @@
 name: Build And Push Docker Images To Azure Container Registry
+
 on:
   workflow_dispatch:
-  # push:
-  #   branches:
-  #     - yosef/deploy-to-aca
-  
+  push:
+    branches:
+      - yosef/deploy-to-aca    
+
 jobs:     
-    build-and-push-image:
-      runs-on: ubuntu-latest
-      strategy:
-        fail-fast: false
-        matrix:
-          include:
-              # sagaway demo billing manager
-            - dockerfile: ./Sagaway.ReservationDemo/Sagaway.ReservationDemo.BillingManagement/Dockerfile
-              image: sagaway.demo.billing.manager
-              # sagaway demo booking management
-            - dockerfile: ./Sagaway.ReservationDemo/Sagaway.ReservationDemo.BookingManagement/Dockerfile
-              image: sagaway.demo.booking.manager
-              # sagaway demo inventory manager
-            - dockerfile: ./Sagaway.ReservationDemo/Sagaway.ReservationDemo.InventoryManagement/Dockerfile
-              image: sagaway.demo.inventory.manager
-              # sagaway demo reservation manager
-            - dockerfile: ./Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationManager/Dockerfile
-              image: sagaway.demo.reservation.manager
+  build-and-push-image:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # sagaway demo billing manager
+          - dockerfile: ./Sagaway.ReservationDemo/Sagaway.ReservationDemo.BillingManagement/Dockerfile
+            image: sagaway.demo.billing.manager
+            name: billing-management
 
-            #   # sagaway demo test orchestration
-            # - dockerfile: ./Sagaway.IntegrationTests/Sagaway.IntegrationTests.OrchestrationService/Dockerfile
-            #   image: sagaway.demo.test.orchestration
-            #   # sagaway demo test service
-            # - dockerfile: ./Sagaway.IntegrationTests/Sagaway.IntegrationTests.TestService/Dockerfile
-            #   image: sagaway.demo.test.service
-            #   # sagaway demo signalR emulator
-            # - dockerfile: ./SignalREmulator/Dockerfile
-            #   image: sagaway.demo.signalr.emulator       
-      permissions:
-        contents: read
-        packages: write
+          # sagaway demo booking manager
+          - dockerfile: ./Sagaway.ReservationDemo/Sagaway.ReservationDemo.BookingManagement/Dockerfile
+            image: sagaway.demo.booking.manager
+            name: booking-management
 
-      steps:
-        - uses: actions/checkout@v2
-    
-        - name: Login to Azure Container Registry
-          uses: azure/docker-login@v1
-          with:
-            login-server: sagawayshared.azurecr.io
-            username: ${{secrets.ACR_SAGAWAYSHARED_USERNAME}}
-            password: ${{secrets.ACR_SAGAWAYSHARED_PASSWORD}}
-    
-        - name: Build Docker image
-          run: docker build -f ${{ matrix.dockerfile }} -t sagawayshared.azurecr.io/${{ matrix.image }}:latest  .
-    
-        - name: Push Docker image to Azure Container Registry
-          run: docker push sagawayshared.azurecr.io/${{ matrix.image }}:latest
+          # sagaway demo inventory manager
+          - dockerfile: ./Sagaway.ReservationDemo/Sagaway.ReservationDemo.InventoryManagement/Dockerfile
+            image: sagaway.demo.inventory.manager
+            name: inventory-management
+
+          # sagaway demo reservation manager
+          - dockerfile: ./Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationManager/Dockerfile
+            image: sagaway.demo.reservation.manager
+            name: reservation-manager
+
+          # sagaway demo reservation UI (frontend)
+          - dockerfile: ./Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationUI/Dockerfile
+            image: sagaway.demo.reservation.ui-new
+            name: reservation-ui
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Azure CLI login (for UI build)
+        if: matrix.name == 'reservation-ui'
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Login to Azure Container Registry
+        uses: azure/docker-login@v1
+        with:
+          login-server: sagawayshared.azurecr.io
+          username: ${{ secrets.ACR_SAGAWAYSHARED_USERNAME }}
+          password: ${{ secrets.ACR_SAGAWAYSHARED_PASSWORD }}
+
+      - name: Get reservation-manager FQDN (only for UI)
+        id: get-fqdn
+        if: matrix.name == 'reservation-ui'
+        run: |
+          fqdn=$(az containerapp show \
+            --name reservation-manager \
+            --resource-group SagawayDemoACA \
+            --query properties.configuration.ingress.fqdn \
+            --output tsv)
+          echo "fqdn=$fqdn"
+          echo "fqdn=$fqdn" >> $GITHUB_OUTPUT
+
+      - name: Build Docker image
+        run: |
+          if [ "${{ matrix.name }}" = "reservation-ui" ]; then
+            echo "Building UI image with backend FQDN: ${{ steps.get-fqdn.outputs.fqdn }}"
+            docker build \
+              --build-arg BACKEND_HOST_FQDN=${{ steps.get-fqdn.outputs.fqdn }} \
+              -f ${{ matrix.dockerfile }} \
+              -t sagawayshared.azurecr.io/${{ matrix.image }}:latest .
+          else
+            echo "Building image for ${{ matrix.name }}"
+            docker build \
+              -f ${{ matrix.dockerfile }} \
+              -t sagawayshared.azurecr.io/${{ matrix.image }}:latest .
+          fi
+
+      - name: Push Docker image to Azure Container Registry
+        run: docker push sagawayshared.azurecr.io/${{ matrix.image }}:latest

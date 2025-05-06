@@ -58,9 +58,7 @@ resource reservationResponseQueue 'Microsoft.ServiceBus/namespaces/queues@2022-1
   name: reservationResponseQueueName
   properties: {}
 }
-
 //---------------------------- Redis Cache ----------------------------
-
 resource redisContainerApp 'Microsoft.App/containerApps@2023-05-01' = {
   name: redisAppName
   location: location
@@ -73,7 +71,7 @@ resource redisContainerApp 'Microsoft.App/containerApps@2023-05-01' = {
         targetPort: 6379 // Default Redis port
         transport: 'tcp' // Redis uses TCP
       }
-     
+
     }
     template: {
       containers: [
@@ -269,7 +267,6 @@ resource reservationCallbackBinding 'Microsoft.App/managedEnvironments/daprCompo
 }
 
 
-
 // Apps Array (Backend Services Only)
 var backendApps = [
   // Removed reservation-manager from here
@@ -305,28 +302,13 @@ resource actorstatestore 'Microsoft.App/managedEnvironments/daprComponents@2023-
         // Point to the internal service name and port of the Redis container app
         value: '${redisAppName}:6379' 
       }
-      // Removed redisPassword as the default image doesn't require one
-      // {
-      //   name: 'redisPassword'
-      //   secretRef: 'redis-password'
-      // }
-      // Removed enableTLS as connection is internal and image default is non-TLS
-      // {
-      //   name: 'enableTLS' 
-      //   value: 'true' 
-      // }
+
       {
         name: 'actorStateStore'
         value: 'true'
       }
     ]
-    // Removed secrets section as no password is used
-    // secrets: [
-    //   {
-    //     name: 'redis-password'
-    //     value: redisCache.listKeys().primaryKey
-    //   }
-    // ]
+ 
     scopes: union(backendAppNames, ['reservation-manager']) // Apply to relevant apps
   }
   dependsOn: [ // Explicit dependency on the redis container app
@@ -347,29 +329,11 @@ resource statestore 'Microsoft.App/managedEnvironments/daprComponents@2023-05-01
         // Point to the internal service name and port of the Redis container app
         value: '${redisAppName}:6379' 
       }
-      // Removed redisPassword
-      // {
-      //   name: 'redisPassword'
-      //   secretRef: 'redis-password'
-      // }
-      // Removed enableTLS
-      //  {
-      //   name: 'enableTLS' 
-      //   value: 'true' 
-      // }
-      // Add query indexing metadata, matching local statestore.yaml
       {
         name: 'queryIndexes' 
         value: '[ { "name": "customerNameIndex", "indexes": [ { "key": "customerName", "type": "TEXT" } ] } ]'
       }
     ]
-    // Removed secrets section
-    // secrets: [
-    //   {
-    //     name: 'redis-password'
-    //     value: redisCache.listKeys().primaryKey
-    //   }
-    // ]
     scopes: union(backendAppNames, ['reservation-manager']) // Apply to relevant apps
   }
   dependsOn: [ // Explicit dependency on the redis container app
@@ -539,8 +503,8 @@ resource reservationUiApp 'Microsoft.App/containerApps@2023-05-01' = {
           image: reservationUiImage
           env: [
             {
-              name: 'API_BASE_URL' // Environment variable for the backend URL
-              value: 'https://${reservationManagerApp.properties.configuration.ingress.fqdn}' // Inject backend FQDN
+              name: 'RESERVATION_MANAGER_FQDN'
+              value: reservationManagerApp.properties.configuration.ingress.fqdn
             }
           ]
         }
@@ -553,34 +517,5 @@ resource reservationUiApp 'Microsoft.App/containerApps@2023-05-01' = {
   }
 }
 
+output reservationManagerFqdn string = reservationManagerApp.properties.configuration.ingress.fqdn
 
-resource redisInsightApp 'Microsoft.App/containerApps@2023-05-01' = {
-  name: 'redis-insight'
-  location: location
-  properties: {
-    managedEnvironmentId: containerEnv.id
-    configuration: {
-      ingress: {
-        external: true
-        targetPort: 8001
-        transport: 'auto'
-      }
-    }
-    template: {
-      containers: [
-        {
-          name: 'redis-insight'
-          image: 'redis/redisinsight:latest'
-          resources: {
-            cpu:json('0.5') // Define resource requests/limits as needed
-            memory: '1Gi'
-          }
-        }
-      ]
-      scale: {
-        minReplicas: 1
-        maxReplicas: 1
-      }
-    }
-  }
-}
