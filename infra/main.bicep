@@ -546,7 +546,7 @@ resource reservationUiApp 'Microsoft.App/containerApps@2023-05-01' = {
       }
       ingress: {
         external: true
-        targetPort: port // Port Nginx/server in the UI container listens on
+        targetPort: 80 // Port Nginx/server in the UI container listens on
         transport: 'auto'
       }
     }
