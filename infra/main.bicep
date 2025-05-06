@@ -9,7 +9,7 @@ param cosmosAccountName string
 param cosmosDbName string 
 param cosmosContainerName string 
 param actorContainerName string = 'actorStateStore' 
-param port int = 80 
+param port int = 8080 
 // Queue Names
 var billingQueueName = 'billing-queue'
 var bookingQueueName = 'booking-queue'
@@ -430,11 +430,11 @@ resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
       dapr: {
         enabled: true
         appId: reservationManagerAppName
-        appPort: port // Internal port for Dapr to communicate with the app
+        appPort: 80 // Internal port for Dapr to communicate with the app
       }
       ingress: {
         external: true
-        targetPort: port // Internal port the container app listens on
+        targetPort: 80 // Internal port the container app listens on
         transport: 'auto'   
       }
     }
@@ -487,7 +487,7 @@ resource backendContainerApps 'Microsoft.App/containerApps@2023-05-01' = [for ap
       dapr: {
         enabled: true
         appId: app.name
-        appPort: port // Ensure this is 80
+        appPort: port 
       }
       ingress: {
         external: true
