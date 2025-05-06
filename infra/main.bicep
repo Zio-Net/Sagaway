@@ -430,11 +430,11 @@ resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
       dapr: {
         enabled: true
         appId: reservationManagerAppName
-        appPort: 80 // Internal port for Dapr to communicate with the app
+        appPort: port // Internal port for Dapr to communicate with the app
       }
       ingress: {
         external: true
-        targetPort: 80 // Internal port the container app listens on
+        targetPort: port // Internal port the container app listens on
         transport: 'auto'   
       }
     }
@@ -450,7 +450,7 @@ resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
             }
             {
               name: 'ASPNETCORE_URLS'
-              value: 'http://*:80' // Application listens on internal port 80
+              value: 'http://*:8080' 
             }
             
           ]
@@ -491,7 +491,7 @@ resource backendContainerApps 'Microsoft.App/containerApps@2023-05-01' = [for ap
       }
       ingress: {
         external: true
-        targetPort: 8080 // Ensure this is 80
+        targetPort: port // Ensure this is 80
         transport: 'auto'
       }
     }
@@ -546,7 +546,7 @@ resource reservationUiApp 'Microsoft.App/containerApps@2023-05-01' = {
       }
       ingress: {
         external: true
-        targetPort: 80 // Port Nginx/server in the UI container listens on
+        targetPort: port // Port Nginx/server in the UI container listens on
         transport: 'auto'
       }
     }
