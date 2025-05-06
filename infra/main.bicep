@@ -430,12 +430,12 @@ resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
       dapr: {
         enabled: true
         appId: reservationManagerAppName
-        appPort: 80 // Internal port for Dapr to communicate with the app
+        appPort: port // Internal port for Dapr to communicate with the app
       }
       ingress: {
         external: true
-        targetPort: 80 // Internal port the container app listens on
-        transport: 'auto'   // CHANGED from 'tcp': Use standard HTTP/S ingress
+        targetPort: port // Internal port the container app listens on
+        transport: 'auto'   
       }
     }
     template: {
@@ -449,10 +449,10 @@ resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
               secretRef: 'signalr-connection-string-secret'
             }
             // Update ASPNETCORE_URLS to listen on the configured port (8080)
-            {
-              name: 'ASPNETCORE_URLS'
-              value: 'http://+:80' // Application listens on internal port 80
-            }
+            // {
+            //   name: 'ASPNETCORE_URLS'
+            //   value: 'http://+:80' // Application listens on internal port 80
+            // }
             
           ]
         }
