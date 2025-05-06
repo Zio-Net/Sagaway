@@ -59,6 +59,7 @@ resource reservationResponseQueue 'Microsoft.ServiceBus/namespaces/queues@2022-1
   properties: {}
 }
 //---------------------------- Redis Cache ----------------------------
+
 resource redisContainerApp 'Microsoft.App/containerApps@2023-05-01' = {
   name: redisAppName
   location: location
@@ -71,7 +72,7 @@ resource redisContainerApp 'Microsoft.App/containerApps@2023-05-01' = {
         targetPort: 6379 // Default Redis port
         transport: 'tcp' // Redis uses TCP
       }
-
+     
     }
     template: {
       containers: [
