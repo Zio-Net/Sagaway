@@ -519,7 +519,7 @@ resource backendContainerApps 'Microsoft.App/containerApps@2023-05-01' = [for ap
 
 // Reservation UI Container App (Defined Separately)
 var reservationUiAppName = 'reservation-ui'
-var reservationUiImage = '${containerRegistry}/sagaway.demo.reservation.ui:latest' // Assumed image name
+var reservationUiImage = '${containerRegistry}/sagaway.demo.reservation.ui-new:latest' // Assumed image name
 
 resource reservationUiApp 'Microsoft.App/containerApps@2023-05-01' = {
   name: reservationUiAppName
@@ -540,10 +540,6 @@ resource reservationUiApp 'Microsoft.App/containerApps@2023-05-01' = {
           passwordSecretRef: 'registry-password'
         }
       ]
-      // Dapr is disabled for the frontend WASM app
-      dapr: {
-        enabled: false
-      }
       ingress: {
         external: true
         targetPort: 80 // Port Nginx/server in the UI container listens on
