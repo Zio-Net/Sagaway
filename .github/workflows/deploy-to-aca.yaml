@@ -1,6 +1,5 @@
 name: Deploy to SagawayDemoACA
 
-
 on:
   workflow_dispatch:
   push:
@@ -42,6 +41,7 @@ jobs:
             containerRegistry=sagawayshared.azurecr.io
             containerRegistryUsername=${{ secrets.ACR_SAGAWAYSHARED_USERNAME }}
             containerRegistryPassword=${{ secrets.ACR_SAGAWAYSHARED_PASSWORD }}
+
       - name: Print deployment outputs
         run: |
           echo "Deployment to SagawayDemoACA completed successfully"

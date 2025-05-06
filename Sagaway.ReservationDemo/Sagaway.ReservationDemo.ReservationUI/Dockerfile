@@ -5,21 +5,23 @@ WORKDIR /src
 
 # Copy only csproj first to optimize Docker caching
 COPY Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationUI/Sagaway.ReservationDemo.ReservationUI.csproj Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationUI/
+# Consider copying package.json and tailwind config earlier too if they don't change often
 COPY Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationUI/package.json Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationUI/
 COPY Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationUI/package-lock.json Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationUI/
 COPY Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationUI/tailwind.config.js Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationUI/
-
 RUN dotnet restore "Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationUI/Sagaway.ReservationDemo.ReservationUI.csproj"
 
 # Copy full source
-COPY . .
+COPY . . 
 WORKDIR /src/Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationUI
 
 # Install Node.js and Tailwind dependencies
+# Combine RUN commands where possible
 RUN apt-get update && \
     apt-get install -y --no-install-recommends nodejs npm && \
     npm ci && \
     npx @tailwindcss/cli -i ./wwwroot/css/app.css -o ./wwwroot/css/app.output.css --minify && \
+    # Clean up apt cache
     rm -rf /var/lib/apt/lists/*
 
 # Build the Blazor WebAssembly app
@@ -28,24 +30,18 @@ RUN dotnet publish "Sagaway.ReservationDemo.ReservationUI.csproj" -c $BUILD_CONF
 # Stage 2: Serve using nginx
 FROM nginx:alpine AS final
 
-# Set ARG to receive backend FQDN if needed later (optional)
-ARG BACKEND_HOST_FQDN
-ENV BACKEND_HOST_FQDN=${BACKEND_HOST_FQDN}
+# Remove the default nginx static website and ensure default.conf can be overwritten
+RUN rm -rf /usr/share/nginx/html/* && rm -f /etc/nginx/conf.d/default.conf
 
-# Remove default nginx static files and config
-RUN rm -rf /usr/share/nginx/html/* && rm /etc/nginx/conf.d/default.conf
+# Copy custom nginx configuration to the templating directory
+# The nginx entrypoint script will process this file, substituting environment variables,
+# and output the result to /etc/nginx/conf.d/default.conf.
+COPY Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationUI/nginx.conf /etc/nginx/templates/default.conf.template
 
-# Copy dynamic startup script
-COPY Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationUI/start.sh /start.sh
-RUN chmod +x /start.sh
-
-# Copy nginx config with placeholder
-COPY Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationUI/nginx.conf /etc/nginx/conf.d/default.conf
-
-# Copy built Blazor app
+# Copy published Blazor WebAssembly app to nginx public directory
 COPY --from=build /app/publish/wwwroot /usr/share/nginx/html
 
 EXPOSE 80
 
-# Start nginx via our script
-CMD ["/start.sh"]
+# Start nginx (the base image's entrypoint handles template processing)
+CMD ["nginx", "-g", "daemon off;"]

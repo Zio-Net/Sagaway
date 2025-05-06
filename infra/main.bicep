@@ -59,7 +59,6 @@ resource reservationResponseQueue 'Microsoft.ServiceBus/namespaces/queues@2022-1
   properties: {}
 }
 //---------------------------- Redis Cache ----------------------------
-
 resource redisContainerApp 'Microsoft.App/containerApps@2023-05-01' = {
   name: redisAppName
   location: location
@@ -72,7 +71,7 @@ resource redisContainerApp 'Microsoft.App/containerApps@2023-05-01' = {
         targetPort: 6379 // Default Redis port
         transport: 'tcp' // Redis uses TCP
       }
-     
+
     }
     template: {
       containers: [
@@ -505,7 +504,11 @@ resource reservationUiApp 'Microsoft.App/containerApps@2023-05-01' = {
           env: [
             {
               name: 'RESERVATION_MANAGER_FQDN'
-              value: reservationManagerApp.properties.configuration.ingress.fqdn
+              value: reservationManagerApp.properties.configuration.ingress.fqdn // Get FQDN from reservationManagerApp
+            }
+            {
+              name: 'RESERVATION_MANAGER_PORT'
+              value: '${port}' // This is the 'port' variable (8080)
             }
           ]
         }
@@ -518,5 +521,4 @@ resource reservationUiApp 'Microsoft.App/containerApps@2023-05-01' = {
   }
 }
 
-output reservationManagerFqdn string = reservationManagerApp.properties.configuration.ingress.fqdn
 
