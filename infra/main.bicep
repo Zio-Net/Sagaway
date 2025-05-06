@@ -491,7 +491,7 @@ resource backendContainerApps 'Microsoft.App/containerApps@2023-05-01' = [for ap
       }
       ingress: {
         external: true
-        targetPort: port // Ensure this is 80
+        targetPort: 8080 // Ensure this is 80
         transport: 'auto'
       }
     }
@@ -504,7 +504,7 @@ resource backendContainerApps 'Microsoft.App/containerApps@2023-05-01' = [for ap
             // Add ASPNETCORE_URLS to force listening on port 80
             {
               name: 'ASPNETCORE_URLS'
-              value: 'http://*:80'
+              value: 'http://*:8080'
             }
           ]
         }
