@@ -5,14 +5,11 @@ param containerRegistryUsername string
 param containerRegistryPassword string
 
 param location string = resourceGroup().location
-// Removed Cosmos DB params
-// Removed Redis Cache param
-// param redisCacheName string = 'sagaway-redis-cache-demo' 
+param cosmosAccountName string 
+param cosmosDbName string 
+param cosmosContainerName string 
+param actorContainerName string = 'actorStateStore' 
 param port int = 8080 
-
-// Redis Cache Name
-// param redisCacheName string = 'sagaway-redis-cache-demo' // Provide a globally unique name
-
 // Queue Names
 var billingQueueName = 'billing-queue'
 var bookingQueueName = 'booking-queue'
@@ -68,45 +65,60 @@ resource reservationResponseQueue 'Microsoft.ServiceBus/namespaces/queues@2022-1
   properties: {}
 }
 
-// Removed Azure Cache for Redis resource
-/*
-resource redisCache 'Microsoft.Cache/redis@2023-08-01' = {
-  // ... removed ...
-}
-*/
-
-// Redis Container App
-var redisAppName = 'redis-app'
-
-resource redisContainerApp 'Microsoft.App/containerApps@2023-05-01' = {
-  name: redisAppName
+// Cosmos DB
+resource cosmosdb_account 'Microsoft.DocumentDB/databaseAccounts@2023-11-15' = {
+  name: cosmosAccountName
   location: location
+  kind: 'GlobalDocumentDB'
   properties: {
-    managedEnvironmentId: containerEnv.id
-    configuration: {
-      // No external ingress needed, internal only
-      ingress: {
-        external: false
-        targetPort: 6379 // Default Redis port
-        transport: 'tcp' // Redis uses TCP
+    databaseAccountOfferType: 'Standard'
+    locations: [
+      {
+        locationName: location
+        failoverPriority: 0
+        isZoneRedundant: false
       }
-      // No secrets or registries needed for public redis image
+    ]
+    consistencyPolicy: {
+      defaultConsistencyLevel: 'Session'
     }
-    template: {
-      containers: [
-        {
-          name: redisAppName
-          // Use redis-stack-server image to include Redis Search for queryIndexes
-          image: 'redis/redis-stack-server:latest' 
-          resources: {
-            cpu: json('0.25') // Define resource requests/limits as needed
-            memory: '0.5Gi'
-          }
-        }
-      ]
-      scale: {
-        minReplicas: 1
-        maxReplicas: 1 // Scale as needed, consider persistence implications
+  }
+}
+
+resource cosmosdb_sql_database 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2023-11-15' = {
+  parent: cosmosdb_account
+  name: cosmosDbName
+  properties: {
+    resource: {
+      id: cosmosDbName
+    }
+  }
+}
+
+resource cosmosdb_sql_container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2023-11-15' = {
+  parent: cosmosdb_sql_database
+  name: cosmosContainerName
+  properties: {
+    resource: {
+      id: cosmosContainerName
+      partitionKey: {
+        paths: ['/partitionKey'] //partitionKey
+        kind: 'Hash'
+      }
+    }
+  }
+}
+
+// Add actor state store container
+resource cosmosdb_actor_container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2023-11-15' = {
+  parent: cosmosdb_sql_database
+  name: actorContainerName
+  properties: {
+    resource: {
+      id: actorContainerName
+      partitionKey: {
+        paths: ['/partitionKey']
+        kind: 'Hash'
       }
     }
   }
@@ -308,89 +320,80 @@ var backendApps = [
 // Variable for backend app names
 var backendAppNames = [for app in backendApps: app.name]
 
-// Dapr Actor State Store - Redis Container App
+// Dapr Actor State Store - CosmosDB
 resource actorstatestore 'Microsoft.App/managedEnvironments/daprComponents@2023-05-01' = {
   parent: containerEnv
-  name: 'actorstatestore' // Matches local component name
+  name: 'actorstatestore'
+  dependsOn: [cosmosdb_actor_container]
   properties: {
-    componentType: 'state.redis'
+    componentType: 'state.azure.cosmosdb'
     version: 'v1'
     metadata: [
       {
-        name: 'redisHost'
-        // Point to the internal service name and port of the Redis container app
-        value: '${redisAppName}:6379' 
+        name: 'url'
+        value: cosmosdb_account.properties.documentEndpoint
       }
-      // Removed redisPassword as the default image doesn't require one
-      // {
-      //   name: 'redisPassword'
-      //   secretRef: 'redis-password'
-      // }
-      // Removed enableTLS as connection is internal and image default is non-TLS
-      // {
-      //   name: 'enableTLS' 
-      //   value: 'true' 
-      // }
+      {
+        name: 'masterkey'
+        secretRef: 'cosmos-master-key'
+      }
+      {
+        name: 'database'
+        value: cosmosDbName
+      }
+      {
+        name: 'collection'
+        value: actorContainerName
+      }
       {
         name: 'actorStateStore'
         value: 'true'
       }
     ]
-    // Removed secrets section as no password is used
-    // secrets: [
-    //   {
-    //     name: 'redis-password'
-    //     value: redisCache.listKeys().primaryKey
-    //   }
-    // ]
-    scopes: union(backendAppNames, ['reservation-manager']) // Apply to relevant apps
+    secrets: [
+      {
+        name: 'cosmos-master-key'
+        value: cosmosdb_account.listKeys().primaryMasterKey
+      }
+    ]
+    scopes: union(backendAppNames, ['reservation-manager']) // Use variable in union
   }
-  dependsOn: [ // Explicit dependency on the redis container app
-    redisContainerApp
-  ]
 }
 
-// Dapr State Store - Redis Container App
+// Dapr State Store - CosmosDB (updated to match statestore.yaml structure)
 resource statestore 'Microsoft.App/managedEnvironments/daprComponents@2023-05-01' = {
   parent: containerEnv
-  name: 'statestore' // Matches local component name
+  name: 'statestore'
+  dependsOn: [cosmosdb_sql_container]
   properties: {
-    componentType: 'state.redis'
+    componentType: 'state.azure.cosmosdb'
     version: 'v1'
     metadata: [
       {
-        name: 'redisHost'
-        // Point to the internal service name and port of the Redis container app
-        value: '${redisAppName}:6379' 
+        name: 'url'
+        value: cosmosdb_account.properties.documentEndpoint
       }
-      // Removed redisPassword
-      // {
-      //   name: 'redisPassword'
-      //   secretRef: 'redis-password'
-      // }
-      // Removed enableTLS
-      //  {
-      //   name: 'enableTLS' 
-      //   value: 'true' 
-      // }
-      // Add query indexing metadata, matching local statestore.yaml
       {
-        name: 'queryIndexes' 
-        value: '[ { "name": "customerNameIndex", "indexes": [ { "key": "customerName", "type": "TEXT" } ] } ]'
+        name: 'masterkey'
+        secretRef: 'cosmos-master-key'
+      }
+      {
+        name: 'database'
+        value: cosmosDbName
+      }
+      {
+        name: 'collection'
+        value: cosmosContainerName
       }
     ]
-    // Removed secrets section
-    // secrets: [
-    //   {
-    //     name: 'redis-password'
-    //     value: redisCache.listKeys().primaryKey
-    //   }
-    // ]
-    scopes: union(backendAppNames, ['reservation-manager']) // Apply to relevant apps
+    secrets: [
+      {
+        name: 'cosmos-master-key'
+        value: cosmosdb_account.listKeys().primaryMasterKey
+      }
+    ]
+    scopes: union(backendAppNames, ['reservation-manager']) // Use variable in union
   }
-  dependsOn: [ // Explicit dependency on the redis container app
-    redisContainerApp
-  ]
 }
 
 // Reservation Manager Container App (Defined Separately)
@@ -427,11 +430,12 @@ resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
       dapr: {
         enabled: true
         appId: reservationManagerAppName
-        appPort: port // Ensure this is 80
+        appPort: 80 // Changed from 'port' to 80
       }
       ingress: {
         external: true
-        targetPort: port // Ensure this is 80
+        targetPort: 80 // Changed from 'port' to 80
+        exposedPort: port // Set exposedPort to the 'port' parameter (8080)
         transport: 'auto'
       }
     }
@@ -448,7 +452,7 @@ resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
             // Add ASPNETCORE_URLS to force listening on port 80
             {
               name: 'ASPNETCORE_URLS'
-              value: 'http://+:8080'
+              value: 'http://+:80' // Changed from 'http://+:8080'
             }
             
           ]
@@ -568,5 +572,4 @@ resource reservationUiApp 'Microsoft.App/containerApps@2023-05-01' = {
     }
   }
 }
-
 
