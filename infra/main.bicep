@@ -93,13 +93,16 @@ resource redisContainerApp 'Microsoft.App/containerApps@2023-05-01' = {
   }
 }
 
+// Get connection string once and store it in a variable
+@description('Get the Service Bus connection string')
+var sbConnectionString = listKeys('${serviceBus.id}/AuthorizationRules/RootManageSharedAccessKey', '2022-10-01-preview').primaryConnectionString
+
 //---------------------- Dapr Bindings - Service Bus Queues --------------------------------
 resource billingQueueBinding 'Microsoft.App/managedEnvironments/daprComponents@2023-05-01' = {
   parent: containerEnv
   name: billingQueueName
   dependsOn: [
     billingQueue
-    
   ]
   properties: {
     componentType: 'bindings.azure.servicebusqueues'
@@ -117,7 +120,7 @@ resource billingQueueBinding 'Microsoft.App/managedEnvironments/daprComponents@2
     secrets: [
       {
         name: 'sb-conn-string'
-        value: listKeys('${serviceBus.id}/AuthorizationRules/RootManageSharedAccessKey', '2022-10-01-preview').primaryConnectionString
+        value: sbConnectionString
       }
     ]
     scopes: ['billing-management', 'reservation-manager']
@@ -129,7 +132,6 @@ resource bookingQueueBinding 'Microsoft.App/managedEnvironments/daprComponents@2
   name: bookingQueueName
   dependsOn: [
     bookingQueue
-    
   ]
   properties: {
     componentType: 'bindings.azure.servicebusqueues'
@@ -147,7 +149,7 @@ resource bookingQueueBinding 'Microsoft.App/managedEnvironments/daprComponents@2
     secrets: [
       {
         name: 'sb-conn-string'
-        value: listKeys('${serviceBus.id}/AuthorizationRules/RootManageSharedAccessKey', '2022-10-01-preview').primaryConnectionString
+        value: sbConnectionString
       }
     ]
     scopes: ['booking-management', 'reservation-manager']
@@ -159,7 +161,6 @@ resource inventoryQueueBinding 'Microsoft.App/managedEnvironments/daprComponents
   name: inventoryQueueName
   dependsOn: [
     inventoryQueue
-    
   ]
   properties: {
     componentType: 'bindings.azure.servicebusqueues'
@@ -177,7 +178,7 @@ resource inventoryQueueBinding 'Microsoft.App/managedEnvironments/daprComponents
     secrets: [
       {
         name: 'sb-conn-string'
-        value: listKeys('${serviceBus.id}/AuthorizationRules/RootManageSharedAccessKey', '2022-10-01-preview').primaryConnectionString
+        value: sbConnectionString
       }
     ]
     scopes: ['inventory-management', 'reservation-manager']
@@ -189,7 +190,6 @@ resource reservationResponseQueueBinding 'Microsoft.App/managedEnvironments/dapr
   name: reservationResponseQueueName
   dependsOn: [
     reservationResponseQueue
-
   ]
   properties: {
     componentType: 'bindings.azure.servicebusqueues'
@@ -207,7 +207,7 @@ resource reservationResponseQueueBinding 'Microsoft.App/managedEnvironments/dapr
     secrets: [
       {
         name: 'sb-conn-string'
-        value: listKeys('${serviceBus.id}/AuthorizationRules/RootManageSharedAccessKey', '2022-10-01-preview').primaryConnectionString
+        value: sbConnectionString
       }
     ]
     scopes: union(backendAppNames, ['reservation-manager']) // Use variable in union
@@ -238,11 +238,15 @@ resource signalR 'Microsoft.SignalRService/signalR@2023-02-01' = {
     }
   }
 }
+
+// Get signalR connection string once and store in a variable
+@description('Get the SignalR connection string')
+var signalRConnectionString = signalR.listKeys().primaryConnectionString
+
 // Dapr Binding - SignalR
 resource reservationCallbackBinding 'Microsoft.App/managedEnvironments/daprComponents@2023-05-01' = {
   parent: containerEnv
   name: 'reservationcallback' // Matches the component name used in the code and local YAML
-  // dependsOn removed as Bicep infers it from listKeys usage
   properties: {
     componentType: 'bindings.azure.signalr'
     version: 'v1'
@@ -259,7 +263,7 @@ resource reservationCallbackBinding 'Microsoft.App/managedEnvironments/daprCompo
     secrets: [
       {
         name: 'signalr-conn-string'
-        value: signalR.listKeys().primaryConnectionString  
+        value: signalRConnectionString
       }
     ]
     scopes: ['reservation-manager'] // Only scope to the app that needs it
@@ -273,12 +277,10 @@ var backendApps = [
   {
     name: 'billing-management'
     image: '${containerRegistry}/sagaway.demo.billing.manager:latest'
-
   }
   {
     name: 'inventory-management'
     image: '${containerRegistry}/sagaway.demo.inventory.manager:latest'
-  
   }
   {
     name: 'booking-management'
@@ -302,13 +304,11 @@ resource actorstatestore 'Microsoft.App/managedEnvironments/daprComponents@2023-
         // Point to the internal service name and port of the Redis container app
         value: '${redisAppName}:6379' 
       }
-
       {
         name: 'actorStateStore'
         value: 'true'
       }
     ]
- 
     scopes: union(backendAppNames, ['reservation-manager']) // Apply to relevant apps
   }
   dependsOn: [ // Explicit dependency on the redis container app
@@ -351,20 +351,16 @@ resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
   properties: {
     managedEnvironmentId: containerEnv.id
     configuration: {
-      secrets: union(
-        [
-          {
-            name: 'registry-password'
-            value: containerRegistryPassword
-          }
-        ],
-        [
-          {
-            name: 'signalr-connection-string-secret'
-            value: signalR.listKeys().primaryConnectionString
-          }
-        ]
-      )
+      secrets: [
+        {
+          name: 'registry-password'
+          value: containerRegistryPassword
+        }
+        {
+          name: 'signalr-connection-string-secret'
+          value: signalRConnectionString
+        }
+      ]
       registries: [
         {
           server: containerRegistry
@@ -398,7 +394,6 @@ resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
               name: 'ASPNETCORE_URLS'
               value: 'http://+:8080'
             }
-            
           ]
         }
       ]
@@ -516,7 +511,4 @@ resource reservationUiApp 'Microsoft.App/containerApps@2023-05-01' = {
       }
     }
   }
- 
 }
-
-
