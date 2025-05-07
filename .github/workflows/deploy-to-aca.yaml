@@ -1,20 +1,28 @@
 name: Deploy to SagawayDemoACA
 
 on:
-  workflow_dispatch:
-  push:
-    branches:
-      - yosef/deploy-to-aca
-    paths:
-      - 'infra/**'
-      - '.github/workflows/deploy-to-aca.yaml'
+  workflow_run:
+    workflows: ["Build And Push Docker Images To Azure Container Registry"]
+    types:
+      - completed
+  
+  # workflow_dispatch:
+  # push:
+  #   branches:
+  #     - yosef/deploy-to-aca
+  #   paths:
+  #     - 'infra/**'
+  #     - '.github/workflows/deploy-to-aca.yaml'
 
 permissions:
   id-token: write
   contents: read
+  packages: write
 
 jobs:
+  
   deploy-to-aca:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}  # only on success
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository

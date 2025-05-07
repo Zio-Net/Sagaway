@@ -503,12 +503,9 @@ resource reservationUiApp 'Microsoft.App/containerApps@2023-05-01' = {
           image: reservationUiImage
           env: [
             {
-              name: 'RESERVATION_MANAGER_FQDN'
-              value: reservationManagerApp.properties.configuration.ingress.fqdn // Get FQDN from reservationManagerApp
-            }
-            {
-              name: 'RESERVATION_MANAGER_PORT'
-              value: '80' // Standard HTTP port for external ACA ingress
+              name: 'RESERVATION_MANAGER_URL'
+              // Use FQDN for the reservation-manager service
+              value: 'https://${reservationManagerApp.properties.configuration.ingress.fqdn}'
             }
           ]
         }
@@ -519,6 +516,9 @@ resource reservationUiApp 'Microsoft.App/containerApps@2023-05-01' = {
       }
     }
   }
+  dependsOn: [
+    reservationManagerApp // Ensure reservation manager is deployed first
+  ]
 }
 
 
