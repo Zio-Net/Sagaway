@@ -27,22 +27,24 @@ RUN dotnet publish "Sagaway.ReservationDemo.ReservationUI.csproj" -c $BUILD_CONF
 # Stage 2: Serve using nginx
 FROM nginx:alpine AS final
 
-# Install envsubst for build-time substitution
+# Install gettext for envsubst
 RUN apk add --no-cache gettext
 
 # Remove default site and config
 RUN rm -rf /usr/share/nginx/html/* && rm /etc/nginx/conf.d/default.conf
 
-# Set environment variable for build-time replacement
-ARG RESERVATION_MANAGER_URL
-ENV RESERVATION_MANAGER_URL=$RESERVATION_MANAGER_URL
-
-# Copy and inject env vars into nginx config at build-time
+# Copy nginx config template
 COPY Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationUI/nginx.conf /etc/nginx/templates/default.conf.template
-RUN envsubst '${RESERVATION_MANAGER_URL}' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf
+
+# Copy and make entrypoint script executable
+COPY Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationUI/docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 
 # Copy published app
 COPY --from=build /app/publish/wwwroot /usr/share/nginx/html
 
 EXPOSE 80
+
+# Set entrypoint to our script, CMD will be passed to it
+ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["nginx", "-g", "daemon off;"]
