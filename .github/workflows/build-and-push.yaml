@@ -1,9 +1,9 @@
 name: Build And Push Docker Images To Azure Container Registry
 on:
   workflow_dispatch:
-  # push:
-  #   branches:
-  #     - yosef/deploy-to-aca
+  push:
+    branches:
+      - yosef/deploy-to-aca
   
 jobs:     
     build-and-push-image:
@@ -12,18 +12,18 @@ jobs:
         fail-fast: false
         matrix:
           include:
-              # sagaway demo billing manager
-            - dockerfile: ./Sagaway.ReservationDemo/Sagaway.ReservationDemo.BillingManagement/Dockerfile
-              image: sagaway.demo.billing.manager
-              # sagaway demo booking management
-            - dockerfile: ./Sagaway.ReservationDemo/Sagaway.ReservationDemo.BookingManagement/Dockerfile
-              image: sagaway.demo.booking.manager
-              # sagaway demo inventory manager
-            - dockerfile: ./Sagaway.ReservationDemo/Sagaway.ReservationDemo.InventoryManagement/Dockerfile
-              image: sagaway.demo.inventory.manager
-              # sagaway demo reservation manager
-            - dockerfile: ./Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationManager/Dockerfile
-              image: sagaway.demo.reservation.manager
+            #   # sagaway demo billing manager
+            # - dockerfile: ./Sagaway.ReservationDemo/Sagaway.ReservationDemo.BillingManagement/Dockerfile
+            #   image: sagaway.demo.billing.manager
+            #   # sagaway demo booking management
+            # - dockerfile: ./Sagaway.ReservationDemo/Sagaway.ReservationDemo.BookingManagement/Dockerfile
+            #   image: sagaway.demo.booking.manager
+            #   # sagaway demo inventory manager
+            # - dockerfile: ./Sagaway.ReservationDemo/Sagaway.ReservationDemo.InventoryManagement/Dockerfile
+            #   image: sagaway.demo.inventory.manager
+            #   # sagaway demo reservation manager
+            # - dockerfile: ./Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationManager/Dockerfile
+            #   image: sagaway.demo.reservation.manager
               # sagaway demo reservation UI
             - dockerfile: ./Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationUI/Dockerfile
               image: sagaway.demo.reservation.ui-new

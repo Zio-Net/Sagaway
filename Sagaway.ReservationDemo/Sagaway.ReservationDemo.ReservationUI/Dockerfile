@@ -3,9 +3,8 @@ FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 
-# Copy only csproj first to optimize Docker caching
+# Copy only csproj first
 COPY Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationUI/Sagaway.ReservationDemo.ReservationUI.csproj Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationUI/
-# Consider copying package.json and tailwind config earlier too if they don't change often
 COPY Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationUI/package.json Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationUI/
 COPY Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationUI/package-lock.json Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationUI/
 COPY Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationUI/tailwind.config.js Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationUI/
@@ -15,40 +14,35 @@ RUN dotnet restore "Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationU
 COPY . .
 WORKDIR /src/Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationUI
 
-# Install Node.js and Tailwind dependencies
-# Combine RUN commands where possible
+# Install Node and Tailwind
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends nodejs npm && \
+    apt-get install -y --no-install-recommends nodejs npm gettext-base && \
     npm ci && \
     npx @tailwindcss/cli -i ./wwwroot/css/app.css -o ./wwwroot/css/app.output.css --minify && \
-    # Clean up apt cache
     rm -rf /var/lib/apt/lists/*
 
-# Build the Blazor WebAssembly app
+# Build the app
 RUN dotnet publish "Sagaway.ReservationDemo.ReservationUI.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 # Stage 2: Serve using nginx
 FROM nginx:alpine AS final
 
-# Remove the default nginx static website and config
+# Install envsubst for build-time substitution
+RUN apk add --no-cache gettext
+
+# Remove default site and config
 RUN rm -rf /usr/share/nginx/html/* && rm /etc/nginx/conf.d/default.conf
 
-# Copy custom nginx configuration template
-COPY Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationUI/nginx.conf /etc/nginx/templates/default.conf.template
+# Set environment variable for build-time replacement
+ARG RESERVATION_MANAGER_URL
+ENV RESERVATION_MANAGER_URL=$RESERVATION_MANAGER_URL
 
-# Copy published Blazor WebAssembly app to nginx public directory
+# Copy and inject env vars into nginx config at build-time
+COPY Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationUI/nginx.conf /etc/nginx/templates/default.conf.template
+RUN envsubst '${RESERVATION_MANAGER_URL}' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf
+
+# Copy published app
 COPY --from=build /app/publish/wwwroot /usr/share/nginx/html
 
-# Add entrypoint script to substitute environment variables in the nginx configuration
-RUN apk add --no-cache bash
-COPY Sagaway.ReservationDemo/Sagaway.ReservationDemo.ReservationUI/docker-entrypoint.sh /
-RUN chmod +x /docker-entrypoint.sh
-
 EXPOSE 80
-
-# Set environment variable with a default value (will be overridden in ACA)
-ENV RESERVATION_MANAGER_URL=http://reservation-manager:8080
-
-# Use custom entrypoint script
-ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["nginx", "-g", "daemon off;"]
