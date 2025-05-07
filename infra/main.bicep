@@ -93,10 +93,49 @@ resource redisContainerApp 'Microsoft.App/containerApps@2023-05-01' = {
   }
 }
 
-// Get connection string once and store it in a variable
-@description('Get the Service Bus connection string')
-var sbConnectionString = listKeys('${serviceBus.id}/AuthorizationRules/RootManageSharedAccessKey', '2022-10-01-preview').primaryConnectionString
+//---------------------------- SignalR Service ----------------------------
+resource signalR 'Microsoft.SignalRService/signalR@2023-02-01' = {
+  name: 'sagaway-signalr-demo' // Choose a unique name
+  location: location
+  sku: {
+    name: 'Free_F1' // Or choose a different SKU like Standard_S1
+    tier: 'Free'   // Or 'Standard'
+    capacity: 1
+  }
+  kind: 'SignalR'
+  properties: {
+    features: [
+      {
+        flag: 'ServiceMode'
+        value: 'Serverless' // Use Serverless mode as it's likely used with Dapr bindings
+      }
+    ]
+    cors: {
+      allowedOrigins: [
+        '*' // Adjust for production environments
+      ]
+    }
+  }
+}
 
+// Secure outputs to use in place of direct listKeys() calls
+@description('Service Bus connection string')
+@secure()
+output sbConnectionString string = listKeys('${serviceBus.id}/AuthorizationRules/RootManageSharedAccessKey', '2022-10-01-preview').primaryConnectionString
+
+@description('SignalR connection string')
+@secure()
+output signalRConnectionString string = signalR.listKeys().primaryConnectionString
+
+// Use module to get secure values in this deployment
+module secretsModule 'secretsModule.bicep' = {
+  name: 'secretsModule'
+  params: {
+    serviceBusId: serviceBus.id
+    signalRName: signalR.name
+  }
+}
+ 
 //---------------------- Dapr Bindings - Service Bus Queues --------------------------------
 resource billingQueueBinding 'Microsoft.App/managedEnvironments/daprComponents@2023-05-01' = {
   parent: containerEnv
@@ -120,7 +159,7 @@ resource billingQueueBinding 'Microsoft.App/managedEnvironments/daprComponents@2
     secrets: [
       {
         name: 'sb-conn-string'
-        value: sbConnectionString
+        value: secretsModule.outputs.sbConnectionString
       }
     ]
     scopes: ['billing-management', 'reservation-manager']
@@ -149,7 +188,7 @@ resource bookingQueueBinding 'Microsoft.App/managedEnvironments/daprComponents@2
     secrets: [
       {
         name: 'sb-conn-string'
-        value: sbConnectionString
+        value: secretsModule.outputs.sbConnectionString
       }
     ]
     scopes: ['booking-management', 'reservation-manager']
@@ -178,12 +217,32 @@ resource inventoryQueueBinding 'Microsoft.App/managedEnvironments/daprComponents
     secrets: [
       {
         name: 'sb-conn-string'
-        value: sbConnectionString
+        value: secretsModule.outputs.sbConnectionString
       }
     ]
     scopes: ['inventory-management', 'reservation-manager']
   }
 }
+
+// Apps Array (Backend Services Only)
+var backendApps = [
+  // Removed reservation-manager from here
+  {
+    name: 'billing-management'
+    image: '${containerRegistry}/sagaway.demo.billing.manager:latest'
+  }
+  {
+    name: 'inventory-management'
+    image: '${containerRegistry}/sagaway.demo.inventory.manager:latest'
+  }
+  {
+    name: 'booking-management'
+    image: '${containerRegistry}/sagaway.demo.booking.manager:latest'
+  }
+]
+
+// Variable for backend app names
+var backendAppNames = [for app in backendApps: app.name]
 
 resource reservationResponseQueueBinding 'Microsoft.App/managedEnvironments/daprComponents@2023-05-01' = {
   parent: containerEnv
@@ -207,41 +266,12 @@ resource reservationResponseQueueBinding 'Microsoft.App/managedEnvironments/dapr
     secrets: [
       {
         name: 'sb-conn-string'
-        value: sbConnectionString
+        value: secretsModule.outputs.sbConnectionString
       }
     ]
     scopes: union(backendAppNames, ['reservation-manager']) // Use variable in union
   }
 }
-
-//---------------------------- SignalR Service ----------------------------
-resource signalR 'Microsoft.SignalRService/signalR@2023-02-01' = {
-  name: 'sagaway-signalr-demo' // Choose a unique name
-  location: location
-  sku: {
-    name: 'Free_F1' // Or choose a different SKU like Standard_S1
-    tier: 'Free'   // Or 'Standard'
-    capacity: 1
-  }
-  kind: 'SignalR'
-  properties: {
-    features: [
-      {
-        flag: 'ServiceMode'
-        value: 'Serverless' // Use Serverless mode as it's likely used with Dapr bindings
-      }
-    ]
-    cors: {
-      allowedOrigins: [
-        '*' // Adjust for production environments
-      ]
-    }
-  }
-}
-
-// Get signalR connection string once and store in a variable
-@description('Get the SignalR connection string')
-var signalRConnectionString = signalR.listKeys().primaryConnectionString
 
 // Dapr Binding - SignalR
 resource reservationCallbackBinding 'Microsoft.App/managedEnvironments/daprComponents@2023-05-01' = {
@@ -263,33 +293,12 @@ resource reservationCallbackBinding 'Microsoft.App/managedEnvironments/daprCompo
     secrets: [
       {
         name: 'signalr-conn-string'
-        value: signalRConnectionString
+        value: secretsModule.outputs.signalRConnectionString
       }
     ]
     scopes: ['reservation-manager'] // Only scope to the app that needs it
   }
 }
-
-
-// Apps Array (Backend Services Only)
-var backendApps = [
-  // Removed reservation-manager from here
-  {
-    name: 'billing-management'
-    image: '${containerRegistry}/sagaway.demo.billing.manager:latest'
-  }
-  {
-    name: 'inventory-management'
-    image: '${containerRegistry}/sagaway.demo.inventory.manager:latest'
-  }
-  {
-    name: 'booking-management'
-    image: '${containerRegistry}/sagaway.demo.booking.manager:latest'
-  }
-]
-
-// Variable for backend app names
-var backendAppNames = [for app in backendApps: app.name]
 
 // Dapr Actor State Store - Redis Container App
 resource actorstatestore 'Microsoft.App/managedEnvironments/daprComponents@2023-05-01' = {
@@ -345,6 +354,8 @@ resource statestore 'Microsoft.App/managedEnvironments/daprComponents@2023-05-01
 var reservationManagerAppName = 'reservation-manager'
 var reservationManagerImage = '${containerRegistry}/sagaway.demo.reservation.manager:latest'
 
+
+
 resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
   name: reservationManagerAppName
   location: location
@@ -358,7 +369,7 @@ resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
         }
         {
           name: 'signalr-connection-string-secret'
-          value: signalRConnectionString
+          value: secretsModule.outputs.signalRConnectionString
         }
       ]
       registries: [
@@ -371,11 +382,11 @@ resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
       dapr: {
         enabled: true
         appId: reservationManagerAppName
-        appPort: port // Ensure this is 80
+        appPort: port
       }
       ingress: {
         external: true
-        targetPort: port // Ensure this is 80
+        targetPort: port
         transport: 'auto'
       }
     }
