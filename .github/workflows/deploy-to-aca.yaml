@@ -1,7 +1,6 @@
 name: Deploy to SagawayDemoACA
 
 on:
-  
   workflow_dispatch:
   push:
     branches:
@@ -18,7 +17,6 @@ permissions:
 jobs:
   
   deploy-to-aca:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}  # only on success
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
