@@ -27,8 +27,8 @@ RUN dotnet publish "Sagaway.ReservationDemo.ReservationUI.csproj" -c $BUILD_CONF
 # Stage 2: Serve using nginx
 FROM nginx:alpine AS final
 
-# Install gettext for envsubst
-RUN apk add --no-cache gettext
+# Install gettext for envsubst AND curl for debugging
+RUN apk add --no-cache gettext curl
 
 # Remove default site and config
 RUN rm -rf /usr/share/nginx/html/* && rm /etc/nginx/conf.d/default.conf
