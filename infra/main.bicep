@@ -516,9 +516,7 @@ resource reservationUiApp 'Microsoft.App/containerApps@2023-05-01' = {
       }
     }
   }
-  dependsOn: [
-    reservationManagerApp // Ensure reservation manager is deployed first
-  ]
+ 
 }
 
 
