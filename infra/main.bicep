@@ -118,14 +118,14 @@ resource signalR 'Microsoft.SignalRService/signalR@2023-02-01' = {
   }
 }
 
-// Secure outputs to use in place of direct listKeys() calls
-@description('Service Bus connection string')
-@secure()
-output sbConnectionString string = listKeys('${serviceBus.id}/AuthorizationRules/RootManageSharedAccessKey', '2022-10-01-preview').primaryConnectionString
+// // Secure outputs to use in place of direct listKeys() calls
+// @description('Service Bus connection string')
+// @secure()
+// output sbConnectionString string = listKeys('${serviceBus.id}/AuthorizationRules/RootManageSharedAccessKey', '2022-10-01-preview').primaryConnectionString
 
-@description('SignalR connection string')
-@secure()
-output signalRConnectionString string = signalR.listKeys().primaryConnectionString
+// @description('SignalR connection string')
+// @secure()
+// output signalRConnectionString string = signalR.listKeys().primaryConnectionString
 
 // Use module to get secure values in this deployment
 module secretsModule 'secretsModule.bicep' = {
@@ -386,11 +386,11 @@ resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
         external: true
         targetPort: port 
         transport: 'auto' 
-        allowInsecure: true 
+        allowInsecure: true // Allow HTTP traffic without redirecting to HTTPS
         corsPolicy: {
           allowedOrigins: [
             // Allow HTTP origin for the UI app
-            'https://${reservationUiAppName}.${containerEnv.properties.defaultDomain}'
+            'http://${reservationUiAppName}.${containerEnv.properties.defaultDomain}'
           ]
           allowedMethods: [
             'GET'
@@ -523,7 +523,7 @@ resource reservationUiApp 'Microsoft.App/containerApps@2023-05-01' = {
           env: [
             {
               name: 'RESERVATION_MANAGER_URL'
-              value: 'https://${reservationManagerAppName}.${containerEnv.properties.defaultDomain}'
+              value: 'http://${reservationManagerAppName}.${containerEnv.properties.defaultDomain}'
             }
           ]
         }
@@ -535,5 +535,3 @@ resource reservationUiApp 'Microsoft.App/containerApps@2023-05-01' = {
     }
   }
 }
-
- 
