@@ -359,6 +359,7 @@ resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
         }
         {
           name: 'signalr-connection-string'
+          #disable-next-line use-secure-value-for-secure-inputs
           value: signalRConnectionString
         }
       ]
