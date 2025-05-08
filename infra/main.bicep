@@ -3,6 +3,7 @@ param containerRegistryUsername string
 @secure()
 param containerRegistryPassword string
 param location string = resourceGroup().location
+var keyVaultName = 'kv-${uniqueString(resourceGroup().id)}' // Generate a unique Key Vault name
 var port = 8080 
 var redisAppName = 'redis-app'
 var billingQueueName = 'billing-queue'
@@ -21,6 +22,22 @@ resource containerEnv 'Microsoft.App/managedEnvironments@2023-05-01' = {
         workloadProfileType: 'Consumption'
       }
     ]
+  }
+}
+
+// Azure Key Vault
+resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
+  name: keyVaultName
+  location: location
+  properties: {
+    sku: {
+      family: 'A'
+      name: 'standard'
+    }
+    tenantId: subscription().tenantId
+    enableRbacAuthorization: true // Recommended to use RBAC for access policies
+    // softDeleteRetentionInDays: 7 // Optional: configure soft delete
+    // enablePurgeProtection: false // Optional: configure purge protection
   }
 }
 
@@ -118,22 +135,15 @@ resource signalR 'Microsoft.SignalRService/signalR@2023-02-01' = {
   }
 }
 
-// // Secure outputs to use in place of direct listKeys() calls
-// @description('Service Bus connection string')
-// @secure()
-// output sbConnectionString string = listKeys('${serviceBus.id}/AuthorizationRules/RootManageSharedAccessKey', '2022-10-01-preview').primaryConnectionString
-
-// @description('SignalR connection string')
-// @secure()
-// output signalRConnectionString string = signalR.listKeys().primaryConnectionString
-
 // Use module to get secure values in this deployment
 module secretsModule 'secretsModule.bicep' = {
   name: 'secretsModule'
   params: {
     serviceBusId: serviceBus.id
     signalRName: signalR.name
+    keyVaultName: keyVault.name // Pass Key Vault name to the module
   }
+
 }
  
 //---------------------- Dapr Bindings - Service Bus Queues --------------------------------
@@ -148,8 +158,8 @@ resource billingQueueBinding 'Microsoft.App/managedEnvironments/daprComponents@2
     version: 'v1'
     metadata: [
       {
-        name: 'connectionString'
-        secretRef: 'sb-conn-string'
+        name: 'connectionString' // This metadata still refers to a secret name
+        secretRef: 'sb-conn-string' // This is the Dapr secret store key name
       }
       {
         name: 'queueName'
@@ -158,8 +168,10 @@ resource billingQueueBinding 'Microsoft.App/managedEnvironments/daprComponents@2
     ]
     secrets: [
       {
-        name: 'sb-conn-string'
-        value: secretsModule.outputs.sbConnectionString
+        name: 'sb-conn-string' // Dapr secret store key name
+        // Corrected structure for referencing Key Vault secrets in Dapr components
+        keyVaultUrl: '${keyVault.properties.vaultUri}secrets/${secretsModule.outputs.sbSecretName}' 
+        identity: 'system' // Assuming apps using this component will have system-assigned identities
       }
     ]
     scopes: ['billing-management', 'reservation-manager']
@@ -188,7 +200,8 @@ resource bookingQueueBinding 'Microsoft.App/managedEnvironments/daprComponents@2
     secrets: [
       {
         name: 'sb-conn-string'
-        value: secretsModule.outputs.sbConnectionString
+        keyVaultUrl: '${keyVault.properties.vaultUri}secrets/${secretsModule.outputs.sbSecretName}'
+        identity: 'system' 
       }
     ]
     scopes: ['booking-management', 'reservation-manager']
@@ -217,7 +230,8 @@ resource inventoryQueueBinding 'Microsoft.App/managedEnvironments/daprComponents
     secrets: [
       {
         name: 'sb-conn-string'
-        value: secretsModule.outputs.sbConnectionString
+        keyVaultUrl: '${keyVault.properties.vaultUri}secrets/${secretsModule.outputs.sbSecretName}'
+        identity: 'system' 
       }
     ]
     scopes: ['inventory-management', 'reservation-manager']
@@ -266,7 +280,8 @@ resource reservationResponseQueueBinding 'Microsoft.App/managedEnvironments/dapr
     secrets: [
       {
         name: 'sb-conn-string'
-        value: secretsModule.outputs.sbConnectionString
+        keyVaultUrl: '${keyVault.properties.vaultUri}secrets/${secretsModule.outputs.sbSecretName}'
+        identity: 'system' 
       }
     ]
     scopes: union(backendAppNames, ['reservation-manager']) // Use variable in union
@@ -293,7 +308,8 @@ resource reservationCallbackBinding 'Microsoft.App/managedEnvironments/daprCompo
     secrets: [
       {
         name: 'signalr-conn-string'
-        value: secretsModule.outputs.signalRConnectionString
+        keyVaultUrl: '${keyVault.properties.vaultUri}secrets/${secretsModule.outputs.signalRSecretName}' // Use the SignalR secret name from the module
+        identity: 'system' 
       }
     ]
     scopes: ['reservation-manager'] // Only scope to the app that needs it
@@ -357,6 +373,9 @@ var reservationManagerImage = '${containerRegistry}/sagaway.demo.reservation.man
 resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
   name: reservationManagerAppName
   location: location
+  identity: { 
+    type: 'SystemAssigned'
+  }
   properties: {
     managedEnvironmentId: containerEnv.id
     configuration: {
@@ -365,9 +384,12 @@ resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
           name: 'registry-password'
           value: containerRegistryPassword
         }
+        
         {
-          name: 'signalr-connection-string-secret'
-          value: secretsModule.outputs.signalRConnectionString
+          name: 'signalr-cs-from-kv' 
+          // Corrected: The secret name is part of the keyVaultUrl
+          keyVaultUrl: '${keyVault.properties.vaultUri}secrets/${secretsModule.outputs.signalRSecretName}' 
+          identity: 'system' 
         }
       ]
       registries: [
@@ -413,7 +435,7 @@ resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
           env: [
             {
               name: 'Azure__SignalR__ConnectionString'
-              secretRef: 'signalr-connection-string-secret'
+              secretRef: 'signalr-cs-from-kv' // Reference the app-level secret linked to Key Vault
             }
             {
               name: 'ASPNETCORE_URLS'
