@@ -3,17 +3,17 @@ param containerRegistryUsername string
 @secure()
 param containerRegistryPassword string
 param location string = resourceGroup().location
-param keyVaultName string = 'sagawaykv-${uniqueString(resourceGroup().id)}' 
+param keyVaultName string
 var port = 8080 
 var redisAppName = 'redis-app'
 var billingQueueName = 'billing-queue'
 var bookingQueueName = 'booking-queue'
 var inventoryQueueName = 'inventory-queue'
 var reservationResponseQueueName = 'reservation-response-queue'
+
 var reservationUiAppName = 'reservation-ui'
 var reservationUiImage = '${containerRegistry}/sagaway.demo.reservation.ui-new:latest' 
-var reservationManagerAppName = 'reservation-manager'
-var reservationManagerImage = '${containerRegistry}/sagaway.demo.reservation.manager:latest'
+
 
 resource keyVault 'Microsoft.KeyVault/vaults@2022-11-01' = {
   name: keyVaultName
@@ -146,7 +146,6 @@ module secretsModule 'secretsModule.bicep' = {
   params: {
     serviceBusId: serviceBus.id
     signalRName: signalR.name
-    keyVaultName: keyVault.name
   }
 }
  
@@ -173,8 +172,7 @@ resource billingQueueBinding 'Microsoft.App/managedEnvironments/daprComponents@2
     secrets: [
       {
         name: 'sb-conn-string'
-        #disable-next-line use-secure-value-for-secure-inputs
-        value: '@Microsoft.KeyVault(SecretUri=https://${keyVaultName}.vault.azure.net/secrets/sb-connection-string)'
+        value: secretsModule.outputs.sbConnectionString
       }
     ]
     scopes: ['billing-management', 'reservation-manager']
@@ -203,8 +201,7 @@ resource bookingQueueBinding 'Microsoft.App/managedEnvironments/daprComponents@2
     secrets: [
       {
         name: 'sb-conn-string'
-        #disable-next-line use-secure-value-for-secure-inputs
-        value: '@Microsoft.KeyVault(SecretUri=https://${keyVaultName}.vault.azure.net/secrets/sb-connection-string)'
+        value: secretsModule.outputs.sbConnectionString
       }
     ]
     scopes: ['booking-management', 'reservation-manager']
@@ -233,8 +230,7 @@ resource inventoryQueueBinding 'Microsoft.App/managedEnvironments/daprComponents
     secrets: [
       {
         name: 'sb-conn-string'
-        #disable-next-line use-secure-value-for-secure-inputs
-        value: '@Microsoft.KeyVault(SecretUri=https://${keyVaultName}.vault.azure.net/secrets/sb-connection-string)'
+        value: secretsModule.outputs.sbConnectionString
       }
     ]
     scopes: ['inventory-management', 'reservation-manager']
@@ -283,8 +279,7 @@ resource reservationResponseQueueBinding 'Microsoft.App/managedEnvironments/dapr
     secrets: [
       {
         name: 'sb-conn-string'
-        #disable-next-line use-secure-value-for-secure-inputs
-        value: '@Microsoft.KeyVault(SecretUri=https://${keyVaultName}.vault.azure.net/secrets/sb-connection-string)'
+        value: secretsModule.outputs.sbConnectionString
       }
     ]
     scopes: union(backendAppNames, ['reservation-manager']) // Use variable in union
@@ -311,8 +306,7 @@ resource reservationCallbackBinding 'Microsoft.App/managedEnvironments/daprCompo
     secrets: [
       {
         name: 'signalr-conn-string'
-        #disable-next-line use-secure-value-for-secure-inputs
-        value: '@Microsoft.KeyVault(SecretUri=https://${keyVaultName}.vault.azure.net/secrets/signalr-connection-string)'
+        value: secretsModule.outputs.signalRConnectionString
       }
     ]
     scopes: ['reservation-manager'] // Only scope to the app that needs it
@@ -369,6 +363,9 @@ resource statestore 'Microsoft.App/managedEnvironments/daprComponents@2023-05-01
   ]
 }
 
+// Reservation Manager Container App (Defined Separately)
+var reservationManagerAppName = 'reservation-manager'
+var reservationManagerImage = '${containerRegistry}/sagaway.demo.reservation.manager:latest'
 
 resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
   name: reservationManagerAppName
