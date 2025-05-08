@@ -386,10 +386,10 @@ resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
         external: true
         targetPort: port
         transport: 'auto'
-   
         corsPolicy: {
           allowedOrigins: [
-            'https://${reservationUiAppName}.${containerEnv.properties.defaultDomain}'
+            // Update to HTTP for the UI app origin
+            'http://${reservationUiAppName}.${containerEnv.properties.defaultDomain}'
           ]
           allowedMethods: [
             'GET'
@@ -524,8 +524,8 @@ resource reservationUiApp 'Microsoft.App/containerApps@2023-05-01' = {
           env: [
             {
               name: 'RESERVATION_MANAGER_URL'
-              // Ensure FQDN is constructed using containerEnv.properties.defaultDomain
-              value: 'https://${reservationManagerAppName}.${containerEnv.properties.defaultDomain}'
+              // Update to HTTP for the backend URL
+              value: 'http://${reservationManagerAppName}.${containerEnv.properties.defaultDomain}'
             }
           ]
         }
