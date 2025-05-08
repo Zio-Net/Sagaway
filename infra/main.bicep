@@ -158,8 +158,8 @@ resource billingQueueBinding 'Microsoft.App/managedEnvironments/daprComponents@2
     version: 'v1'
     metadata: [
       {
-        name: 'connectionString' // This metadata still refers to a secret name
-        secretRef: 'sb-conn-string' // This is the Dapr secret store key name
+        name: 'connectionString' 
+        secretRef: 'sb-conn-string' 
       }
       {
         name: 'queueName'
@@ -168,10 +168,9 @@ resource billingQueueBinding 'Microsoft.App/managedEnvironments/daprComponents@2
     ]
     secrets: [
       {
-        name: 'sb-conn-string' // Dapr secret store key name
-        // Corrected structure for referencing Key Vault secrets in Dapr components
-        keyVaultUrl: '${keyVault.properties.vaultUri}secrets/${secretsModule.outputs.sbSecretName}' 
-        identity: 'system' // Assuming apps using this component will have system-assigned identities
+        name: 'sb-conn-string' 
+        #disable-next-line use-secure-value-for-secure-inputs
+        value: 'sb-cs-from-kv' // Reference app-level secret name
       }
     ]
     scopes: ['billing-management', 'reservation-manager']
@@ -200,8 +199,8 @@ resource bookingQueueBinding 'Microsoft.App/managedEnvironments/daprComponents@2
     secrets: [
       {
         name: 'sb-conn-string'
-        keyVaultUrl: '${keyVault.properties.vaultUri}secrets/${secretsModule.outputs.sbSecretName}'
-        identity: 'system' 
+        #disable-next-line use-secure-value-for-secure-inputs
+        value: 'sb-cs-from-kv' // Reference app-level secret name
       }
     ]
     scopes: ['booking-management', 'reservation-manager']
@@ -230,8 +229,8 @@ resource inventoryQueueBinding 'Microsoft.App/managedEnvironments/daprComponents
     secrets: [
       {
         name: 'sb-conn-string'
-        keyVaultUrl: '${keyVault.properties.vaultUri}secrets/${secretsModule.outputs.sbSecretName}'
-        identity: 'system' 
+        #disable-next-line use-secure-value-for-secure-inputs
+        value: 'sb-cs-from-kv' // Reference app-level secret name
       }
     ]
     scopes: ['inventory-management', 'reservation-manager']
@@ -280,8 +279,8 @@ resource reservationResponseQueueBinding 'Microsoft.App/managedEnvironments/dapr
     secrets: [
       {
         name: 'sb-conn-string'
-        keyVaultUrl: '${keyVault.properties.vaultUri}secrets/${secretsModule.outputs.sbSecretName}'
-        identity: 'system' 
+        #disable-next-line use-secure-value-for-secure-inputs
+        value: 'sb-cs-from-kv' // Reference app-level secret name
       }
     ]
     scopes: union(backendAppNames, ['reservation-manager']) // Use variable in union
@@ -308,8 +307,8 @@ resource reservationCallbackBinding 'Microsoft.App/managedEnvironments/daprCompo
     secrets: [
       {
         name: 'signalr-conn-string'
-        keyVaultUrl: '${keyVault.properties.vaultUri}secrets/${secretsModule.outputs.signalRSecretName}' // Use the SignalR secret name from the module
-        identity: 'system' 
+        #disable-next-line use-secure-value-for-secure-inputs
+        value: 'signalr-cs-from-kv' // Reference app-level secret name
       }
     ]
     scopes: ['reservation-manager'] // Only scope to the app that needs it
@@ -384,12 +383,16 @@ resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
           name: 'registry-password'
           value: containerRegistryPassword
         }
-        
         {
           name: 'signalr-cs-from-kv' 
-          // Corrected: The secret name is part of the keyVaultUrl
           keyVaultUrl: '${keyVault.properties.vaultUri}secrets/${secretsModule.outputs.signalRSecretName}' 
           identity: 'system' 
+        }
+        // Add app-level secret for Service Bus connection string
+        {
+          name: 'sb-cs-from-kv'
+          keyVaultUrl: '${keyVault.properties.vaultUri}secrets/${secretsModule.outputs.sbSecretName}'
+          identity: 'system'
         }
       ]
       registries: [
@@ -456,6 +459,10 @@ resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
 resource backendContainerApps 'Microsoft.App/containerApps@2023-05-01' = [for app in backendApps: {
   name: app.name
   location: location
+  // Add system-assigned managed identity to backend apps
+  identity: {
+    type: 'SystemAssigned'
+  }
   properties: {
     managedEnvironmentId: containerEnv.id
     configuration: {
@@ -463,6 +470,12 @@ resource backendContainerApps 'Microsoft.App/containerApps@2023-05-01' = [for ap
         {
           name: 'registry-password'
           value: containerRegistryPassword
+        }
+        // Add app-level secret for Service Bus connection string to backend apps
+        {
+          name: 'sb-cs-from-kv'
+          keyVaultUrl: '${keyVault.properties.vaultUri}secrets/${secretsModule.outputs.sbSecretName}'
+          identity: 'system'
         }
       ]
       registries: [
