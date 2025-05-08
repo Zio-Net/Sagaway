@@ -1,39 +1,30 @@
 param serviceBusId string
 param signalRName string
-param keyVaultName string // Added Key Vault name as a parameter
+param keyVaultName string
 
-// Define standardized secret names
-var serviceBusSecretName = 'ServiceBusConnectionString'
-var signalRSecretName = 'SignalRConnectionString'
-
-// Retrieve existing Key Vault resource (it's created in main.bicep)
-resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+resource keyVault 'Microsoft.KeyVault/vaults@2022-11-01' existing = {
   name: keyVaultName
 }
 
-// Service Bus connection string secret in Key Vault
-resource serviceBusConnectionStringSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+// Get Service Bus connection string
+var sbConnectionString = listKeys('${serviceBusId}/AuthorizationRules/RootManageSharedAccessKey', '2022-10-01-preview').primaryConnectionString
+
+// Get SignalR connection string
+var signalRConnectionString = listKeys('${resourceGroup().id}/providers/Microsoft.SignalRService/signalR/${signalRName}', '2023-02-01').primaryConnectionString
+
+// Write secrets into Key Vault
+resource sbSecret 'Microsoft.KeyVault/vaults/secrets@2022-11-01' = {
   parent: keyVault
-  name: serviceBusSecretName
+  name: 'sb-connection-string'
   properties: {
-    value: listKeys('${serviceBusId}/AuthorizationRules/RootManageSharedAccessKey', '2022-10-01-preview').primaryConnectionString
+    value: sbConnectionString
   }
 }
 
-// SignalR connection string secret in Key Vault
-resource signalRConnectionStringSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+resource signalRSecret 'Microsoft.KeyVault/vaults/secrets@2022-11-01' = {
   parent: keyVault
-  name: signalRSecretName
+  name: 'signalr-connection-string'
   properties: {
-    // Corrected to use the full resource ID for listKeys on SignalR if signalRName is just the name
-    // Assuming signalRName is just the name, and it's in the same resource group
-    value: listKeys('${resourceGroup().id}/providers/Microsoft.SignalRService/signalR/${signalRName}', '2023-02-01').primaryConnectionString
+    value: signalRConnectionString
   }
 }
-
-// Outputs can be the names of the secrets if needed, though main.bicep will use the var names directly
-@description('Name of the Service Bus connection string secret in Key Vault')
-output sbSecretName string = serviceBusSecretName
-
-@description('Name of the SignalR connection string secret in Key Vault')
-output signalRSecretName string = signalRSecretName

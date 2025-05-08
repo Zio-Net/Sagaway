@@ -3,13 +3,34 @@ param containerRegistryUsername string
 @secure()
 param containerRegistryPassword string
 param location string = resourceGroup().location
-var keyVaultName = 'kv-${uniqueString(resourceGroup().id)}' // Generate a unique Key Vault name
+param keyVaultName string
 var port = 8080 
 var redisAppName = 'redis-app'
 var billingQueueName = 'billing-queue'
 var bookingQueueName = 'booking-queue'
 var inventoryQueueName = 'inventory-queue'
 var reservationResponseQueueName = 'reservation-response-queue'
+var reservationUiAppName = 'reservation-ui'
+var reservationUiImage = '${containerRegistry}/sagaway.demo.reservation.ui-new:latest' 
+var reservationManagerAppName = 'reservation-manager'
+var reservationManagerImage = '${containerRegistry}/sagaway.demo.reservation.manager:latest'
+
+resource keyVault 'Microsoft.KeyVault/vaults@2022-11-01' = {
+  name: keyVaultName
+  location: location
+  properties: {
+    tenantId: subscription().tenantId
+    sku: {
+      family: 'A'
+      name: 'standard'
+    }
+    accessPolicies: [] // You can add policies if needed here
+    enabledForDeployment: true
+    enabledForTemplateDeployment: true
+    enableSoftDelete: true
+    enablePurgeProtection: true
+  }
+}
 
 // Container App Environment
 resource containerEnv 'Microsoft.App/managedEnvironments@2023-05-01' = {
@@ -22,22 +43,6 @@ resource containerEnv 'Microsoft.App/managedEnvironments@2023-05-01' = {
         workloadProfileType: 'Consumption'
       }
     ]
-  }
-}
-
-// Azure Key Vault
-resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
-  name: keyVaultName
-  location: location
-  properties: {
-    sku: {
-      family: 'A'
-      name: 'standard'
-    }
-    tenantId: subscription().tenantId
-    enableRbacAuthorization: true // Recommended to use RBAC for access policies
-    // softDeleteRetentionInDays: 7 // Optional: configure soft delete
-    // enablePurgeProtection: false // Optional: configure purge protection
   }
 }
 
@@ -141,9 +146,8 @@ module secretsModule 'secretsModule.bicep' = {
   params: {
     serviceBusId: serviceBus.id
     signalRName: signalR.name
-    keyVaultName: keyVault.name // Pass Key Vault name to the module
+    keyVaultName: keyVault.name
   }
-
 }
  
 //---------------------- Dapr Bindings - Service Bus Queues --------------------------------
@@ -158,8 +162,8 @@ resource billingQueueBinding 'Microsoft.App/managedEnvironments/daprComponents@2
     version: 'v1'
     metadata: [
       {
-        name: 'connectionString' 
-        secretRef: 'sb-conn-string' 
+        name: 'connectionString'
+        secretRef: 'sb-conn-string'
       }
       {
         name: 'queueName'
@@ -168,9 +172,9 @@ resource billingQueueBinding 'Microsoft.App/managedEnvironments/daprComponents@2
     ]
     secrets: [
       {
-        name: 'sb-conn-string' 
+        name: 'sb-conn-string'
         #disable-next-line use-secure-value-for-secure-inputs
-        value: 'sb-cs-from-kv' // Reference app-level secret name
+        value: '@Microsoft.KeyVault(SecretUri=https://${keyVaultName}.vault.azure.net/secrets/sb-connection-string)'
       }
     ]
     scopes: ['billing-management', 'reservation-manager']
@@ -200,7 +204,7 @@ resource bookingQueueBinding 'Microsoft.App/managedEnvironments/daprComponents@2
       {
         name: 'sb-conn-string'
         #disable-next-line use-secure-value-for-secure-inputs
-        value: 'sb-cs-from-kv' // Reference app-level secret name
+        value: '@Microsoft.KeyVault(SecretUri=https://${keyVaultName}.vault.azure.net/secrets/sb-connection-string)'
       }
     ]
     scopes: ['booking-management', 'reservation-manager']
@@ -230,7 +234,7 @@ resource inventoryQueueBinding 'Microsoft.App/managedEnvironments/daprComponents
       {
         name: 'sb-conn-string'
         #disable-next-line use-secure-value-for-secure-inputs
-        value: 'sb-cs-from-kv' // Reference app-level secret name
+        value: '@Microsoft.KeyVault(SecretUri=https://${keyVaultName}.vault.azure.net/secrets/sb-connection-string)'
       }
     ]
     scopes: ['inventory-management', 'reservation-manager']
@@ -280,7 +284,7 @@ resource reservationResponseQueueBinding 'Microsoft.App/managedEnvironments/dapr
       {
         name: 'sb-conn-string'
         #disable-next-line use-secure-value-for-secure-inputs
-        value: 'sb-cs-from-kv' // Reference app-level secret name
+        value: '@Microsoft.KeyVault(SecretUri=https://${keyVaultName}.vault.azure.net/secrets/sb-connection-string)'
       }
     ]
     scopes: union(backendAppNames, ['reservation-manager']) // Use variable in union
@@ -308,7 +312,7 @@ resource reservationCallbackBinding 'Microsoft.App/managedEnvironments/daprCompo
       {
         name: 'signalr-conn-string'
         #disable-next-line use-secure-value-for-secure-inputs
-        value: 'signalr-cs-from-kv' // Reference app-level secret name
+        value: '@Microsoft.KeyVault(SecretUri=https://${keyVaultName}.vault.azure.net/secrets/signalr-connection-string)'
       }
     ]
     scopes: ['reservation-manager'] // Only scope to the app that needs it
@@ -365,16 +369,10 @@ resource statestore 'Microsoft.App/managedEnvironments/daprComponents@2023-05-01
   ]
 }
 
-// Reservation Manager Container App (Defined Separately)
-var reservationManagerAppName = 'reservation-manager'
-var reservationManagerImage = '${containerRegistry}/sagaway.demo.reservation.manager:latest'
 
 resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
   name: reservationManagerAppName
   location: location
-  identity: { 
-    type: 'SystemAssigned'
-  }
   properties: {
     managedEnvironmentId: containerEnv.id
     configuration: {
@@ -384,15 +382,8 @@ resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
           value: containerRegistryPassword
         }
         {
-          name: 'signalr-cs-from-kv' 
-          keyVaultUrl: '${keyVault.properties.vaultUri}secrets/${secretsModule.outputs.signalRSecretName}' 
-          identity: 'system' 
-        }
-        // Add app-level secret for Service Bus connection string
-        {
-          name: 'sb-cs-from-kv'
-          keyVaultUrl: '${keyVault.properties.vaultUri}secrets/${secretsModule.outputs.sbSecretName}'
-          identity: 'system'
+          name: 'signalr-connection-string-secret'
+          value: '@Microsoft.KeyVault(SecretUri=https://${keyVaultName}.vault.azure.net/secrets/signalr-connection-string)'
         }
       ]
       registries: [
@@ -415,7 +406,7 @@ resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
         corsPolicy: {
           allowedOrigins: [
             // Allow HTTP origin for the UI app
-            'http://${reservationUiAppName}.${containerEnv.properties.defaultDomain}'
+            'https://${reservationUiAppName}.${containerEnv.properties.defaultDomain}'
           ]
           allowedMethods: [
             'GET'
@@ -438,7 +429,7 @@ resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
           env: [
             {
               name: 'Azure__SignalR__ConnectionString'
-              secretRef: 'signalr-cs-from-kv' // Reference the app-level secret linked to Key Vault
+              secretRef: 'signalr-connection-string-secret'
             }
             {
               name: 'ASPNETCORE_URLS'
@@ -459,10 +450,6 @@ resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
 resource backendContainerApps 'Microsoft.App/containerApps@2023-05-01' = [for app in backendApps: {
   name: app.name
   location: location
-  // Add system-assigned managed identity to backend apps
-  identity: {
-    type: 'SystemAssigned'
-  }
   properties: {
     managedEnvironmentId: containerEnv.id
     configuration: {
@@ -470,12 +457,6 @@ resource backendContainerApps 'Microsoft.App/containerApps@2023-05-01' = [for ap
         {
           name: 'registry-password'
           value: containerRegistryPassword
-        }
-        // Add app-level secret for Service Bus connection string to backend apps
-        {
-          name: 'sb-cs-from-kv'
-          keyVaultUrl: '${keyVault.properties.vaultUri}secrets/${secretsModule.outputs.sbSecretName}'
-          identity: 'system'
         }
       ]
       registries: [
@@ -517,9 +498,6 @@ resource backendContainerApps 'Microsoft.App/containerApps@2023-05-01' = [for ap
   }
 }]
 
-// Reservation UI Container App (Defined Separately)
-var reservationUiAppName = 'reservation-ui'
-var reservationUiImage = '${containerRegistry}/sagaway.demo.reservation.ui-new:latest' // Assumed image name
 
 resource reservationUiApp 'Microsoft.App/containerApps@2023-05-01' = {
   name: reservationUiAppName
@@ -558,7 +536,7 @@ resource reservationUiApp 'Microsoft.App/containerApps@2023-05-01' = {
           env: [
             {
               name: 'RESERVATION_MANAGER_URL'
-              value: 'http://${reservationManagerAppName}.${containerEnv.properties.defaultDomain}'
+              value: 'https://${reservationManagerAppName}.${containerEnv.properties.defaultDomain}'
             }
           ]
         }
