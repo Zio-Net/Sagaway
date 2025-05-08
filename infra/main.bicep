@@ -3,7 +3,7 @@ param containerRegistryUsername string
 @secure()
 param containerRegistryPassword string
 param location string = resourceGroup().location
-param keyVaultName string = 'sagaway-keyvault-demo' 
+param keyVaultName string = 'sagaway-keyvault-demo' // Unique name for Key Vault
 var port = 8080 
 var redisAppName = 'redis-app'
 var billingQueueName = 'billing-queue'
@@ -14,6 +14,8 @@ var reservationResponseQueueName = 'reservation-response-queue'
 var reservationUiAppName = 'reservation-ui'
 var reservationUiImage = '${containerRegistry}/sagaway.demo.reservation.ui-new:latest' 
 
+var serviceBusConnectionString = listKeys('${serviceBus.id}/AuthorizationRules/RootManageSharedAccessKey', '2022-10-01-preview').primaryConnectionString
+var signalRConnectionString = listKeys('${resourceGroup().id}/providers/Microsoft.SignalRService/signalR/${signalR.name}', '2023-02-01').primaryConnectionString
 
 resource keyVault 'Microsoft.KeyVault/vaults@2022-11-01' = {
   name: keyVaultName
@@ -24,7 +26,7 @@ resource keyVault 'Microsoft.KeyVault/vaults@2022-11-01' = {
       family: 'A'
       name: 'standard'
     }
-    accessPolicies: [] // You can add policies if needed here
+    accessPolicies: [] // We'll add policies for the managed identities
     enabledForDeployment: true
     enabledForTemplateDeployment: true
     enableSoftDelete: true
@@ -93,7 +95,6 @@ resource redisContainerApp 'Microsoft.App/containerApps@2023-05-01' = {
         targetPort: 6379 // Default Redis port
         transport: 'tcp' // Redis uses TCP
       }
-
     }
     template: {
       containers: [
@@ -145,7 +146,7 @@ resource sbConnectionStringSecret 'Microsoft.KeyVault/vaults/secrets@2022-11-01'
   parent: keyVault
   name: 'sb-connection-string'
   properties: {
-    value: listKeys('${serviceBus.id}/AuthorizationRules/RootManageSharedAccessKey', '2022-10-01-preview').primaryConnectionString
+    value: serviceBusConnectionString
   }
 }
 
@@ -153,7 +154,7 @@ resource signalRConnectionStringSecret 'Microsoft.KeyVault/vaults/secrets@2022-1
   parent: keyVault
   name: 'signalr-connection-string'
   properties: {
-    value: listKeys('${resourceGroup().id}/providers/Microsoft.SignalRService/signalR/${signalR.name}', '2023-02-01').primaryConnectionString
+    value: signalRConnectionString
   }
 }
 
@@ -183,7 +184,6 @@ resource billingQueueBinding 'Microsoft.App/managedEnvironments/daprComponents@2
   name: billingQueueName
   dependsOn: [
     billingQueue
-    sbConnectionStringSecret
   ]
   properties: {
     componentType: 'bindings.azure.servicebusqueues'
@@ -191,17 +191,11 @@ resource billingQueueBinding 'Microsoft.App/managedEnvironments/daprComponents@2
     metadata: [
       {
         name: 'connectionString'
-        secretRef: 'sb-conn-string'
+        value: serviceBusConnectionString
       }
       {
         name: 'queueName'
         value: billingQueueName
-      }
-    ]
-    secrets: [
-      {
-        name: 'sb-conn-string'
-        value: '@Microsoft.KeyVault(SecretUri=https://${keyVaultName}.vault.azure.net/secrets/sb-connection-string)'
       }
     ]
     scopes: ['billing-management', 'reservation-manager']
@@ -213,7 +207,6 @@ resource bookingQueueBinding 'Microsoft.App/managedEnvironments/daprComponents@2
   name: bookingQueueName
   dependsOn: [
     bookingQueue
-    sbConnectionStringSecret
   ]
   properties: {
     componentType: 'bindings.azure.servicebusqueues'
@@ -221,17 +214,11 @@ resource bookingQueueBinding 'Microsoft.App/managedEnvironments/daprComponents@2
     metadata: [
       {
         name: 'connectionString'
-        secretRef: 'sb-conn-string'
+        value: serviceBusConnectionString
       }
       {
         name: 'queueName'
         value: bookingQueueName
-      }
-    ]
-    secrets: [
-      {
-        name: 'sb-conn-string'
-        value: '@Microsoft.KeyVault(SecretUri=https://${keyVaultName}.vault.azure.net/secrets/sb-connection-string)'
       }
     ]
     scopes: ['booking-management', 'reservation-manager']
@@ -243,7 +230,6 @@ resource inventoryQueueBinding 'Microsoft.App/managedEnvironments/daprComponents
   name: inventoryQueueName
   dependsOn: [
     inventoryQueue
-    sbConnectionStringSecret
   ]
   properties: {
     componentType: 'bindings.azure.servicebusqueues'
@@ -251,17 +237,11 @@ resource inventoryQueueBinding 'Microsoft.App/managedEnvironments/daprComponents
     metadata: [
       {
         name: 'connectionString'
-        secretRef: 'sb-conn-string'
+        value: serviceBusConnectionString
       }
       {
         name: 'queueName'
         value: inventoryQueueName
-      }
-    ]
-    secrets: [
-      {
-        name: 'sb-conn-string'
-        value: '@Microsoft.KeyVault(SecretUri=https://${keyVaultName}.vault.azure.net/secrets/sb-connection-string)'
       }
     ]
     scopes: ['inventory-management', 'reservation-manager']
@@ -273,7 +253,6 @@ resource reservationResponseQueueBinding 'Microsoft.App/managedEnvironments/dapr
   name: reservationResponseQueueName
   dependsOn: [
     reservationResponseQueue
-    sbConnectionStringSecret
   ]
   properties: {
     componentType: 'bindings.azure.servicebusqueues'
@@ -281,17 +260,11 @@ resource reservationResponseQueueBinding 'Microsoft.App/managedEnvironments/dapr
     metadata: [
       {
         name: 'connectionString'
-        secretRef: 'sb-conn-string'
+        value: serviceBusConnectionString
       }
       {
         name: 'queueName'
         value: reservationResponseQueueName
-      }
-    ]
-    secrets: [
-      {
-        name: 'sb-conn-string'
-        value: '@Microsoft.KeyVault(SecretUri=https://${keyVaultName}.vault.azure.net/secrets/sb-connection-string)'
       }
     ]
     scopes: union(backendAppNames, ['reservation-manager']) // Use variable in union
@@ -302,26 +275,17 @@ resource reservationResponseQueueBinding 'Microsoft.App/managedEnvironments/dapr
 resource reservationCallbackBinding 'Microsoft.App/managedEnvironments/daprComponents@2023-05-01' = {
   parent: containerEnv
   name: 'reservationcallback' // Matches the component name used in the code and local YAML
-  dependsOn: [
-    signalRConnectionStringSecret
-  ]
   properties: {
     componentType: 'bindings.azure.signalr'
     version: 'v1'
     metadata: [
       {
         name: 'connectionString'
-        secretRef: 'signalr-conn-string'
+        value: signalRConnectionString
       }
       {
         name: 'hub'
         value: 'reservationcallback' // Matches the hub name used in the code and local YAML
-      }
-    ] 
-    secrets: [
-      {
-        name: 'signalr-conn-string'
-        value: '@Microsoft.KeyVault(SecretUri=https://${keyVaultName}.vault.azure.net/secrets/signalr-connection-string)'
       }
     ]
     scopes: ['reservation-manager'] // Only scope to the app that needs it
@@ -395,7 +359,7 @@ resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
         }
         {
           name: 'signalr-connection-string'
-          value: '@Microsoft.KeyVault(SecretUri=https://${keyVaultName}.vault.azure.net/secrets/signalr-connection-string)'
+          value: signalRConnectionString
         }
       ]
       registries: [
@@ -431,7 +395,6 @@ resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
           allowCredentials: true
         }
       }
-     
     }
     template: {
       containers: [
@@ -509,7 +472,6 @@ resource backendContainerApps 'Microsoft.App/containerApps@2023-05-01' = [for ap
     }
   }
 }]
-
 
 resource reservationUiApp 'Microsoft.App/containerApps@2023-05-01' = {
   name: reservationUiAppName
