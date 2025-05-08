@@ -386,11 +386,11 @@ resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
         external: true
         targetPort: port 
         transport: 'auto' 
-        allowInsecure: true // Allow HTTP traffic without redirecting to HTTPS
+        allowInsecure: true 
         corsPolicy: {
           allowedOrigins: [
             // Allow HTTP origin for the UI app
-            'http://${reservationUiAppName}.${containerEnv.properties.defaultDomain}'
+            'https://${reservationUiAppName}.${containerEnv.properties.defaultDomain}'
           ]
           allowedMethods: [
             'GET'
@@ -523,7 +523,7 @@ resource reservationUiApp 'Microsoft.App/containerApps@2023-05-01' = {
           env: [
             {
               name: 'RESERVATION_MANAGER_URL'
-              value: 'http://${reservationManagerAppName}.${containerEnv.properties.defaultDomain}'
+              value: 'https://${reservationManagerAppName}.${containerEnv.properties.defaultDomain}'
             }
           ]
         }
