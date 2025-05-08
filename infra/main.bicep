@@ -354,8 +354,6 @@ resource statestore 'Microsoft.App/managedEnvironments/daprComponents@2023-05-01
 var reservationManagerAppName = 'reservation-manager'
 var reservationManagerImage = '${containerRegistry}/sagaway.demo.reservation.manager:latest'
 
-
-
 resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
   name: reservationManagerAppName
   location: location
@@ -388,7 +386,23 @@ resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
         external: true
         targetPort: port
         transport: 'auto'
+   
+        corsPolicy: {
+          allowedOrigins: [
+            'https://${reservationUiAppName}.${containerEnv.properties.defaultDomain}'
+          ]
+          allowedMethods: [
+            'GET'
+            'POST'
+            'OPTIONS'
+          ]
+          allowedHeaders: [
+            '*'
+          ]
+          allowCredentials: true
+        }
       }
+     
     }
     template: {
       containers: [
@@ -510,8 +524,8 @@ resource reservationUiApp 'Microsoft.App/containerApps@2023-05-01' = {
           env: [
             {
               name: 'RESERVATION_MANAGER_URL'
-              // Use FQDN for the reservation-manager service
-              value: 'https://${reservationManagerApp.properties.configuration.ingress.fqdn}'
+              // Ensure FQDN is constructed using containerEnv.properties.defaultDomain
+              value: 'https://${reservationManagerAppName}.${containerEnv.properties.defaultDomain}'
             }
           ]
         }
