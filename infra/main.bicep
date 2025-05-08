@@ -3,7 +3,7 @@ param containerRegistryUsername string
 @secure()
 param containerRegistryPassword string
 param location string = resourceGroup().location
-param keyVaultName string = 'sagaway-keyvault-demo' // Unique name for Key Vault
+param keyVaultName string
 var port = 8080 
 var redisAppName = 'redis-app'
 var billingQueueName = 'billing-queue'
@@ -142,14 +142,16 @@ resource signalR 'Microsoft.SignalRService/signalR@2023-02-01' = {
 
 // Create connection string secrets in Key Vault
 resource sbConnectionStringSecret 'Microsoft.KeyVault/vaults/secrets@2022-11-01' = {
-  name: '${keyVaultName}/sb-connection-string'
+  parent: keyVault
+  name: 'sb-connection-string'
   properties: {
     value: listKeys('${serviceBus.id}/AuthorizationRules/RootManageSharedAccessKey', '2022-10-01-preview').primaryConnectionString
   }
 }
 
 resource signalRConnectionStringSecret 'Microsoft.KeyVault/vaults/secrets@2022-11-01' = {
-  name: '${keyVaultName}/signalr-connection-string'
+  parent: keyVault
+  name: 'signalr-connection-string'
   properties: {
     value: listKeys('${resourceGroup().id}/providers/Microsoft.SignalRService/signalR/${signalR.name}', '2023-02-01').primaryConnectionString
   }
