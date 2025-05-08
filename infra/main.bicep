@@ -383,7 +383,7 @@ resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
         corsPolicy: {
           allowedOrigins: [
             // Allow HTTP origin for the UI app
-            'https://${reservationUiAppName}.${containerEnv.properties.defaultDomain}'
+            'http://${reservationUiAppName}.${containerEnv.properties.defaultDomain}'
           ]
           allowedMethods: [
             'GET'
@@ -511,7 +511,7 @@ resource reservationUiApp 'Microsoft.App/containerApps@2023-05-01' = {
           env: [
             {
               name: 'RESERVATION_MANAGER_URL'
-              value: 'https://${reservationManagerAppName}.${containerEnv.properties.defaultDomain}'
+              value: 'http://${reservationManagerAppName}.${containerEnv.properties.defaultDomain}'
             }
           ]
         }
@@ -524,6 +524,4 @@ resource reservationUiApp 'Microsoft.App/containerApps@2023-05-01' = {
   }
 }
 
-// Output the UI app URL for convenience
-output reservationUiUrl string = 'https://${reservationUiAppName}.${containerEnv.properties.defaultDomain}'
-output reservationManagerUrl string = 'https://${reservationManagerAppName}.${containerEnv.properties.defaultDomain}'
+
