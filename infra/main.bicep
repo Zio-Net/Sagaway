@@ -384,11 +384,12 @@ resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
       }
       ingress: {
         external: true
-        targetPort: port
-        transport: 'auto'
+        targetPort: port 
+        transport: 'auto' 
+        allowInsecure: true // Allow HTTP traffic without redirecting to HTTPS
         corsPolicy: {
           allowedOrigins: [
-            // Update to HTTP for the UI app origin
+            // Allow HTTP origin for the UI app
             'http://${reservationUiAppName}.${containerEnv.properties.defaultDomain}'
           ]
           allowedMethods: [
@@ -414,7 +415,6 @@ resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
               name: 'Azure__SignalR__ConnectionString'
               secretRef: 'signalr-connection-string-secret'
             }
-            // Add ASPNETCORE_URLS to force listening on port 80
             {
               name: 'ASPNETCORE_URLS'
               value: 'http://+:8080'
@@ -467,7 +467,6 @@ resource backendContainerApps 'Microsoft.App/containerApps@2023-05-01' = [for ap
           name: app.name
           image: app.image
           env: [
-            // Add ASPNETCORE_URLS to force listening on port 80
             {
               name: 'ASPNETCORE_URLS'
               value: 'http://+:8080'
@@ -524,7 +523,6 @@ resource reservationUiApp 'Microsoft.App/containerApps@2023-05-01' = {
           env: [
             {
               name: 'RESERVATION_MANAGER_URL'
-              // Update to HTTP for the backend URL
               value: 'http://${reservationManagerAppName}.${containerEnv.properties.defaultDomain}'
             }
           ]

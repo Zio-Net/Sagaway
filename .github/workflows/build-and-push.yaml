@@ -1,9 +1,9 @@
 name: Build And Push Docker Images To Azure Container Registry
 on:
   workflow_dispatch:
-  # push:
-  #   branches:
-  #     - yosef/deploy-to-aca
+  push:
+    branches:
+      - yosef/deploy-to-aca
   
 jobs:     
     build-and-push-image:
