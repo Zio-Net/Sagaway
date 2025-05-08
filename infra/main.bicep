@@ -3,7 +3,7 @@ param containerRegistryUsername string
 @secure()
 param containerRegistryPassword string
 param location string = resourceGroup().location
-param keyVaultName string
+param keyVaultName string = 'sagawaykv-${uniqueString(resourceGroup().id)}' 
 var port = 8080 
 var redisAppName = 'redis-app'
 var billingQueueName = 'billing-queue'
