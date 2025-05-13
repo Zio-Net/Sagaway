@@ -13,8 +13,12 @@ using Sagaway.ReservationDemo.ReservationManager.Actors.CarReservationCancellati
 using Sagaway.ReservationDemo.ReservationManager;
 using Sagaway.ReservationDemo.ReservationManager.Actors.InventoryDto;
 using Sagaway.ReservationDemo.ReservationManager.Actors.Publisher;
+using Microsoft.ApplicationInsights.Extensibility;
 
 var builder = WebApplication.CreateBuilder(args);
+
+//Application Insights
+builder.Services.AddApplicationInsightsTelemetry();
 
 
 builder.Logging.ClearProviders();

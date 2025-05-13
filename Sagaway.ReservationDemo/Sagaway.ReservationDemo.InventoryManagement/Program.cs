@@ -8,8 +8,12 @@ using System.Globalization;
 using System.Net;
 using OpenTelemetry.Trace;
 using OpenTelemetry.Resources;
+using Microsoft.ApplicationInsights.Extensibility;
 
 var builder = WebApplication.CreateBuilder(args);
+
+//Application Insights
+builder.Services.AddApplicationInsightsTelemetry();
 
 
 builder.Logging.ClearProviders();

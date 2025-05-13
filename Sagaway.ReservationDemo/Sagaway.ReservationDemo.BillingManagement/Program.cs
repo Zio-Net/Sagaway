@@ -5,8 +5,12 @@ using Microsoft.AspNetCore.Mvc;
 using OpenTelemetry.Resources;
 using Sagaway.ReservationDemo.BillingManagement;
 using OpenTelemetry.Trace;
+using Microsoft.ApplicationInsights.Extensibility;
 
 var builder = WebApplication.CreateBuilder(args);
+
+//Application Insights
+builder.Services.AddApplicationInsightsTelemetry();
 
 var rnd = new Random();
 

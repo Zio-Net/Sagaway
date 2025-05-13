@@ -9,8 +9,12 @@ using System.Net;
 using OpenTelemetry.Trace;
 using OpenTelemetry.Resources;
 using Dapr;
+using Microsoft.ApplicationInsights.Extensibility;
 
 var builder = WebApplication.CreateBuilder(args);
+
+//Application Insights
+builder.Services.AddApplicationInsightsTelemetry();
 
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();

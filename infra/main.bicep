@@ -12,7 +12,7 @@ var inventoryQueueName = 'inventory-queue'
 var reservationResponseQueueName = 'reservation-response-queue'
 
 var reservationUiAppName = 'reservation-ui'
-var reservationUiImage = '${containerRegistry}/sagaway.demo.reservation.ui-new:latest' 
+var reservationUiImage = '${containerRegistry}/sagaway.demo.reservation.ui:latest' 
 
 var serviceBusConnectionString = listKeys('${serviceBus.id}/AuthorizationRules/RootManageSharedAccessKey', '2022-10-01-preview').primaryConnectionString
 var signalRConnectionString = listKeys('${resourceGroup().id}/providers/Microsoft.SignalRService/signalR/${signalR.name}', '2023-02-01').primaryConnectionString

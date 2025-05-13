@@ -2,12 +2,12 @@ name: Deploy to SagawayDemoACA
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - yosef/deploy-to-aca
-    paths:
-      - 'infra/**'
-      - '.github/workflows/deploy-to-aca.yaml'
+  # push:
+  #   branches:
+  #     - yosef/deploy-to-aca
+  #   paths:
+  #     - 'infra/**'
+  #     - '.github/workflows/deploy-to-aca.yaml'
 
 permissions:
   id-token: write

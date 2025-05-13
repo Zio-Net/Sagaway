@@ -14,6 +14,7 @@
   <ItemGroup>
     <PackageReference Include="Dapr.Client" Version="1.15.3" />
     <PackageReference Include="Dapr.AspNetCore" Version="1.15.3" />
+    <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.23.0" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.4" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.21.2" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="8.1.1" />
