@@ -17,6 +17,36 @@ var reservationUiImage = '${containerRegistry}/sagaway.demo.reservation.ui-new:l
 var serviceBusConnectionString = listKeys('${serviceBus.id}/AuthorizationRules/RootManageSharedAccessKey', '2022-10-01-preview').primaryConnectionString
 var signalRConnectionString = listKeys('${resourceGroup().id}/providers/Microsoft.SignalRService/signalR/${signalR.name}', '2023-02-01').primaryConnectionString
 
+var reservationManagerAppName = 'reservation-manager'
+var reservationManagerImage = '${containerRegistry}/sagaway.demo.reservation.manager:latest'
+
+var logAnalyticsWorkspaceName = 'la-sagaway-${uniqueString(resourceGroup().id)}' // Customize as needed
+var applicationInsightsName = 'appi-sagaway-${uniqueString(resourceGroup().id)}' // Customize as needed
+
+resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
+  name: logAnalyticsWorkspaceName
+  location: location
+  properties: {
+    sku: {
+      name: 'PerGB2018'
+    }
+    retentionInDays: 30
+  }
+}
+
+resource applicationInsights 'Microsoft.Insights/components@2020-02-02' = {
+  name: applicationInsightsName
+  location: location
+  kind: 'web'
+  properties: {
+    Application_Type: 'web'
+    WorkspaceResourceId: logAnalyticsWorkspace.id
+    publicNetworkAccessForIngestion: 'Enabled'
+    publicNetworkAccessForQuery: 'Enabled'
+  }
+  
+}
+
 resource keyVault 'Microsoft.KeyVault/vaults@2022-11-01' = {
   name: keyVaultName
   location: location
@@ -342,10 +372,7 @@ resource statestore 'Microsoft.App/managedEnvironments/daprComponents@2023-05-01
   ]
 }
 
-// Reservation Manager Container App (Defined Separately)
-var reservationManagerAppName = 'reservation-manager'
-var reservationManagerImage = '${containerRegistry}/sagaway.demo.reservation.manager:latest'
-
+//----------------------------- Container App -----------------------------
 resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
   name: reservationManagerAppName
   location: location
@@ -396,6 +423,8 @@ resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
           allowCredentials: true
         }
       }
+
+      
     }
     template: {
       containers: [
@@ -410,6 +439,10 @@ resource reservationManagerApp 'Microsoft.App/containerApps@2023-05-01' = {
             {
               name: 'ASPNETCORE_URLS'
               value: 'http://+:8080'
+            }
+            {
+              name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+              value: applicationInsights.properties.ConnectionString
             }
           ]
         }
@@ -462,6 +495,10 @@ resource backendContainerApps 'Microsoft.App/containerApps@2023-05-01' = [for ap
             {
               name: 'ASPNETCORE_URLS'
               value: 'http://+:8080'
+            }
+            {
+              name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+              value: applicationInsights.properties.ConnectionString
             }
           ]
         }
@@ -523,5 +560,6 @@ resource reservationUiApp 'Microsoft.App/containerApps@2023-05-01' = {
     }
   }
 }
+
 
 
