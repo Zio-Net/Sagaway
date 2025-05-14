@@ -21,7 +21,7 @@ spec:
         - name: acr-secret
       containers:
       - name: inventory-management
-        image: ${ACR_NAME}.azurecr.io/sagawayreservationdemoinventorymanagement:latest
+        image: ${ACR_NAME}.azurecr.io/sagaway.demo.inventory.manager:latest
         ports:
         - containerPort: 8080
         env:

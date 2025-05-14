@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Dapr.Actors.Client;
 using Dapr.Client;
 using OpenTelemetry.Trace;
+using StackExchange.Redis;
 using Sagaway.Callback.Router;
 using Sagaway.OpenTelemetry;
 using Sagaway.ReservationDemo.ReservationManager.Actors;
@@ -80,6 +81,12 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddHostedService<SignalRService>();
 
+builder.Services.AddApplicationInsightsTelemetry();
+
+var redisHost = builder.Configuration["RedisHost"] ?? "redis";
+var redis = ConnectionMultiplexer.Connect($"{redisHost}:6379");
+builder.Services.AddSingleton<IConnectionMultiplexer>(redis);
+    
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -374,6 +381,30 @@ app.MapPost("/update-allocation", async (
     .WithName("UpdateCarClassAllocation")
     .WithOpenApi();
 
+
+app.MapPost("/admin/reset-data", async (
+        [FromServices] IConnectionMultiplexer redis,
+        [FromServices] ILogger<Program> logger) =>
+    {
+        logger.LogInformation("Received request to reset Redis data");
+
+        try
+        {
+            var db = redis.GetDatabase();
+            await db.ExecuteAsync("FLUSHALL");
+
+            logger.LogInformation("Successfully flushed all Redis databases");
+
+            return Results.Ok("Redis data cleared.");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error occurred while flushing Redis");
+            return Results.Problem("Failed to reset Redis. Please try again later.");
+        }
+    })
+    .WithName("ResetRedisData")
+    .WithOpenApi();
 
 
 app.MapHealthChecks("/healthz");

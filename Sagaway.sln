@@ -88,6 +88,9 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sagaway.ReservationDemo.ReservationUI", "Sagaway.ReservationDemo\Sagaway.ReservationDemo.ReservationUI\Sagaway.ReservationDemo.ReservationUI.csproj", "{B820A3FC-B8DE-2C80-73C8-98B38CE54881}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "aks", "aks", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+	ProjectSection(SolutionItems) = preProject
+		add insights.txt = add insights.txt
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "dapr", "dapr", "{20442DDD-0DFC-4347-A84E-C488A5259A54}"
 	ProjectSection(SolutionItems) = preProject

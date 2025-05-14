@@ -1,9 +1,9 @@
 param location string = resourceGroup().location
 param containerRegistryName string
 
-var cosmosDbAccountName = 'sagaway-cosmosdb'
-var serviceBusNamespaceName = 'sagaway-sbnamespace'
-var signalrName = 'sagaway123-signalr'
+var cosmosDbAccountName = 'sagaway-cosmosdb-aks'
+var serviceBusNamespaceName = 'sagaway-sbnamespace-aks'
+var signalrName = 'sagaway-signalr-aks-benny'
 
 var billingQueueName = 'billing-queue'
 var bookingQueueName = 'booking-queue'
@@ -12,13 +12,13 @@ var reservationResponseQueueName = 'reservation-response-queue'
 var testQueueName = 'test-queue'
 var testResponseQueueName = 'test-response-queue'
 
-module cosmosDbModule 'modules/cosmosdb.bicep' = {
-  name: 'CosmosDbModule'
-  params: {
-    cosmosDbAccountName: cosmosDbAccountName
-    location: location
-  }
-}
+//module cosmosDbModule 'modules/cosmosdb.bicep' = {
+//  name: 'CosmosDbModule'
+//  params: {
+//    cosmosDbAccountName: cosmosDbAccountName
+//    location: location
+//  }
+//}
 
 module serviceBusModule 'modules/servicebus.bicep' = {
   name: 'ServiceBusModule'

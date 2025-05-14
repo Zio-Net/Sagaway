@@ -22,7 +22,7 @@ spec:
         - name: acr-secret
       containers:
       - name: billing-management
-        image: ${ACR_NAME}.azurecr.io/sagawayreservationdemobillingmanagement:latest
+        image: ${ACR_NAME}.azurecr.io/sagaway.demo.billing.manager:latest
         ports:
         - containerPort: 8080
         env:

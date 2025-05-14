@@ -1,0 +1,34 @@
+APP_INSIGHTS_NAME="SagawayAppInsights"
+RESOURCE_GROUP="SagawayDemoAKS"
+LOCATION="westus2"
+
+az monitor app-insights component create \
+  --app $APP_INSIGHTS_NAME \
+  --location $LOCATION \
+  --resource-group $RESOURCE_GROUP \
+  --application-type web \
+  --kind web
+
+
+
+
+APP_INSIGHTS_CONN=$(az monitor app-insights component show \
+  --app $APP_INSIGHTS_NAME \
+  --resource-group $RESOURCE_GROUP \
+  --query connectionString \
+  --output tsv)
+
+echo $APP_INSIGHTS_CONN
+
+
+
+
+kubectl set env deployment/reservation-manager \
+  APPLICATIONINSIGHTS_CONNECTION_STRING="$APP_INSIGHTS_CONN" \
+  --namespace sagaway
+
+
+
+
+kubectl rollout restart deployment/reservation-manager --namespace sagaway
+
