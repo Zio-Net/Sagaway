@@ -21,7 +21,7 @@ spec:
         - name: acr-secret
       containers:
       - name: booking-management
-        image: ${ACR_NAME}.azurecr.io/sagawayreservationdemobookingmanagement:latest
+        image: ${ACR_NAME}.azurecr.io/sagaway.demo.booking.manager:latest
         ports:
         - containerPort: 8080
         env:

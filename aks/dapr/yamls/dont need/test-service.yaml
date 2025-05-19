@@ -1,28 +1,27 @@
-# Billing Management Service
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: billing-management
+  name: testservice
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: billing-management
+      app: testservice
   template:
     metadata:
       labels:
-        app: billing-management
+        app: testservice
       annotations:
         dapr.io/enabled: "true"
-        dapr.io/app-id: "billing-management"
+        dapr.io/app-id: "testservice"
         dapr.io/app-port: "8080"
         dapr.io/config: "sagaway"
     spec:
       imagePullSecrets:
         - name: acr-secret
       containers:
-      - name: billing-management
-        image: ${ACR_NAME}.azurecr.io/sagaway.demo.billing.manager:latest
+      - name: testservice
+        image: ${ACR_NAME}.azurecr.io/sagawayintegrationteststestservice:latest
         ports:
         - containerPort: 8080
         env:
@@ -34,10 +33,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: billing-management
+  name: testservice
 spec:
   selector:
-    app: billing-management
+    app: testservice
   ports:
   - port: 8080
     targetPort: 8080

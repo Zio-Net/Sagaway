@@ -47,8 +47,17 @@ public interface IReservationManager
     /// <returns>True if the cancellation request was accepted, false otherwise.</returns>
     Task<bool> CancelReservationAsync(Guid reservationId);
 
-    /// <summary>
-    /// Event triggered when the state of reservations changes.
-    /// </summary>
-    event Action StateChanged;
+	/// <summary>
+	/// Initiates the cleanup process for the db.
+	/// </summary>
+	/// <returns>True if the request was accepted, false otherwise.</returns>
+	Task<bool> CleanTheDatabaseAsync();
+
+	/// <summary>
+	/// Event triggered when the state of reservations changes.
+	/// </summary>
+	event Action StateChanged;
+
+    ValueTask DisposeAsync();
+
 }

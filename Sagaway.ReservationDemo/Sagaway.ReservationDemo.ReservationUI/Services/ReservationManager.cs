@@ -484,6 +484,37 @@ public class ReservationManager : IReservationManager, IAsyncDisposable
         NotifyStateChanged(customerId);
     }
 
+    public async Task<bool> CleanTheDatabaseAsync()
+    {
+		try
+		{
+			var (cancellationAccepted, statusCode) = await _apiClient.CleanTheDatabasaeASync();
+
+			if (cancellationAccepted)
+			{
+
+				_logger.LogInformation("DB cleanup request accepted.");
+				return true;
+			}
+
+			if (statusCode == HttpStatusCode.NotFound)
+			{
+				_logger.LogInformation("404 server wasn't found.");
+
+				return true; 
+			}
+
+			_logger.LogWarning("DB cleanup request was rejected by API with status code {StatusCode}",
+				 statusCode);
+			return false;
+		}
+		catch (Exception ex)
+		{
+			_logger.LogError(ex, "Error while trying to clean the DB");
+			return false;
+		}
+	}
+
     public async Task<bool> CancelReservationAsync(Guid reservationId)
     {
         if (reservationId == Guid.Empty)

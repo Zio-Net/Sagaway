@@ -21,7 +21,7 @@ spec:
         - name: acr-secret
       containers:
         - name: reservation-manager
-          image: ${ACR_NAME}.azurecr.io/sagawayreservationdemoreservationmanager:latest
+          image: ${ACR_NAME}.azurecr.io/sagaway.demo.reservation.manager:latest
           ports:
             - containerPort: 8080
           env:

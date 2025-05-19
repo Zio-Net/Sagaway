@@ -18,7 +18,7 @@ spec:
         - name: acr-secret
       containers:
         - name: reservation-ui
-          image: ${ACR_NAME}.azurecr.io/sagawayreservationdemoreservationui:latest
+          image: ${ACR_NAME}.azurecr.io/sagaway.demo.reservation.ui:latest
           ports:
             - containerPort: 80
 

@@ -1,43 +1,49 @@
-# Billing Management Service
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: billing-management
+  name: orchestrationservice
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: billing-management
+      app: orchestrationservice
   template:
     metadata:
       labels:
-        app: billing-management
+        app: orchestrationservice
       annotations:
         dapr.io/enabled: "true"
-        dapr.io/app-id: "billing-management"
+        dapr.io/app-id: "orchestrationservice"
         dapr.io/app-port: "8080"
         dapr.io/config: "sagaway"
     spec:
       imagePullSecrets:
         - name: acr-secret
       containers:
-      - name: billing-management
-        image: ${ACR_NAME}.azurecr.io/sagaway.demo.billing.manager:latest
+      - name: orchestrationservice
+        image: ${ACR_NAME}.azurecr.io/sagawayintegrationtestsorchestrationservice:latest
         ports:
         - containerPort: 8080
         env:
+        - name: ACTOR_TYPE
+          value: "TestActor"
         - name: ASPNETCORE_ENVIRONMENT
           value: "Development"
         - name: ASPNETCORE_URLS
           value: "http://+:8080"
+        - name: Azure__SignalR__ConnectionString
+          valueFrom:
+            secretKeyRef:
+              name: signalr-connection-string
+              key: signalr-connection-string
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: billing-management
+  name: orchestrationservice
 spec:
   selector:
-    app: billing-management
+    app: orchestrationservice
   ports:
   - port: 8080
     targetPort: 8080

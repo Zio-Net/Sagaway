@@ -1,31 +1,32 @@
-# Billing Management Service
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: billing-management
+  name: steprecordertestservice
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: billing-management
+      app: steprecordertestservice
   template:
     metadata:
       labels:
-        app: billing-management
+        app: steprecordertestservice
       annotations:
         dapr.io/enabled: "true"
-        dapr.io/app-id: "billing-management"
+        dapr.io/app-id: "steprecordertestservice"
         dapr.io/app-port: "8080"
         dapr.io/config: "sagaway"
     spec:
       imagePullSecrets:
         - name: acr-secret
       containers:
-      - name: billing-management
-        image: ${ACR_NAME}.azurecr.io/sagaway.demo.billing.manager:latest
+      - name: steprecordertestservice
+        image: ${ACR_NAME}.azurecr.io/sagawayintegrationtestssteprecordertestservice:latest
         ports:
         - containerPort: 8080
         env:
+        - name: ACTOR_TYPE
+          value: "StepRecorderTestActor"
         - name: ASPNETCORE_ENVIRONMENT
           value: "Development"
         - name: ASPNETCORE_URLS
@@ -34,10 +35,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: billing-management
+  name: steprecordertestservice
 spec:
   selector:
-    app: billing-management
+    app: steprecordertestservice
   ports:
   - port: 8080
     targetPort: 8080

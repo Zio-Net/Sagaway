@@ -328,5 +328,49 @@ namespace Sagaway.ReservationDemo.ReservationUI.Services
                 return (false, HttpStatusCode.InternalServerError);
             }
         }
-    }
+
+		public async Task<(bool Success, HttpStatusCode StatusCode)> CleanTheDatabasaeASync()
+		{
+			var relativePathAndQuery = $"/admin/reset-data";
+			var absoluteUri = _navigationManager.ToAbsoluteUri(relativePathAndQuery); // Construct absolute URI
+			_logger.LogInformation("Sending POST request to absolute URI: {AbsoluteUri}", absoluteUri);
+
+			using var request = new HttpRequestMessage(HttpMethod.Post, absoluteUri); // Use absolute URI
+
+			try
+			{
+				using var response = await _http.SendAsync(request);
+				var statusCode = response.StatusCode;
+
+				if (response.IsSuccessStatusCode)
+				{
+					_logger.LogInformation(
+						"Successfully requested DB cleanup to {absoluteUri}", absoluteUri);
+					return (true, statusCode);
+				}
+
+				var errorContent = await response.Content.ReadAsStringAsync();
+				_logger.LogWarning(
+					"DB cleanup request failed via {AbsoluteUri}. Status Code: {StatusCode}. Response: {Response}",
+					absoluteUri, response.StatusCode, errorContent);
+				return (false, statusCode);
+
+			}
+			catch (HttpRequestException ex)
+			{
+				var statusCode = ex.StatusCode ?? HttpStatusCode.InternalServerError;
+
+				_logger.LogError(ex, "HTTP request failed when calling {AbsoluteUri}. Status Code: {StatusCode}",
+					absoluteUri, ex.StatusCode);
+				return (false, statusCode);
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex,
+					"An unexpected error occurred during CleanTheDatabasaeASync for URI {AbsoluteUri}",
+					absoluteUri);
+				return (false, HttpStatusCode.InternalServerError);
+			}
+		}
+	}
 }

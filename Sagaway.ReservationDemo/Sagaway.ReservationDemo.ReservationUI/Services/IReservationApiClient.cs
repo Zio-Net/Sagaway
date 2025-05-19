@@ -53,4 +53,10 @@ public interface IReservationApiClient
     /// </summary>
     /// <returns>A CarInventoryResponse object containing the list of car classes and their allocation details.</returns>
     Task<CarInventoryResponse> GetCarInventoryAsync();
+
+	/// <summary>
+	/// Cleans all reservation history.
+	/// </summary>
+	/// <returns>Is operation sucessfull or failed</returns>
+	Task<(bool Success, HttpStatusCode StatusCode)> CleanTheDatabasaeASync();
 }
