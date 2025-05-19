@@ -12,6 +12,8 @@ Despite the inherent complexity, the asynchronous Saga is favored for its contri
 
 ## The Car Reservation Demo
 
+![Sagaway Demo](./SagawayCarReservationDemo.png)
+
 To understand Saga and the Sagaway framework, first look at the [Sagaway.ReservationDemo](https://github.com/alonf/Sagaway/tree/master/Sagaway.ReservationDemo), which is part of the Sagaway solution.
 
 The Demo Car Reservation System exemplifies a contemporary approach to distributed transaction management within a microservice architecture. At its core, the system is designed to facilitate the reserving and canceling of car bookings while maintaining a consistent and reliable state across various services, each with a distinct responsibility.
